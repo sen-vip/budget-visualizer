@@ -33,6 +33,7 @@ import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "re
 type ViewTab = "overview" | "promotion" | "closing";
 type MainView = "mine" | "plan" | "school";
 type BusinessFilter = "all" | "available" | "complete";
+type BusinessViewMode = "item" | "detail";
 type FundFilter = "all" | "school" | "purpose" | "revenue";
 type AttentionKind = "all" | "overrun" | "unspent" | "low" | "large" | "nearly" | "pending";
 
@@ -927,7 +928,7 @@ function BusinessFileRouteGuide() {
 }
 
 function BusinessUploadPrompt({ choose, loading, error }: { choose: () => void; loading: boolean; error: string }) {
-  return <section className="centered-upload page-content"><div className="prompt-icon"><BriefcaseBusiness size={28} /></div><span className="section-kicker">내 사업 시작하기</span><h1>사업관리카드(현액)를 불러와주세요</h1><p>내가 지금 새로 사용할 수 있는 금액과 산출내역별 잔액을 먼저 보여드려요.</p><button className="button primary" onClick={choose} disabled={loading}><FileSpreadsheet size={18} />{loading ? "분석 중..." : "사업관리카드(현액) 불러오기"}</button><BusinessFileRouteGuide />{error && <div className="error-message" role="alert"><AlertCircle size={17} />{error}</div>}</section>;
+  return <section className="centered-upload page-content"><div className="prompt-icon"><BriefcaseBusiness size={28} /></div><span className="section-kicker">내 사업 시작하기</span><h1>사업관리카드(현액)를 불러와주세요</h1><p>내가 지금 새로 사용할 수 있는 금액과 세부항목별 잔액을 먼저 보여드려요.</p><button className="button primary" onClick={choose} disabled={loading}><FileSpreadsheet size={18} />{loading ? "분석 중..." : "사업관리카드(현액) 불러오기"}</button><BusinessFileRouteGuide />{error && <div className="error-message" role="alert"><AlertCircle size={17} />{error}</div>}</section>;
 }
 
 function SchoolUploadPrompt({ choose, loading, error, dragging, setDragging, dropFile }: { choose: () => void; loading: boolean; error: string; dragging: boolean; setDragging: (value: boolean) => void; dropFile: (event: DragEvent<HTMLDivElement>) => void }) {
@@ -942,15 +943,48 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
   updatePlan: (row: BusinessCardRow, value: string) => void;
   goPlan: () => void;
 }) {
+  const [viewMode, setViewMode] = useState<BusinessViewMode>("item");
   const [filter, setFilter] = useState<BusinessFilter>("all");
   const [search, setSearch] = useState("");
   const [shown, setShown] = useState(30);
-  const filtered = useMemo(() => rows.filter((row) => {
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  const itemGroups = useMemo(() => {
+    const grouped = new Map<string, { id: string; projectName: string; itemName: string; currentBudget: number; obligation: number; paid: number; budgetBalance: number; paymentBalance: number; rows: BusinessCardRow[] }>();
+    rows.forEach((row) => {
+      const id = `${normalize(row.projectName)}|${normalize(row.itemName)}`;
+      const current = grouped.get(id) ?? { id, projectName: row.projectName || "사업명 없음", itemName: row.itemName || "세부항목 없음", currentBudget: 0, obligation: 0, paid: 0, budgetBalance: 0, paymentBalance: 0, rows: [] };
+      current.currentBudget += row.currentBudget;
+      current.obligation += row.obligation;
+      current.paid += row.paid;
+      current.budgetBalance += row.budgetBalance;
+      current.paymentBalance += row.paymentBalance;
+      current.rows.push(row);
+      grouped.set(id, current);
+    });
+    return [...grouped.values()].sort((a, b) => Number(a.budgetBalance <= 0) - Number(b.budgetBalance <= 0) || b.budgetBalance - a.budgetBalance);
+  }, [rows]);
+
+  const filteredRows = useMemo(() => rows.filter((row) => {
     if (filter === "available" && row.budgetBalance <= 0) return false;
     if (filter === "complete" && row.budgetBalance !== 0) return false;
     const needle = normalize(search);
     return !needle || normalize(`${row.projectName}${row.itemName}${row.costName}${row.calculation}`).includes(needle);
   }).sort((a, b) => Number(a.budgetBalance <= 0) - Number(b.budgetBalance <= 0) || b.budgetBalance - a.budgetBalance), [rows, filter, search]);
+
+  const filteredItems = useMemo(() => itemGroups.filter((group) => {
+    if (filter === "available" && group.budgetBalance <= 0) return false;
+    if (filter === "complete" && group.budgetBalance !== 0) return false;
+    const needle = normalize(search);
+    return !needle || normalize(`${group.projectName}${group.itemName}${group.rows.map((row) => `${row.costName}${row.calculation}`).join("")}`).includes(needle);
+  }), [itemGroups, filter, search]);
+
+  const toggleItem = (id: string) => setExpandedItems((current) => {
+    const next = new Set(current);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  const changeViewMode = (mode: BusinessViewMode) => { setViewMode(mode); setShown(30); };
   const obligationRate = totals.currentBudget ? Math.max(0, Math.min(100, totals.obligation / totals.currentBudget * 100)) : 0;
   const paymentRate = totals.currentBudget ? Math.max(0, Math.min(100, totals.paid / totals.currentBudget * 100)) : 0;
   return <div className="page-content business-page">
@@ -959,10 +993,27 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
       <div className="business-kpis"><article><span>전체 예산</span><small>예산현액</small><strong>{formatCompactWon(totals.currentBudget)}</strong></article><article><span>이미 사용하기로 한 금액</span><small>원인행위액</small><strong>{formatCompactWon(totals.obligation)}</strong></article><article><span>지급 완료</span><small>지급액</small><strong>{formatCompactWon(totals.paid)}</strong></article></div>
     </section>
     <section className="business-progress"><div className="section-heading"><span className="section-kicker">집행 단계</span><h2>사용 결정과 지급 완료를 나눠 봅니다</h2><p>두 비율 모두 전체 예산을 기준으로 계산합니다.</p></div><div className="business-progress-grid"><ProgressStep title="이미 사용하기로 한 금액" label="원인행위 기준" rate={obligationRate} primaryLabel="원인행위액" primaryValue={totals.obligation} remainderLabel="현재 사용 가능" remainderValue={totals.budgetBalance} tone="blue" /><ProgressStep title="지급 완료" label="지급 기준" rate={paymentRate} primaryLabel="지급액" primaryValue={totals.paid} remainderLabel="지급 전 금액 포함 잔액" remainderValue={totals.paymentBalance} tone="violet" /></div></section>
-    <section className="business-detail-section"><div className="split-heading business-list-head"><div className="section-heading"><span className="section-kicker">산출내역</span><h2>어디에 얼마 남았나요?</h2><p>합계·소계는 제외하고 실제 산출내역만 보여드려요.</p></div><button className="button secondary compact" onClick={goPlan}><ListChecks size={16} />집행 계획 모아보기</button></div>
-      <div className="business-controls"><div className="filter-tabs" role="group" aria-label="산출내역 필터">{(["all", "available", "complete"] as BusinessFilter[]).map((value) => <button key={value} className={filter === value ? "active" : ""} onClick={() => { setFilter(value); setShown(30); }}>{value === "all" ? "전체" : value === "available" ? "잔액 있음" : "집행 완료"}</button>)}</div><label className="business-search"><span className="sr-only">산출내역 검색</span><input value={search} onChange={(event) => { setSearch(event.target.value); setShown(30); }} placeholder="사업·산출내역 검색" /></label></div>
-      <div className="business-detail-list">{filtered.slice(0, shown).map((row) => <BusinessDetailCard key={row.id} row={row} plan={plans[businessPlanKey(meta, row)] ?? 0} updatePlan={updatePlan} />)}{filtered.length === 0 && <EmptyState text="조건에 맞는 산출내역이 없습니다." />}</div>
-      {shown < filtered.length && <button className="button secondary full load-more" onClick={() => setShown((value) => value + 30)}>산출내역 더 보기 · {filtered.length - shown}건 남음</button>}
+    <section className="business-detail-section"><div className="split-heading business-list-head"><div className="section-heading"><span className="section-kicker">예산 상세</span><h2>어디에 얼마 남았나요?</h2><p>{viewMode === "item" ? "세부항목 단위로 먼저 보고, 필요한 항목만 펼쳐 산출내역을 확인하세요." : "합계·소계는 제외하고 실제 산출내역을 한 건씩 보여드려요."}</p></div><button className="button secondary compact" onClick={goPlan}><ListChecks size={16} />집행 계획 모아보기</button></div>
+      <div className="business-view-row"><div className="business-view-toggle" role="group" aria-label="예산 상세 보기 기준"><button className={viewMode === "item" ? "active" : ""} onClick={() => changeViewMode("item")}>세부항목별</button><button className={viewMode === "detail" ? "active" : ""} onClick={() => changeViewMode("detail")}>산출내역별</button></div><span className="business-view-count">{viewMode === "item" ? `세부항목 ${filteredItems.length}개 · 산출내역 ${rows.length}건` : `산출내역 ${filteredRows.length}건`}</span></div>
+      <div className="business-controls"><div className="filter-tabs" role="group" aria-label="예산 상세 필터">{(["all", "available", "complete"] as BusinessFilter[]).map((value) => <button key={value} className={filter === value ? "active" : ""} onClick={() => { setFilter(value); setShown(30); }}>{value === "all" ? "전체" : value === "available" ? "잔액 있음" : "집행 완료"}</button>)}</div><label className="business-search"><span className="sr-only">예산 상세 검색</span><input value={search} onChange={(event) => { setSearch(event.target.value); setShown(30); }} placeholder={viewMode === "item" ? "사업·세부항목 검색" : "사업·산출내역 검색"} /></label></div>
+      {viewMode === "item" ? <div className="business-item-list">{filteredItems.map((group) => {
+        const expanded = expandedItems.has(group.id);
+        const planned = group.rows.reduce((total, row) => total + (plans[businessPlanKey(meta, row)] ?? 0), 0);
+        const forecast = group.budgetBalance - planned;
+        const rate = group.currentBudget ? Math.max(0, Math.min(100, group.obligation / group.currentBudget * 100)) : 0;
+        return <article className={`business-item-group ${group.budgetBalance === 0 ? "complete" : ""} ${forecast < 0 ? "over-plan" : ""}`} key={group.id}>
+          <button className="business-item-summary" onClick={() => toggleItem(group.id)} aria-expanded={expanded}>
+            <div className="business-item-title"><span>{group.projectName}</span><h3>{group.itemName}</h3><small>산출내역 {group.rows.length}건 · 원인행위 {formatPercent(rate)}</small></div>
+            <div className="business-item-metrics"><span><small>전체 예산</small><strong>{formatWon(group.currentBudget)}</strong></span><span><small>이미 사용하기로 한 금액</small><strong>{formatWon(group.obligation)}</strong></span><span className="available"><small>현재 사용 가능</small><strong>{formatWon(group.budgetBalance)}</strong></span></div>
+            <div className="business-item-forecast"><span><small>앞으로 사용할 예정</small><strong>{formatWon(planned)}</strong></span><span><small>예상 잔액</small><strong className={forecast < 0 ? "negative-value" : ""}>{formatWon(forecast)}</strong></span></div>
+            <span className="business-item-expand">{expanded ? "산출내역 접기" : `산출내역 ${group.rows.length}건 보기`}<ChevronDown className={expanded ? "rotated" : ""} size={17} /></span>
+          </button>
+          {expanded && <div className="business-item-details">{group.rows.map((row) => <BusinessDetailCard key={row.id} row={row} plan={plans[businessPlanKey(meta, row)] ?? 0} updatePlan={updatePlan} />)}</div>}
+        </article>;
+      })}{filteredItems.length === 0 && <EmptyState text="조건에 맞는 세부항목이 없습니다." />}</div> : <>
+        <div className="business-detail-list">{filteredRows.slice(0, shown).map((row) => <BusinessDetailCard key={row.id} row={row} plan={plans[businessPlanKey(meta, row)] ?? 0} updatePlan={updatePlan} />)}{filteredRows.length === 0 && <EmptyState text="조건에 맞는 산출내역이 없습니다." />}</div>
+        {shown < filteredRows.length && <button className="button secondary full load-more" onClick={() => setShown((value) => value + 30)}>산출내역 더 보기 · {filteredRows.length - shown}건 남음</button>}
+      </>}
     </section>
   </div>;
 }
@@ -1276,4 +1327,4 @@ function ProjectTable({ groups, expanded, toggle }: { groups: BudgetGroup[]; exp
 function ProjectDetails({ rows }: { rows: BudgetRow[] }) { return <div className="project-details">{groupItemRows(rows).map((item) => <article key={item.name} className={item.overrunRows.length ? "overrun-item" : ""}><div className="detail-title"><strong>{item.name}</strong><span className={item.available < 0 ? "negative-value" : ""}>사용 가능 {formatWon(item.available)}</span></div><div className="detail-metrics"><span>예산 {formatWon(item.budget)}</span><span>원인행위 {formatWon(item.obligation)}</span><span>지급 {formatWon(item.paid)}</span>{item.overrunRows.length > 0 && <b>초과 {item.overrunRows.length}건</b>}</div>{item.overrunRows.length > 0 ? <div className="overrun-lines">{item.overrunRows.map((row, index) => <span key={`${row.calculation}-${index}`}><em>{row.calculation}</em><strong>{formatWon(row.available)}</strong></span>)}</div> : item.calculations.length > 0 && <p>{item.calculations.slice(0, 3).join(" · ")}{item.calculations.length > 3 ? ` 외 ${item.calculations.length - 3}건` : ""}</p>}</article>)}</div>; }
 function AttentionButton({ selected, onClick, icon, tone, title, detail, value }: { selected: boolean; onClick: () => void; icon: React.ReactNode; tone: string; title: string; detail: string; value: string }) { return <button className={selected ? "selected" : ""} onClick={onClick}><div className={`attention-icon ${tone}`}>{icon}</div><div><strong>{title}</strong><span>{detail}</span></div><b>{value}</b><ChevronRight size={17} /></button>; }
 function EmptyState({ text }: { text: string }) { return <div className="empty-state"><SearchCheck size={22} /><p>{text}</p></div>; }
-function HelpModal({ close }: { close: () => void }) { return <div className="modal-backdrop" onMouseDown={close}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onMouseDown={(event) => event.stopPropagation()}><button className="icon-button modal-close" aria-label="도움말 닫기" onClick={close}><X size={20} /></button><span className="eyebrow">도움말</span><h2 id="help-title">예산현황판 사용 방법</h2><div className="help-steps"><div><b>1</b><span><strong>사업관리카드(현액) 내려받기</strong><small>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드 &gt; 사업관리카드(현액)에서 파일을 내려받습니다.</small></span></div><div><b>2</b><span><strong>내 사업 잔액 확인</strong><small>현재 사용 가능은 예산현액에서 원인행위액을 뺀 금액입니다. 합계·소계는 제외하고 실제 산출내역만 집계합니다.</small></span></div><div><b>3</b><span><strong>앞으로 쓸 금액 입력</strong><small>산출내역별 집행예정액을 입력하면 예상 잔액이 바로 계산됩니다. 입력값은 현재 브라우저에만 저장됩니다.</small></span></div><div><b>4</b><span><strong>학교 전체 분석 추가</strong><small>학교 전체 메뉴에서 102-2를 넣으면 기존 전체 현황·업무추진비·결산예측 기능이 열립니다.</small></span></div><div><b>5</b><span><strong>201 세입실적 연결</strong><small>결산예측에서 자료코드 201을 연결하고, 이전수입 반납예정액과 순세계잉여금 잠정값을 확인합니다.</small></span></div></div><div className="privacy-card"><ShieldCheck size={20} /><div><strong>브라우저 안에서만 처리됩니다.</strong><p>업로드한 엑셀은 서버로 전송되지 않습니다. 집행계획과 결산예측 입력도 현재 브라우저에만 저장됩니다.</p></div></div></section></div>; }
+function HelpModal({ close }: { close: () => void }) { return <div className="modal-backdrop" onMouseDown={close}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onMouseDown={(event) => event.stopPropagation()}><button className="icon-button modal-close" aria-label="도움말 닫기" onClick={close}><X size={20} /></button><span className="eyebrow">도움말</span><h2 id="help-title">예산현황판 사용 방법</h2><div className="help-steps"><div><b>1</b><span><strong>사업관리카드(현액) 내려받기</strong><small>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드 &gt; 사업관리카드(현액)에서 파일을 내려받습니다.</small></span></div><div><b>2</b><span><strong>내 사업 잔액 확인</strong><small>현재 사용 가능은 예산현액에서 원인행위액을 뺀 금액입니다. 기본 화면은 세부항목별로 묶어 보여주며 필요한 항목만 펼쳐 산출내역을 확인할 수 있습니다.</small></span></div><div><b>3</b><span><strong>앞으로 쓸 금액 입력</strong><small>산출내역별 집행예정액을 입력하면 예상 잔액이 바로 계산됩니다. 입력값은 현재 브라우저에만 저장됩니다.</small></span></div><div><b>4</b><span><strong>학교 전체 분석 추가</strong><small>학교 전체 메뉴에서 102-2를 넣으면 기존 전체 현황·업무추진비·결산예측 기능이 열립니다.</small></span></div><div><b>5</b><span><strong>201 세입실적 연결</strong><small>결산예측에서 자료코드 201을 연결하고, 이전수입 반납예정액과 순세계잉여금 잠정값을 확인합니다.</small></span></div></div><div className="privacy-card"><ShieldCheck size={20} /><div><strong>브라우저 안에서만 처리됩니다.</strong><p>업로드한 엑셀은 서버로 전송되지 않습니다. 집행계획과 결산예측 입력도 현재 브라우저에만 저장됩니다.</p></div></div></section></div>; }
