@@ -1034,20 +1034,119 @@ function BusinessPlanView({ rows, meta, totals, plans, updatePlan }: {
   plans: Record<string, number>;
   updatePlan: (row: BusinessCardRow, value: string) => void;
 }) {
+  const [viewMode, setViewMode] = useState<BusinessViewMode>("item");
   const [filter, setFilter] = useState<"all" | "planned" | "empty">("all");
   const [search, setSearch] = useState("");
+  const [shown, setShown] = useState(30);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [summaryCondensed, setSummaryCondensed] = useState(false);
+  const summaryRef = useRef<HTMLElement | null>(null);
   const plannedTotal = rows.reduce((total, row) => total + (plans[businessPlanKey(meta, row)] ?? 0), 0);
-  const visible = rows.filter((row) => {
+  const forecastTotal = totals.budgetBalance - plannedTotal;
+
+  const itemGroups = useMemo(() => {
+    const grouped = new Map<string, { id: string; projectName: string; itemName: string; budgetBalance: number; rows: BusinessCardRow[] }>();
+    rows.forEach((row) => {
+      const id = `${normalize(row.projectName)}|${normalize(row.itemName)}`;
+      const current = grouped.get(id) ?? { id, projectName: row.projectName || "사업명 없음", itemName: row.itemName || "세부항목 없음", budgetBalance: 0, rows: [] };
+      current.budgetBalance += row.budgetBalance;
+      current.rows.push(row);
+      grouped.set(id, current);
+    });
+    return [...grouped.values()];
+  }, [rows]);
+
+  const rowMatches = (row: BusinessCardRow, needle: string) => {
     const plan = plans[businessPlanKey(meta, row)] ?? 0;
     if (filter === "planned" && !plan) return false;
     if (filter === "empty" && (plan || row.budgetBalance <= 0)) return false;
-    const needle = normalize(search);
     return !needle || normalize(`${row.projectName}${row.itemName}${row.costName}${row.calculation}`).includes(needle);
-  }).sort((a, b) => Number(Boolean(plans[businessPlanKey(meta, b)])) - Number(Boolean(plans[businessPlanKey(meta, a)])) || b.budgetBalance - a.budgetBalance);
-  return <div className="page-content business-page"><section className="plan-summary"><div className="section-heading"><span className="section-kicker">집행 계획</span><h1>앞으로 쓸 금액을 산출내역별로 정리해요</h1><p>입력값은 이 브라우저에만 저장되며 파일이나 서버로 전송되지 않습니다.</p></div><div className="plan-summary-grid"><article><span>현재 사용 가능</span><strong>{formatCompactWon(totals.budgetBalance)}</strong></article><article><span>앞으로 사용할 예정</span><strong>{formatCompactWon(plannedTotal)}</strong></article><article className={totals.budgetBalance - plannedTotal < 0 ? "negative" : ""}><span>계획 반영 후 예상 잔액</span><strong>{formatCompactWon(totals.budgetBalance - plannedTotal)}</strong></article></div></section>
-    <section className="business-detail-section"><div className="business-controls"><div className="filter-tabs">{(["all", "planned", "empty"] as const).map((value) => <button key={value} className={filter === value ? "active" : ""} onClick={() => setFilter(value)}>{value === "all" ? "전체" : value === "planned" ? "계획 입력됨" : "계획 미입력"}</button>)}</div><label className="business-search"><span className="sr-only">집행 계획 검색</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="사업·산출내역 검색" /></label></div>
-      <div className="business-plan-list">{visible.map((row) => { const plan = plans[businessPlanKey(meta, row)] ?? 0; const forecast = row.budgetBalance - plan; return <article key={row.id} className={forecast < 0 ? "over-plan" : ""}><div><span>{row.projectName} · {row.itemName}</span><strong>{row.calculation}</strong><small>{row.costName}</small></div><div className="plan-balance"><small>현재 사용 가능</small><strong>{formatWon(row.budgetBalance)}</strong></div><label><span>앞으로 사용할 예정</span><div className="won-input"><input inputMode="numeric" value={plan ? plan.toLocaleString("ko-KR") : ""} onChange={(event) => updatePlan(row, event.target.value)} placeholder="0" /><span>원</span></div></label><div className="plan-balance forecast"><small>예상 잔액</small><strong className={forecast < 0 ? "negative-value" : ""}>{formatWon(forecast)}</strong></div>{plan > 0 && <button className="icon-button" onClick={() => updatePlan(row, "")} aria-label={`${row.calculation} 계획 삭제`}><Trash2 size={17} /></button>}</article>; })}{visible.length === 0 && <EmptyState text="조건에 맞는 집행 계획이 없습니다." />}</div>
-    </section></div>;
+  };
+
+  const visibleRows = useMemo(() => {
+    const needle = normalize(search);
+    return rows.filter((row) => rowMatches(row, needle)).sort((a, b) => Number(Boolean(plans[businessPlanKey(meta, b)])) - Number(Boolean(plans[businessPlanKey(meta, a)])) || b.budgetBalance - a.budgetBalance);
+  }, [rows, plans, meta, filter, search]);
+
+  const visibleGroups = useMemo(() => {
+    const needle = normalize(search);
+    return itemGroups.filter((group) => {
+      const groupSearchMatch = !needle || normalize(`${group.projectName}${group.itemName}`).includes(needle);
+      const detailMatches = group.rows.some((row) => rowMatches(row, groupSearchMatch ? "" : needle));
+      return detailMatches;
+    }).sort((a, b) => {
+      const aPlanned = a.rows.reduce((total, row) => total + (plans[businessPlanKey(meta, row)] ?? 0), 0);
+      const bPlanned = b.rows.reduce((total, row) => total + (plans[businessPlanKey(meta, row)] ?? 0), 0);
+      return Number(Boolean(bPlanned)) - Number(Boolean(aPlanned)) || b.budgetBalance - a.budgetBalance;
+    });
+  }, [itemGroups, plans, meta, filter, search]);
+
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const summary = summaryRef.current;
+      if (!summary) return;
+      const topbar = document.querySelector<HTMLElement>(".topbar");
+      const threshold = (topbar?.getBoundingClientRect().height ?? 64) + 8;
+      setSummaryCondensed(summary.getBoundingClientRect().bottom <= threshold);
+    };
+    const schedule = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+    };
+  }, []);
+
+  const toggleItem = (id: string) => setExpandedItems((current) => {
+    const next = new Set(current);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
+  const changeViewMode = (mode: BusinessViewMode) => { setViewMode(mode); setShown(30); };
+  const changeFilter = (value: "all" | "planned" | "empty") => { setFilter(value); setShown(30); };
+
+  return <div className="page-content business-page">
+    <section ref={summaryRef} className="plan-summary"><div className="section-heading"><span className="section-kicker">집행 계획</span><h1>앞으로 쓸 금액을 정리해요</h1><p>세부항목별로 전체 흐름을 보고, 필요한 항목을 펼쳐 산출내역별 금액을 입력하세요. 입력값은 이 브라우저에만 저장됩니다.</p></div><div className="plan-summary-grid"><article><span>현재 사용 가능</span><strong>{formatCompactWon(totals.budgetBalance)}</strong></article><article><span>앞으로 사용할 예정</span><strong>{formatCompactWon(plannedTotal)}</strong></article><article className={forecastTotal < 0 ? "negative" : ""}><span>계획 반영 후 예상 잔액</span><strong>{formatCompactWon(forecastTotal)}</strong></article></div></section>
+    {summaryCondensed && <aside className={`plan-summary-compact ${forecastTotal < 0 ? "negative" : ""}`} aria-label="집행 계획 요약"><div className="plan-compact-title"><ListChecks size={17} /><strong>집행 계획</strong></div><div className="plan-compact-metrics"><span><small>사용 가능</small><strong>{formatCompactWon(totals.budgetBalance)}</strong></span><span><small>사용 예정</small><strong>{formatCompactWon(plannedTotal)}</strong></span><span className="forecast"><small>예상 잔액</small><strong>{formatCompactWon(forecastTotal)}</strong></span></div></aside>}
+    <section className="business-detail-section">
+      <div className="business-view-row"><div className="business-view-toggle" role="group" aria-label="집행 계획 보기 기준"><button className={viewMode === "item" ? "active" : ""} onClick={() => changeViewMode("item")}>세부항목별</button><button className={viewMode === "detail" ? "active" : ""} onClick={() => changeViewMode("detail")}>산출내역별</button></div><span className="business-view-count">{viewMode === "item" ? `세부항목 ${visibleGroups.length}개 · 전체 산출내역 ${rows.length}건` : `산출내역 ${visibleRows.length}건`}</span></div>
+      <div className="business-controls"><div className="filter-tabs">{(["all", "planned", "empty"] as const).map((value) => <button key={value} className={filter === value ? "active" : ""} onClick={() => changeFilter(value)}>{value === "all" ? "전체" : value === "planned" ? "계획 입력됨" : "계획 미입력"}</button>)}</div><label className="business-search"><span className="sr-only">집행 계획 검색</span><input value={search} onChange={(event) => { setSearch(event.target.value); setShown(30); }} placeholder={viewMode === "item" ? "사업·세부항목 검색" : "사업·산출내역 검색"} /></label></div>
+      {viewMode === "item" ? <div className="business-plan-groups">{visibleGroups.map((group) => {
+        const expanded = expandedItems.has(group.id);
+        const planned = group.rows.reduce((total, row) => total + (plans[businessPlanKey(meta, row)] ?? 0), 0);
+        const forecast = group.budgetBalance - planned;
+        const plannedCount = group.rows.filter((row) => (plans[businessPlanKey(meta, row)] ?? 0) > 0).length;
+        const needle = normalize(search);
+        const groupNameMatch = !needle || normalize(`${group.projectName}${group.itemName}`).includes(needle);
+        const detailRows = group.rows.filter((row) => rowMatches(row, groupNameMatch ? "" : needle)).sort((a, b) => Number(Boolean(plans[businessPlanKey(meta, b)])) - Number(Boolean(plans[businessPlanKey(meta, a)])) || b.budgetBalance - a.budgetBalance);
+        return <article className={`business-plan-group ${forecast < 0 ? "over-plan" : ""}`} key={group.id}>
+          <button className="business-plan-group-summary" onClick={() => toggleItem(group.id)} aria-expanded={expanded}>
+            <div className="business-plan-group-title"><span>{group.projectName}</span><h3>{group.itemName}</h3><small>산출내역 {group.rows.length}건 · 계획 {plannedCount}건 입력</small></div>
+            <div className="business-plan-group-metrics"><span><small>현재 사용 가능</small><strong>{formatWon(group.budgetBalance)}</strong></span><span><small>앞으로 사용할 예정</small><strong>{formatWon(planned)}</strong></span><span className="forecast"><small>예상 잔액</small><strong className={forecast < 0 ? "negative-value" : ""}>{formatWon(forecast)}</strong></span></div>
+            <span className="business-item-expand">{expanded ? "산출내역 접기" : `산출내역 ${detailRows.length}건 보기`}<ChevronDown className={expanded ? "rotated" : ""} size={17} /></span>
+          </button>
+          {expanded && <div className="business-plan-group-details">{detailRows.map((row) => <BusinessPlanRow key={row.id} row={row} meta={meta} plans={plans} updatePlan={updatePlan} />)}{detailRows.length === 0 && <EmptyState text="조건에 맞는 산출내역이 없습니다." />}</div>}
+        </article>;
+      })}{visibleGroups.length === 0 && <EmptyState text="조건에 맞는 세부항목이 없습니다." />}</div> : <>
+        <div className="business-plan-list">{visibleRows.slice(0, shown).map((row) => <BusinessPlanRow key={row.id} row={row} meta={meta} plans={plans} updatePlan={updatePlan} />)}{visibleRows.length === 0 && <EmptyState text="조건에 맞는 집행 계획이 없습니다." />}</div>
+        {shown < visibleRows.length && <button className="button secondary full load-more" onClick={() => setShown((value) => value + 30)}>산출내역 더 보기 · {visibleRows.length - shown}건 남음</button>}
+      </>}
+    </section>
+  </div>;
+}
+
+function BusinessPlanRow({ row, meta, plans, updatePlan }: { row: BusinessCardRow; meta: BusinessCardMeta; plans: Record<string, number>; updatePlan: (row: BusinessCardRow, value: string) => void }) {
+  const plan = plans[businessPlanKey(meta, row)] ?? 0;
+  const forecast = row.budgetBalance - plan;
+  return <article className={forecast < 0 ? "over-plan" : ""}><div><span>{row.projectName} · {row.itemName}</span><strong>{row.calculation}</strong><small>{row.costName}</small></div><div className="plan-balance"><small>현재 사용 가능</small><strong>{formatWon(row.budgetBalance)}</strong></div><label><span>앞으로 사용할 예정</span><div className="won-input"><input inputMode="numeric" value={plan ? plan.toLocaleString("ko-KR") : ""} onChange={(event) => updatePlan(row, event.target.value)} placeholder="0" aria-label={`${row.calculation} 앞으로 사용할 예정 금액`} /><span>원</span></div></label><div className="plan-balance forecast"><small>예상 잔액</small><strong className={forecast < 0 ? "negative-value" : ""}>{formatWon(forecast)}</strong></div>{plan > 0 && <button className="icon-button" onClick={() => updatePlan(row, "")} aria-label={`${row.calculation} 계획 삭제`}><Trash2 size={17} /></button>}</article>;
 }
 
 function OverviewTab({ totals, pending, obligationRate, paymentRate, topProjects, focusProject, attention, setAttention, attentionCounts, visibleProjects, expandedProjects, toggleProject }: {
