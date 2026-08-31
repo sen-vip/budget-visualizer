@@ -37,6 +37,8 @@ type BusinessSort = "name-asc" | "name-desc" | "project-asc" | "project-desc" | 
 type BusinessViewMode = "project" | "item" | "detail";
 type FundFilter = "all" | "school" | "purpose" | "revenue";
 type AttentionKind = "all" | "overrun" | "unspent" | "low" | "large" | "nearly" | "pending";
+type SchoolHierarchyLevel = "policy" | "unit" | "project" | "item";
+type SchoolSort = "budget-desc" | "budget-asc" | "obligation-desc" | "obligation-asc" | "paid-desc" | "paid-asc" | "pending-desc" | "pending-asc" | "uncommitted-desc" | "uncommitted-asc" | "name-asc";
 
 type BudgetRow = {
   year: string;
@@ -166,6 +168,22 @@ type TransferReturnPlan = {
 };
 type ClosingAmountField = "extraFutureSpending" | "nextCarryover" | "returns" | "otherDeductions";
 
+type SchoolAnalysisGroup = {
+  id: string;
+  level: SchoolHierarchyLevel;
+  label: string;
+  parentLabel: string;
+  budget: number;
+  obligation: number;
+  paid: number;
+  carryover: number;
+  pending: number;
+  uncommitted: number;
+  obligationRate: number;
+  spendingRate: number;
+  rows: BudgetRow[];
+};
+
 type BusinessCardRow = {
   id: string;
   projectName: string;
@@ -233,7 +251,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.5.0";
+const APP_VERSION = "v0.6.0";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -534,6 +552,77 @@ function groupProjects(rows: BudgetRow[]): BudgetGroup[] {
     current.budget += row.budget; current.obligation += row.obligation; current.paid += row.paid; current.carryover += row.carryover; current.available += row.available; current.fundTypes.add(row.fundType); current.rows.push(row); map.set(id, current);
   });
   return [...map.values()].map((group) => ({ ...group, pending: group.obligation - group.paid, rate: group.budget ? (group.obligation / group.budget) * 100 : 0 }));
+}
+
+function schoolHierarchyId(row: BudgetRow, level: SchoolHierarchyLevel) {
+  if (level === "policy") return row.policyCode || normalize(row.policyName) || "policy-none";
+  if (level === "unit") return [row.policyCode || normalize(row.policyName), row.unitCode || normalize(row.unitName)].join("|");
+  if (level === "project") return [row.policyCode || normalize(row.policyName), row.unitCode || normalize(row.unitName), row.projectCode || normalize(row.projectName)].join("|");
+  return [row.policyCode || normalize(row.policyName), row.unitCode || normalize(row.unitName), row.projectCode || normalize(row.projectName), row.itemCode || normalize(row.itemName)].join("|");
+}
+
+function schoolHierarchyLabel(row: BudgetRow, level: SchoolHierarchyLevel) {
+  if (level === "policy") return row.policyName || "정책사업 없음";
+  if (level === "unit") return row.unitName || "단위사업 없음";
+  if (level === "project") return row.projectName || "세부사업 없음";
+  return row.itemName || "세부항목 없음";
+}
+
+function schoolHierarchyParentLabel(row: BudgetRow, level: SchoolHierarchyLevel) {
+  if (level === "policy") return "학교 전체";
+  if (level === "unit") return row.policyName || "정책사업 없음";
+  if (level === "project") return [row.policyName, row.unitName].filter(Boolean).join(" · ");
+  return [row.unitName, row.projectName].filter(Boolean).join(" · ");
+}
+
+function groupSchoolRows(rows: BudgetRow[], level: SchoolHierarchyLevel): SchoolAnalysisGroup[] {
+  const map = new Map<string, SchoolAnalysisGroup>();
+  rows.forEach((row) => {
+    const id = schoolHierarchyId(row, level);
+    const current = map.get(id) ?? {
+      id,
+      level,
+      label: schoolHierarchyLabel(row, level),
+      parentLabel: schoolHierarchyParentLabel(row, level),
+      budget: 0,
+      obligation: 0,
+      paid: 0,
+      carryover: 0,
+      pending: 0,
+      uncommitted: 0,
+      obligationRate: 0,
+      spendingRate: 0,
+      rows: [],
+    };
+    current.budget += row.budget;
+    current.obligation += row.obligation;
+    current.paid += row.paid;
+    current.carryover += row.carryover;
+    current.rows.push(row);
+    map.set(id, current);
+  });
+  return [...map.values()].map((group) => ({
+    ...group,
+    pending: group.obligation - group.paid,
+    uncommitted: group.budget - group.obligation,
+    obligationRate: group.budget ? (group.obligation / group.budget) * 100 : 0,
+    spendingRate: group.budget ? (group.paid / group.budget) * 100 : 0,
+  }));
+}
+
+function sortSchoolGroups(groups: SchoolAnalysisGroup[], sort: SchoolSort) {
+  const result = [...groups];
+  if (sort === "budget-desc") return result.sort((a, b) => b.budget - a.budget);
+  if (sort === "budget-asc") return result.sort((a, b) => a.budget - b.budget);
+  if (sort === "obligation-desc") return result.sort((a, b) => b.obligation - a.obligation);
+  if (sort === "obligation-asc") return result.sort((a, b) => a.obligation - b.obligation);
+  if (sort === "paid-desc") return result.sort((a, b) => b.paid - a.paid);
+  if (sort === "paid-asc") return result.sort((a, b) => a.paid - b.paid);
+  if (sort === "pending-desc") return result.sort((a, b) => b.pending - a.pending);
+  if (sort === "pending-asc") return result.sort((a, b) => a.pending - b.pending);
+  if (sort === "uncommitted-desc") return result.sort((a, b) => b.uncommitted - a.uncommitted);
+  if (sort === "uncommitted-asc") return result.sort((a, b) => a.uncommitted - b.uncommitted);
+  return result.sort((a, b) => compareText(a.label, b.label));
 }
 
 function groupPromotions(rows: BudgetRow[]): PromotionGroup[] {
@@ -987,7 +1076,7 @@ export default function Home() {
           {mainView === "mine" && (businessMeta ? <MyBusinessView rows={visibleBusinessRows} meta={businessMeta} totals={businessTotals} plans={businessPlans} updatePlan={updateBusinessPlan} goPlan={() => setMainView("plan")} /> : <BusinessUploadPrompt choose={() => businessFileInputRef.current?.click()} loading={businessLoading} error={businessError} />)}
           {mainView === "plan" && (businessMeta ? <BusinessPlanView rows={visibleBusinessRows} meta={businessMeta} totals={businessTotals} plans={businessPlans} updatePlan={updateBusinessPlan} /> : <BusinessUploadPrompt choose={() => businessFileInputRef.current?.click()} loading={businessLoading} error={businessError} />)}
           {mainView === "school" && (!meta ? <SchoolUploadPrompt choose={() => fileInputRef.current?.click()} loading={loading} error={error} dragging={schoolDragging} setDragging={setSchoolDragging} dropFile={onSchoolDrop} /> : <section className="school-area"><div className="school-toolbar"><div><span className="section-kicker">학교 전체 분석 · {tab === "overview" ? "전체 현황" : tab === "promotion" ? "업무추진비" : "결산예측"}</span><strong>{dateLabel(meta.executionDate)} 기준 · {meta.year}회계연도</strong></div>{tab !== "closing" && <label className="filter-field">재원 보기<select value={fundFilter} onChange={(event) => setFundFilter(event.target.value as FundFilter)}><option value="all">전체 사업</option><option value="school">학교운영비</option><option value="purpose">목적사업비</option><option value="revenue">수익자부담</option></select></label>}</div>
-          {tab === "overview" && <OverviewTab totals={totals} pending={pending} obligationRate={obligationRate} paymentRate={paymentRate} topProjects={topAvailableProjects} focusProject={focusProject} attention={attention} setAttention={setAttention} attentionCounts={attentionCounts} visibleProjects={visibleProjects} expandedProjects={expandedProjects} toggleProject={toggleProject} />}
+          {tab === "overview" && <OverviewTab rows={filteredRows} meta={meta} />}
           {tab === "promotion" && <PromotionTab meta={meta} groups={promotionGroups} totals={promotionTotals} plans={plans} forecast={promotionForecast} plannedTotal={visiblePlannedTotal} recheckCount={promotionRecheckCount} selectedId={selectedPromotionId} selected={selectedPromotion} select={loadSelectedPlan} panelOpen={planPanelOpen} closePanel={() => setPlanPanelOpen(false)} amount={planAmount} setAmount={changePlanAmount} month={planMonth} setMonth={setPlanMonth} memo={planMemo} setMemo={setPlanMemo} save={savePlan} remove={removePlan} currentAmount={currentPlanAmount} selectedForecast={selectedForecast} />}
           {tab === "closing" && <ClosingTab meta={meta} expenseRows={rows} expenseTotals={allTotals} revenueRows={revenueRows} revenueMeta={revenueMeta} inputs={closingInputs} plannedPromotion={plannedTotal} plannedPromotionCount={plannedDetailCount} promotionRecheckCount={promotionRecheckCount} plannedYearEnd={plannedYearEndTotal} openPromotion={() => setTab("promotion")} loading={closingLoading} error={closingError} dragging={closingDragging} setDragging={setClosingDragging} dropFile={onRevenueDrop} chooseFile={() => revenueFileInputRef.current?.click()} changeAdditional={changeAdditionalReceipt} changeAmount={changeClosingAmount} changeTransferReturn={changeTransferReturn} removeTransferReturn={removeTransferReturn} changeDetailPlan={changeDetailSpendingPlan} clearDetailPlan={clearDetailSpendingPlan} resetDetailPlans={resetDetailSpendingPlans} setLegacyDecision={setLegacyDecision} changeMemo={(memo) => setClosingInputs((current) => current ? { ...current, memo } : current)} reset={resetClosing} />}</section>)}
           <footer><span>학돌랩 · senvip</span><span><ShieldCheck size={14} />파일·입력값 외부 전송 없음</span></footer>
@@ -1152,7 +1241,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
         </button>;
       })}</div> : <EmptyState text="현재 검색·필터 조건에 맞는 세부사업이 없습니다." />}
       {selectedChart && <div className="business-chart-detail" aria-live="polite"><div><span>선택한 세부사업</span><strong>{selectedChart.projectName}</strong></div><dl><div><dt>내 예산</dt><dd>{formatWon(selectedChart.currentBudget)}</dd></div><div><dt>사용 결정액</dt><dd>{formatWon(selectedChart.obligation)}</dd></div><div><dt>사용 예정</dt><dd>{formatWon(selectedChart.planned)}</dd></div><div><dt>예상 잔액</dt><dd className={selectedChart.forecast < 0 ? "negative-value" : ""}>{formatWon(selectedChart.forecast)}</dd></div></dl><button className="button secondary compact" onClick={() => focusChartProject(selectedChart.projectName)}>이 사업만 목록에서 보기<ChevronRight size={15} /></button></div>}
-      <p className="business-chart-note"><Info size={14} />회색은 원인행위액, 주황은 입력한 집행계획, 청록은 계획 반영 후 예상 잔액입니다. 집행률을 좋음·나쁨으로 평가하지 않습니다.</p>
+      <p className="business-chart-note"><Info size={14} />회색은 원인행위액, 주황은 입력한 집행계획, 청록은 계획 반영 후 예상 잔액입니다.</p>
     </section>
 
     <details className="business-progress business-progress-details"><summary><span><b>집행 단계도 확인하기</b><small>원인행위와 지급 완료를 전체 예산 기준으로 비교합니다.</small></span><ChevronDown size={18} /></summary><div className="business-progress-grid"><ProgressStep title="이미 사용하기로 한 금액" label="원인행위 기준" rate={obligationRate} primaryLabel="원인행위액" primaryValue={filteredTotals.obligation} remainderLabel="현재 사용 가능" remainderValue={filteredTotals.budgetBalance} tone="blue" /><ProgressStep title="지급 완료" label="지급 기준" rate={paymentRate} primaryLabel="지급액" primaryValue={filteredTotals.paid} remainderLabel="지급 전 금액 포함 잔액" remainderValue={filteredTotals.paymentBalance} tone="violet" /></div></details>
@@ -1352,16 +1441,127 @@ function BusinessPlanRow({ row, meta, plans, updatePlan }: { row: BusinessCardRo
   return <article className={forecast < 0 ? "over-plan" : ""}><div><span>{row.projectName} · {row.itemName}</span><strong>{row.calculation}</strong><small>{row.costName}</small></div><div className="plan-balance"><small>현재 사용 가능</small><strong>{formatWon(row.budgetBalance)}</strong></div><label><span>앞으로 사용할 예정</span><div className="won-input"><input inputMode="numeric" value={plan ? plan.toLocaleString("ko-KR") : ""} onChange={(event) => updatePlan(row, event.target.value)} placeholder="0" aria-label={`${row.calculation} 앞으로 사용할 예정 금액`} /><span>원</span></div></label><div className="plan-balance forecast"><small>예상 잔액</small><strong className={forecast < 0 ? "negative-value" : ""}>{formatWon(forecast)}</strong></div>{plan > 0 && <button className="icon-button" onClick={() => updatePlan(row, "")} aria-label={`${row.calculation} 계획 삭제`}><Trash2 size={17} /></button>}</article>;
 }
 
-function OverviewTab({ totals, pending, obligationRate, paymentRate, topProjects, focusProject, attention, setAttention, attentionCounts, visibleProjects, expandedProjects, toggleProject }: {
-  totals: { budget: number; obligation: number; paid: number; carryover: number; available: number }; pending: number; obligationRate: number; paymentRate: number; topProjects: BudgetGroup[]; focusProject: (id: string) => void; attention: AttentionKind; setAttention: (kind: AttentionKind) => void; attentionCounts: { overrun: number; unspent: number; low: number; nearly: number; pending: number }; visibleProjects: BudgetGroup[]; expandedProjects: Set<string>; toggleProject: (id: string) => void;
-}) {
-  return <section className="page-content">
-    <div className="stat-grid overview-stats"><article className={`stat-card primary-stat ${totals.available < 0 ? "negative" : ""}`}><span className="stat-label">지금 새로 집행 가능한 예산</span><strong title={formatWon(totals.available)}>{formatCompactWon(totals.available)}</strong><span className="stat-detail">예산현액에서 원인행위·이월액 제외</span></article><article className="stat-card"><span className="stat-label">예산현액</span><strong title={formatWon(totals.budget)}>{formatCompactWon(totals.budget)}</strong><span className="stat-detail">현재 편성된 전체 예산</span></article><article className="stat-card"><span className="stat-label">집행 진행 중</span><strong title={formatWon(pending)}>{formatCompactWon(pending)}</strong><span className="stat-detail">원인행위 후 지급 전</span></article></div>
-    <section className="budget-progress-section"><div className="section-heading split-heading"><div><span className="section-kicker">전체 흐름</span><h2>예산 진행 상태</h2><p>예산 확정과 실제 지급을 두 단계로 나누어 보여줍니다.</p></div><div className="budget-total-chip"><span>전체 예산</span><strong>{formatCompactWon(totals.budget)}</strong></div></div><div className="progress-step-list"><ProgressStep title="1단계" label="원인행위 진행률" rate={obligationRate} primaryLabel="원인행위 완료" primaryValue={totals.obligation} remainderLabel="새로 집행 가능" remainderValue={totals.available} tone="blue" /><ProgressStep title="2단계" label="지급 진행률" rate={paymentRate} primaryLabel="지급 완료" primaryValue={totals.paid} remainderLabel="지급 대기" remainderValue={pending} tone="violet" /></div>{totals.carryover > 0 && <p className="carryover-note">이월액 {formatCompactWon(totals.carryover)}은 새로 집행 가능한 금액에서 제외했습니다.</p>}</section>
-    <AvailableTopTen groups={topProjects} onSelect={focusProject} />
-    <div className="dashboard-grid"><section className="attention-section"><div className="section-heading"><span className="section-kicker">우선 확인</span><h2>지금 확인할 사업</h2><p>금액과 집행 상태를 기준으로 자동 분류했습니다.</p></div><div className="attention-list"><AttentionButton selected={attention === "overrun"} onClick={() => setAttention("overrun")} icon={<AlertCircle size={18} />} tone="red" title="예산 초과 산출내역" detail="마이너스 잔액 우선 확인" value={`${attentionCounts.overrun}건`} /><AttentionButton selected={attention === "unspent"} onClick={() => setAttention("unspent")} icon={<SearchCheck size={18} />} tone="coral" title="예산은 있으나 미집행" detail="집행계획 확인 필요" value={`${attentionCounts.unspent}건`} /><AttentionButton selected={attention === "low"} onClick={() => setAttention("low")} icon={<ArrowDownRight size={18} />} tone="amber" title="집행률 30% 미만" detail="원인행위가 시작된 사업" value={`${attentionCounts.low}건`} /><AttentionButton selected={attention === "large"} onClick={() => setAttention("large")} icon={<CircleDollarSign size={18} />} tone="blue" title="사용 가능액 상위" detail="잔액이 큰 사업 10건" value="보기" /><AttentionButton selected={attention === "nearly"} onClick={() => setAttention("nearly")} icon={<CheckCircle2 size={18} />} tone="green" title="잔액 10% 미만" detail="추가 집행 전 확인" value={`${attentionCounts.nearly}건`} /><AttentionButton selected={attention === "pending"} onClick={() => setAttention("pending")} icon={<RefreshCw size={18} />} tone="violet" title="지급 진행 중" detail="원인행위 후 지급 전" value={`${attentionCounts.pending}건`} /></div></section>
-      <section className="project-section"><div className="section-heading split-heading"><div><span className="section-kicker">사업별</span><h2>{attention === "all" ? "사용 가능액이 큰 사업" : "선택한 조건의 사업"}</h2><p>{visibleProjects.length}개 세부사업</p></div>{attention !== "all" && <button className="text-button" onClick={() => setAttention("all")}><X size={15} />필터 해제</button>}</div><ProjectTable groups={visibleProjects} expanded={expandedProjects} toggle={toggleProject} />{!visibleProjects.length && <EmptyState text="해당 조건의 사업이 없습니다." />}</section></div>
+function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
+  const [policySort, setPolicySort] = useState<SchoolSort>("budget-desc");
+  const [selectedPolicyId, setSelectedPolicyId] = useState<string | null>(null);
+  const [level, setLevel] = useState<SchoolHierarchyLevel>("policy");
+  const [schoolSort, setSchoolSort] = useState<SchoolSort>("budget-desc");
+  const [search, setSearch] = useState("");
+  const [scope, setScope] = useState<{ level: SchoolHierarchyLevel; id: string; label: string } | null>(null);
+  const availableLevels = useMemo(() => ({
+    policy: rows.some((row) => Boolean(row.policyName)),
+    unit: rows.some((row) => Boolean(row.unitName)),
+    project: rows.some((row) => Boolean(row.projectName)),
+    item: rows.some((row) => Boolean(row.itemName)),
+  }), [rows]);
+
+  useEffect(() => {
+    if (availableLevels[level]) return;
+    const fallback = (["policy", "unit", "project", "item"] as SchoolHierarchyLevel[]).find((candidate) => availableLevels[candidate]);
+    if (fallback) { setLevel(fallback); setScope(null); }
+  }, [availableLevels, level]);
+
+  const totals = useMemo(() => ({
+    budget: sum(rows, "budget"),
+    obligation: sum(rows, "obligation"),
+    paid: sum(rows, "paid"),
+    carryover: sum(rows, "carryover"),
+  }), [rows]);
+  const pending = totals.obligation - totals.paid;
+  const uncommitted = totals.budget - totals.obligation;
+  const policyGroups = useMemo(() => availableLevels.policy ? sortSchoolGroups(groupSchoolRows(rows, "policy"), policySort) : [], [rows, policySort, availableLevels.policy]);
+  const projectGroups = useMemo(() => groupSchoolRows(rows, "project"), [rows]);
+  const pendingTop = useMemo(() => [...projectGroups].filter((group) => group.pending > 0).sort((a, b) => b.pending - a.pending).slice(0, 5), [projectGroups]);
+  const uncommittedTop = useMemo(() => [...projectGroups].filter((group) => group.uncommitted > 0).sort((a, b) => b.uncommitted - a.uncommitted).slice(0, 5), [projectGroups]);
+  const scopedRows = useMemo(() => scope ? rows.filter((row) => schoolHierarchyId(row, scope.level) === scope.id) : rows, [rows, scope]);
+  const hierarchyGroups = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase("ko-KR");
+    const groups = groupSchoolRows(scopedRows, level).filter((group) => !query || `${group.label} ${group.parentLabel}`.toLocaleLowerCase("ko-KR").includes(query));
+    return sortSchoolGroups(groups, schoolSort);
+  }, [scopedRows, level, schoolSort, search]);
+  const selectedPolicy = selectedPolicyId ? policyGroups.find((group) => group.id === selectedPolicyId) ?? null : null;
+
+  const setHierarchyLevel = (next: SchoolHierarchyLevel) => {
+    if (!availableLevels[next]) return;
+    setLevel(next);
+    setScope(null);
+    setSearch("");
+  };
+  const drillDown = (group: SchoolAnalysisGroup) => {
+    const next: SchoolHierarchyLevel | null = group.level === "policy" ? "unit" : group.level === "unit" ? "project" : group.level === "project" ? "item" : null;
+    if (!next) return;
+    setScope({ level: group.level, id: group.id, label: group.label });
+    setLevel(next);
+    setSearch("");
+  };
+  const openPolicyDetail = (group: SchoolAnalysisGroup) => {
+    setScope({ level: "policy", id: group.id, label: group.label });
+    setLevel("unit");
+    setSearch("");
+    requestAnimationFrame(() => document.getElementById("school-hierarchy")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
+
+  return <section className="page-content school-overview-v6">
+    <div className="school-data-basis"><CalendarDays size={16} /><span><strong>데이터 기준 {dateLabel(meta.executionDate)}</strong><small>102-2 · {meta.rowCount.toLocaleString("ko-KR")}개 산출내역</small></span></div>
+
+    <div className="school-kpi-grid">
+      <SchoolKpiCard title="전체 예산" term="예산현액" value={totals.budget} tone="blue" />
+      <SchoolKpiCard title="사용하기로 한 금액" term="원인행위액" value={totals.obligation} tone="slate" />
+      <SchoolKpiCard title="실제 지급한 금액" term="지출액 · 지급 완료" value={totals.paid} tone="navy" />
+      <SchoolKpiCard title="지급 대기" term="원인행위 후 아직 지급 전" value={pending} tone="orange" />
+    </div>
+
+    <section className="school-flow-section">
+      <div className="section-heading split-heading"><div><span className="section-kicker">학교 전체 흐름</span><h2>예산이 지금 어느 단계에 있을까요?</h2><p>예산현액을 지급 완료 · 지급 대기 · 아직 원인행위 전으로 나누어 보여줍니다.</p></div><div className="budget-total-chip"><span>전체 예산</span><strong>{formatReadableWon(totals.budget)}</strong></div></div>
+      <SchoolFlowBar budget={totals.budget} paid={totals.paid} pending={pending} uncommitted={uncommitted} />
+      {totals.carryover > 0 && <p className="carryover-note">102-2의 다음연도 이월액 {formatReadableWon(totals.carryover)}도 별도 집계되어 있습니다.</p>}
+    </section>
+
+    {availableLevels.policy && <section className="policy-flow-section">
+      <div className="section-heading split-heading"><div><span className="section-kicker">큰 단위부터 보기</span><h2>정책사업별 예산 흐름</h2><p>각 정책사업의 예산이 지급 완료, 지급 대기, 미원인행위 상태 중 어디에 있는지 비교합니다.</p></div><label className="school-sort-field">정렬<select value={policySort} onChange={(event) => setPolicySort(event.target.value as SchoolSort)}><option value="budget-desc">예산현액 많은 순</option><option value="budget-asc">예산현액 적은 순</option><option value="paid-desc">지급 완료 많은 순</option><option value="pending-desc">지급 대기 많은 순</option><option value="uncommitted-desc">미원인행위 잔액 많은 순</option><option value="name-asc">정책사업명 가나다순</option></select></label></div>
+      <div className="policy-flow-list">{policyGroups.map((group) => <PolicyFlowRow key={group.id} group={group} selected={selectedPolicyId === group.id} onSelect={() => setSelectedPolicyId((current) => current === group.id ? null : group.id)} />)}</div>
+      {selectedPolicy && <div className="policy-detail-panel"><div><strong>{selectedPolicy.label}</strong><span>예산현액 {formatReadableWon(selectedPolicy.budget)}</span></div><dl><div><dt>원인행위</dt><dd>{formatReadableWon(selectedPolicy.obligation)}</dd></div><div><dt>지급 완료</dt><dd>{formatReadableWon(selectedPolicy.paid)}</dd></div><div><dt>지급 대기</dt><dd>{formatReadableWon(selectedPolicy.pending)}</dd></div><div><dt>아직 원인행위 전</dt><dd>{formatReadableWon(selectedPolicy.uncommitted)}</dd></div></dl><button className="button secondary compact" onClick={() => openPolicyDetail(selectedPolicy)}>이 정책사업 상세보기<ChevronRight size={15} /></button></div>}
+    </section>}
+
+    <section className="school-check-section"><div className="section-heading"><span className="section-kicker">숫자로 확인</span><h2>확인해 볼 예산</h2><p>금액이 큰 사업을 한 번에 모아봅니다.</p></div><div className="school-check-grid"><SchoolCheckList title="지급 대기 금액이 큰 사업" description="원인행위는 되었지만 아직 실제 지급되지 않은 금액" groups={pendingTop} valueKey="pending" /><SchoolCheckList title="아직 원인행위되지 않은 금액이 큰 사업" description="예산현액 중 아직 원인행위되지 않은 금액" groups={uncommittedTop} valueKey="uncommitted" /></div></section>
+
+    <section className="school-hierarchy-section" id="school-hierarchy">
+      <div className="section-heading split-heading"><div><span className="section-kicker">단계별 상세 분석</span><h2>예산을 원하는 단위로 묶어보기</h2><p>{scope ? `${scope.label} 안에서 하위 항목을 보고 있습니다.` : "정책사업부터 세부항목까지 같은 기준으로 비교할 수 있습니다."}</p></div>{scope && <button className="text-button" onClick={() => { setScope(null); setLevel("policy"); }}><X size={15} />전체로 돌아가기</button>}</div>
+      <div className="school-hierarchy-tabs" role="tablist" aria-label="학교 전체 분석 단위"><button disabled={!availableLevels.policy} className={level === "policy" ? "active" : ""} onClick={() => setHierarchyLevel("policy")}>정책사업</button><button disabled={!availableLevels.unit} className={level === "unit" ? "active" : ""} onClick={() => setHierarchyLevel("unit")}>단위사업</button><button disabled={!availableLevels.project} className={level === "project" ? "active" : ""} onClick={() => setHierarchyLevel("project")}>세부사업</button><button disabled={!availableLevels.item} className={level === "item" ? "active" : ""} onClick={() => setHierarchyLevel("item")}>세부항목</button></div>
+      <div className="school-hierarchy-toolbar"><label className="school-search"><SearchCheck size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="사업명 검색" aria-label="학교 전체 사업명 검색" /></label><label className="school-sort-field">정렬<select value={schoolSort} onChange={(event) => setSchoolSort(event.target.value as SchoolSort)}><option value="budget-desc">예산현액 많은 순</option><option value="budget-asc">예산현액 적은 순</option><option value="obligation-desc">원인행위액 많은 순</option><option value="paid-desc">지출액 많은 순</option><option value="pending-desc">지급 대기 많은 순</option><option value="uncommitted-desc">미원인행위 잔액 많은 순</option><option value="name-asc">이름 가나다순</option></select></label></div>
+      <SchoolHierarchyTable groups={hierarchyGroups} onDrill={drillDown} />
+      {!hierarchyGroups.length && <EmptyState text="해당 조건의 사업이 없습니다." />}
+    </section>
   </section>;
+}
+
+function SchoolKpiCard({ title, term, value, tone }: { title: string; term: string; value: number; tone: "blue" | "slate" | "navy" | "orange" }) {
+  return <article className={`school-kpi-card tone-${tone}`}><span>{title}</span><small>{term}</small><strong>{formatReadableWon(value)}</strong><em>{formatWon(value)}</em></article>;
+}
+
+function SchoolFlowBar({ budget, paid, pending, uncommitted }: { budget: number; paid: number; pending: number; uncommitted: number }) {
+  const denominator = Math.max(Math.abs(budget), 1);
+  const paidWidth = Math.max(0, Math.min(100, (paid / denominator) * 100));
+  const pendingWidth = Math.max(0, Math.min(100, (pending / denominator) * 100));
+  const uncommittedWidth = Math.max(0, Math.min(100, (uncommitted / denominator) * 100));
+  return <div className="school-flow-wrap"><div className="school-flow-bar" role="img" aria-label={`지급 완료 ${formatReadableWon(paid)}, 지급 대기 ${formatReadableWon(pending)}, 아직 원인행위 전 ${formatReadableWon(uncommitted)}`}><span className="flow-paid" style={{ width: `${paidWidth}%` }} /><span className="flow-pending" style={{ width: `${pendingWidth}%` }} /><span className="flow-uncommitted" style={{ width: `${uncommittedWidth}%` }} /></div><div className="school-flow-legend"><div><i className="flow-paid" /><span>지급 완료</span><strong>{formatReadableWon(paid)}</strong><small>{formatPercent(budget ? (paid / budget) * 100 : 0)}</small></div><div><i className="flow-pending" /><span>지급 대기</span><strong>{formatReadableWon(pending)}</strong><small>{formatPercent(budget ? (pending / budget) * 100 : 0)}</small></div><div><i className="flow-uncommitted" /><span>아직 원인행위 전</span><strong>{formatReadableWon(uncommitted)}</strong><small>{formatPercent(budget ? (uncommitted / budget) * 100 : 0)}</small></div></div></div>;
+}
+
+function PolicyFlowRow({ group, selected, onSelect }: { group: SchoolAnalysisGroup; selected: boolean; onSelect: () => void }) {
+  const denominator = Math.max(Math.abs(group.budget), 1);
+  const paidWidth = Math.max(0, Math.min(100, (group.paid / denominator) * 100));
+  const pendingWidth = Math.max(0, Math.min(100, (group.pending / denominator) * 100));
+  const uncommittedWidth = Math.max(0, Math.min(100, (group.uncommitted / denominator) * 100));
+  return <button className={`policy-flow-row ${selected ? "selected" : ""}`} onClick={onSelect} aria-expanded={selected}><span className="policy-flow-name"><strong>{group.label}</strong><small>지출 집행률 {formatPercent(group.spendingRate)}</small></span><span className="policy-flow-track"><i className="flow-paid" style={{ width: `${paidWidth}%` }} /><i className="flow-pending" style={{ width: `${pendingWidth}%` }} /><i className="flow-uncommitted" style={{ width: `${uncommittedWidth}%` }} /></span><b>{formatReadableWon(group.budget)}</b><ChevronDown className={selected ? "rotated" : ""} size={16} /></button>;
+}
+
+function SchoolCheckList({ title, description, groups, valueKey }: { title: string; description: string; groups: SchoolAnalysisGroup[]; valueKey: "pending" | "uncommitted" }) {
+  return <article className="school-check-card"><div><strong>{title}</strong><p>{description}</p></div>{groups.length ? <ol>{groups.map((group) => <li key={group.id}><span><b>{group.label}</b><small>{group.parentLabel}</small></span><strong>{formatReadableWon(group[valueKey])}</strong></li>)}</ol> : <div className="school-check-empty">해당 금액이 있는 사업이 없습니다.</div>}</article>;
+}
+
+function SchoolHierarchyTable({ groups, onDrill }: { groups: SchoolAnalysisGroup[]; onDrill: (group: SchoolAnalysisGroup) => void }) {
+  const canDrill = (level: SchoolHierarchyLevel) => level !== "item";
+  return <><div className="school-hierarchy-table-wrap"><table className="data-table school-hierarchy-table"><thead><tr><th>구분</th><th>예산현액</th><th>원인행위액</th><th>지출액</th><th>지급 대기</th><th>미원인행위 잔액</th><th>원인행위율</th><th>지출 집행률</th><th></th></tr></thead><tbody>{groups.map((group) => <tr key={group.id}><td><span className="school-group-name"><strong>{group.label}</strong><small>{group.parentLabel}</small></span></td><td>{formatWon(group.budget)}</td><td>{formatWon(group.obligation)}</td><td>{formatWon(group.paid)}</td><td>{formatWon(group.pending)}</td><td className={group.uncommitted < 0 ? "negative-value" : ""}>{formatWon(group.uncommitted)}</td><td>{formatPercent(group.obligationRate)}</td><td>{formatPercent(group.spendingRate)}</td><td>{canDrill(group.level) && <button className="hierarchy-drill" onClick={() => onDrill(group)}>하위 보기<ChevronRight size={14} /></button>}</td></tr>)}</tbody></table></div><div className="school-hierarchy-mobile">{groups.map((group) => <article key={group.id}><div className="school-hierarchy-mobile-head"><span><strong>{group.label}</strong><small>{group.parentLabel}</small></span>{canDrill(group.level) && <button onClick={() => onDrill(group)}>하위 보기<ChevronRight size={14} /></button>}</div><div className="school-hierarchy-mobile-grid"><span><small>예산현액</small><b>{formatReadableWon(group.budget)}</b></span><span><small>지급 완료</small><b>{formatReadableWon(group.paid)}</b></span><span><small>지급 대기</small><b>{formatReadableWon(group.pending)}</b></span><span><small>원인행위 전</small><b>{formatReadableWon(group.uncommitted)}</b></span></div><div className="school-hierarchy-rates"><span>원인행위율 {formatPercent(group.obligationRate)}</span><span>지출 집행률 {formatPercent(group.spendingRate)}</span></div></article>)}</div></>;
 }
 
 function ProgressStep({ title, label, rate, primaryLabel, primaryValue, remainderLabel, remainderValue, tone }: { title: string; label: string; rate: number; primaryLabel: string; primaryValue: number; remainderLabel: string; remainderValue: number; tone: "blue" | "violet" }) {
@@ -1629,4 +1829,15 @@ function ProjectTable({ groups, expanded, toggle }: { groups: BudgetGroup[]; exp
 function ProjectDetails({ rows }: { rows: BudgetRow[] }) { return <div className="project-details">{groupItemRows(rows).map((item) => <article key={item.name} className={item.overrunRows.length ? "overrun-item" : ""}><div className="detail-title"><strong>{item.name}</strong><span className={item.available < 0 ? "negative-value" : ""}>사용 가능 {formatWon(item.available)}</span></div><div className="detail-metrics"><span>예산 {formatWon(item.budget)}</span><span>원인행위 {formatWon(item.obligation)}</span><span>지급 {formatWon(item.paid)}</span>{item.overrunRows.length > 0 && <b>초과 {item.overrunRows.length}건</b>}</div>{item.overrunRows.length > 0 ? <div className="overrun-lines">{item.overrunRows.map((row, index) => <span key={`${row.calculation}-${index}`}><em>{row.calculation}</em><strong>{formatWon(row.available)}</strong></span>)}</div> : item.calculations.length > 0 && <p>{item.calculations.slice(0, 3).join(" · ")}{item.calculations.length > 3 ? ` 외 ${item.calculations.length - 3}건` : ""}</p>}</article>)}</div>; }
 function AttentionButton({ selected, onClick, icon, tone, title, detail, value }: { selected: boolean; onClick: () => void; icon: React.ReactNode; tone: string; title: string; detail: string; value: string }) { return <button className={selected ? "selected" : ""} onClick={onClick}><div className={`attention-icon ${tone}`}>{icon}</div><div><strong>{title}</strong><span>{detail}</span></div><b>{value}</b><ChevronRight size={17} /></button>; }
 function EmptyState({ text }: { text: string }) { return <div className="empty-state"><SearchCheck size={22} /><p>{text}</p></div>; }
-function HelpModal({ close }: { close: () => void }) { return <div className="modal-backdrop" onMouseDown={close}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onMouseDown={(event) => event.stopPropagation()}><button className="icon-button modal-close" aria-label="도움말 닫기" onClick={close}><X size={20} /></button><span className="eyebrow">도움말</span><h2 id="help-title">예산현황판 사용 방법</h2><div className="help-steps"><div><b>1</b><span><strong>사업관리카드(현액) 내려받기</strong><small>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드 &gt; 사업관리카드(현액)에서 파일을 내려받습니다.</small></span></div><div><b>2</b><span><strong>한눈에 보기</strong><small>내 예산·원인행위액·앞으로 사용할 예정액·예상 잔액을 먼저 보여줍니다. 검색이나 필터를 적용하면 요약과 차트도 같은 조건으로 다시 계산됩니다.</small></span></div><div><b>3</b><span><strong>세부사업·세부항목 요약</strong><small>목록 보기는 산출내역을 한 건씩 보여주고, 세부사업 요약과 세부항목 요약은 같은 항목을 합산해 더 크게 묶어 보여줍니다.</small></span></div><div><b>4</b><span><strong>앞으로 쓸 금액 입력</strong><small>산출내역별 집행예정액을 입력하면 예상 잔액이 바로 계산됩니다. 입력값은 현재 브라우저에만 저장됩니다.</small></span></div><div><b>5</b><span><strong>102-2 내려받아 학교 전체 분석</strong><small>에듀파인 &gt; 학교회계 &gt; 예산결산 &gt; 결산현황 &gt; 집행실적에서 <b>엑셀저장(실시간)</b>을 누르고, 자료코드 <b>102-2</b>를 선택해 내려받습니다. 내려받은 파일을 학교 전체 메뉴에 넣으면 전체 현황·업무추진비·결산예측 기능이 열립니다.</small></span></div><div><b>6</b><span><strong>201 세입실적 연결</strong><small>결산예측에서 자료코드 201을 연결하고, 이전수입 반납예정액과 순세계잉여금 잠정값을 확인합니다.</small></span></div></div><div className="privacy-card"><ShieldCheck size={20} /><div><strong>브라우저 안에서만 처리됩니다.</strong><p>업로드한 엑셀은 서버로 전송되지 않습니다. 집행계획과 결산예측 입력도 현재 브라우저에만 저장됩니다.</p></div></div></section></div>; }
+function HelpModal({ close }: { close: () => void }) {
+  return <div className="modal-backdrop" onMouseDown={close}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onMouseDown={(event) => event.stopPropagation()}><button className="icon-button modal-close" aria-label="도움말 닫기" onClick={close}><X size={20} /></button><span className="eyebrow">도움말</span><h2 id="help-title">예산현황판 사용 방법</h2><div className="help-steps">
+    <div><b>1</b><span><strong>사업관리카드(현액) 내려받기</strong><small>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드 &gt; 사업관리카드(현액)에서 파일을 내려받습니다.</small></span></div>
+    <div><b>2</b><span><strong>한눈에 보기</strong><small>내 예산·원인행위액·앞으로 사용할 예정액·예상 잔액을 먼저 보여줍니다. 검색이나 필터를 적용하면 요약과 차트도 같은 조건으로 다시 계산됩니다.</small></span></div>
+    <div><b>3</b><span><strong>세부사업·세부항목 요약</strong><small>목록 보기는 산출내역을 한 건씩 보여주고, 세부사업 요약과 세부항목 요약은 같은 항목을 합산해 더 크게 묶어 보여줍니다.</small></span></div>
+    <div><b>4</b><span><strong>앞으로 쓸 금액 입력</strong><small>산출내역별 집행예정액을 입력하면 예상 잔액이 바로 계산됩니다. 입력값은 현재 브라우저에만 저장됩니다.</small></span></div>
+    <div><b>5</b><span><strong>102-2 내려받아 학교 전체 분석</strong><small>에듀파인 &gt; 학교회계 &gt; 예산결산 &gt; 결산현황 &gt; 집행실적에서 <b>엑셀저장(실시간)</b>을 누르고, 자료코드 <b>102-2</b>를 선택해 내려받습니다.</small></span></div>
+    <div><b>6</b><span><strong>학교 전체 예산 흐름</strong><small><b>사용하기로 한 금액</b>은 원인행위액, <b>실제 지급한 금액</b>은 지출액입니다. <b>지급 대기</b>는 원인행위액에서 지출액을 뺀 금액이며, <b>아직 원인행위되지 않은 금액</b>은 예산현액에서 원인행위액을 뺀 금액입니다.</small></span></div>
+    <div><b>7</b><span><strong>정책사업부터 세부항목까지 보기</strong><small>학교 전체 현황에서 정책사업·단위사업·세부사업·세부항목 단위로 묶어 보고, 하위 보기를 눌러 단계별로 내려갈 수 있습니다.</small></span></div>
+    <div><b>8</b><span><strong>201 세입실적 연결</strong><small>결산예측에서 자료코드 201을 연결하고, 이전수입 반납예정액과 순세계잉여금 잠정값을 확인합니다.</small></span></div>
+  </div><div className="privacy-card"><ShieldCheck size={20} /><div><strong>브라우저 안에서만 처리됩니다.</strong><p>업로드한 엑셀은 서버로 전송되지 않습니다. 집행계획과 결산예측 입력도 현재 브라우저에만 저장됩니다.</p></div></div></section></div>;
+}
