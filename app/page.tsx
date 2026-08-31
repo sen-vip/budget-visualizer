@@ -233,7 +233,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.4.0";
+const APP_VERSION = "v0.5.0";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -248,6 +248,20 @@ const formatCompactWon = (value: number) => {
   }
   if (abs >= 10_000) return `${sign}${Math.round(abs / 10_000).toLocaleString("ko-KR")}만원`;
   return `${sign}${Math.round(abs).toLocaleString("ko-KR")}원`;
+};
+const formatReadableWon = (value: number) => {
+  const rounded = Math.round(value);
+  const abs = Math.abs(rounded);
+  const sign = rounded < 0 ? "-" : "";
+  if (abs < 10_000) return `${sign}${abs.toLocaleString("ko-KR")}원`;
+  const eok = Math.floor(abs / 100_000_000);
+  const man = Math.floor((abs % 100_000_000) / 10_000);
+  const won = abs % 10_000;
+  const parts: string[] = [];
+  if (eok) parts.push(`${eok.toLocaleString("ko-KR")}억`);
+  if (man) parts.push(`${man.toLocaleString("ko-KR")}만`);
+  if (won) parts.push(won.toLocaleString("ko-KR"));
+  return `${sign}${parts.join(" ")}원`;
 };
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 const normalize = (value: unknown) => String(value ?? "").replace(/[\s\n\r]/g, "").trim();
@@ -1008,17 +1022,25 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
   updatePlan: (row: BusinessCardRow, value: string) => void;
   goPlan: () => void;
 }) {
-  const [viewMode, setViewMode] = useState<BusinessViewMode>("item");
+  const [viewMode, setViewMode] = useState<BusinessViewMode>("detail");
   const [filter, setFilter] = useState<BusinessFilter>("all");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<BusinessSort>("amount-desc");
   const [shown, setShown] = useState(30);
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [selectedChartProject, setSelectedChartProject] = useState("");
 
-  const itemGroups = useMemo(() => {
+  const filteredRows = useMemo(() => rows.filter((row) => {
+    if (filter === "available" && row.budgetBalance <= 0) return false;
+    if (filter === "complete" && row.budgetBalance !== 0) return false;
+    const needle = normalize(search);
+    return !needle || normalize(`${row.projectName}${row.itemName}${row.costName}${row.calculation}`).includes(needle);
+  }).sort((a, b) => compareBusiness(a, b, sort)), [rows, filter, search, sort]);
+
+  const filteredItems = useMemo(() => {
     const grouped = new Map<string, BusinessItemGroup>();
-    rows.forEach((row) => {
+    filteredRows.forEach((row) => {
       const id = `${normalize(row.projectName)}|${normalize(row.itemName)}`;
       const current = grouped.get(id) ?? { id, projectName: row.projectName || "사업명 없음", itemName: row.itemName || "세부항목 없음", currentBudget: 0, obligation: 0, paid: 0, budgetBalance: 0, paymentBalance: 0, rows: [] };
       current.currentBudget += row.currentBudget;
@@ -1029,12 +1051,12 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
       current.rows.push(row);
       grouped.set(id, current);
     });
-    return [...grouped.values()];
-  }, [rows]);
+    return [...grouped.values()].sort((a, b) => compareBusiness(a, b, sort));
+  }, [filteredRows, sort]);
 
-  const projectGroups = useMemo(() => {
+  const filteredProjects = useMemo(() => {
     const grouped = new Map<string, BusinessProjectGroup>();
-    itemGroups.forEach((item) => {
+    filteredItems.forEach((item) => {
       const id = normalize(item.projectName) || "project";
       const current = grouped.get(id) ?? { id, projectName: item.projectName || "사업명 없음", currentBudget: 0, obligation: 0, paid: 0, budgetBalance: 0, paymentBalance: 0, rows: [], items: [] };
       current.currentBudget += item.currentBudget;
@@ -1046,27 +1068,28 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
       current.items.push(item);
       grouped.set(id, current);
     });
-    return [...grouped.values()];
-  }, [itemGroups]);
+    return [...grouped.values()].sort((a, b) => compareBusiness(a, b, sort));
+  }, [filteredItems, sort]);
 
-  const filteredRows = useMemo(() => rows.filter((row) => {
-    if (filter === "available" && row.budgetBalance <= 0) return false;
-    if (filter === "complete" && row.budgetBalance !== 0) return false;
-    const needle = normalize(search);
-    return !needle || normalize(`${row.projectName}${row.itemName}${row.costName}${row.calculation}`).includes(needle);
-  }).sort((a, b) => compareBusiness(a, b, sort)), [rows, filter, search, sort]);
+  const filteredTotals = useMemo(() => filteredRows.reduce((sum, row) => ({
+    currentBudget: sum.currentBudget + row.currentBudget,
+    obligation: sum.obligation + row.obligation,
+    paid: sum.paid + row.paid,
+    budgetBalance: sum.budgetBalance + row.budgetBalance,
+    paymentBalance: sum.paymentBalance + row.paymentBalance,
+  }), { currentBudget: 0, obligation: 0, paid: 0, budgetBalance: 0, paymentBalance: 0 }), [filteredRows]);
 
-  const filteredItems = useMemo(() => itemGroups.filter((group) => {
-    if (filter === "available" && group.budgetBalance <= 0) return false;
-    if (filter === "complete" && group.budgetBalance !== 0) return false;
-    const needle = normalize(search);
-    return !needle || normalize(`${group.projectName}${group.itemName}${group.rows.map((row) => `${row.costName}${row.calculation}`).join("")}`).includes(needle);
-  }).sort((a, b) => compareBusiness(a, b, sort)), [itemGroups, filter, search, sort]);
+  const plannedTotal = useMemo(() => filteredRows.reduce((sum, row) => sum + (plans[businessPlanKey(meta, row)] ?? 0), 0), [filteredRows, plans, meta]);
+  const forecastTotal = filteredTotals.budgetBalance - plannedTotal;
+  const obligationRate = filteredTotals.currentBudget ? Math.max(0, Math.min(100, filteredTotals.obligation / filteredTotals.currentBudget * 100)) : 0;
+  const paymentRate = filteredTotals.currentBudget ? Math.max(0, Math.min(100, filteredTotals.paid / filteredTotals.currentBudget * 100)) : 0;
 
-  const filteredProjects = useMemo(() => {
-    const visibleItemIds = new Set(filteredItems.map((item) => item.id));
-    return projectGroups.filter((project) => project.items.some((item) => visibleItemIds.has(item.id))).sort((a, b) => compareBusiness(a, b, sort));
-  }, [projectGroups, filteredItems, sort]);
+  const chartProjects = useMemo(() => filteredProjects.map((project) => {
+    const planned = project.rows.reduce((sum, row) => sum + (plans[businessPlanKey(meta, row)] ?? 0), 0);
+    return { ...project, planned, forecast: project.budgetBalance - planned };
+  }).sort((a, b) => b.forecast - a.forecast).slice(0, 10), [filteredProjects, plans, meta]);
+  const selectedChart = chartProjects.find((project) => project.id === selectedChartProject) ?? null;
+  const hasActiveScope = filter !== "all" || Boolean(normalize(search));
 
   const toggleProject = (id: string) => setExpandedProjects((current) => {
     const next = new Set(current);
@@ -1079,8 +1102,13 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
     return next;
   });
   const changeViewMode = (mode: BusinessViewMode) => { setViewMode(mode); setShown(30); };
-  const obligationRate = totals.currentBudget ? Math.max(0, Math.min(100, totals.obligation / totals.currentBudget * 100)) : 0;
-  const paymentRate = totals.currentBudget ? Math.max(0, Math.min(100, totals.paid / totals.currentBudget * 100)) : 0;
+  const focusChartProject = (projectName: string) => {
+    setSearch(projectName);
+    setFilter("all");
+    setViewMode("project");
+    setShown(30);
+    window.setTimeout(() => document.getElementById("business-detail-start")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  };
 
   const renderItemGroup = (group: BusinessItemGroup, nested = false) => {
     const expanded = expandedItems.has(group.id);
@@ -1099,18 +1127,41 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
   };
 
   return <div className="page-content business-page">
-    <section className={`business-hero ${totals.budgetBalance < 0 ? "negative" : ""}`}>
-      <div><span className="section-kicker">내 사업</span><h1>현재 사용 가능</h1><strong>{formatCompactWon(totals.budgetBalance)}</strong><p>이미 사용하기로 한 금액을 제외하고 지금 새로 사용할 수 있는 예산이에요.</p><span className="accounting-basis"><Info size={14} />에듀파인 예산잔액 · 원인행위 기준</span></div>
-      <div className="business-kpis"><article><span>전체 예산</span><small>예산현액</small><strong>{formatCompactWon(totals.currentBudget)}</strong></article><article><span>이미 사용하기로 한 금액</span><small>원인행위액</small><strong>{formatCompactWon(totals.obligation)}</strong></article><article><span>지급 완료</span><small>지급액</small><strong>{formatCompactWon(totals.paid)}</strong></article></div>
+    <section className="business-overview-summary" aria-labelledby="business-summary-title">
+      <div className="business-summary-head"><div className="section-heading"><span className="section-kicker">내 사업 한눈에 보기</span><h1 id="business-summary-title">계획까지 반영한 예산 흐름</h1><p>{hasActiveScope ? `현재 검색·필터 결과 ${filteredRows.length}건을 기준으로 다시 계산했어요. 선택 범위 전체 예산은 ${formatReadableWon(totals.currentBudget)}입니다.` : "내 예산에서 사용 결정액과 앞으로의 계획을 빼고, 실제로 얼마나 남는지 먼저 보여드려요."}</p></div>{hasActiveScope && <button className="button ghost compact" onClick={() => { setFilter("all"); setSearch(""); setShown(30); }}>검색·필터 초기화</button>}</div>
+      <div className="business-summary-grid">
+        <article className="business-summary-card budget"><div className="business-summary-icon"><WalletCards size={19} /></div><span>내 예산</span><small>예산현액</small><strong>{formatReadableWon(filteredTotals.currentBudget)}</strong><em>{formatWon(filteredTotals.currentBudget)}</em></article>
+        <article className="business-summary-card committed"><div className="business-summary-icon"><ReceiptText size={19} /></div><span>이미 사용하기로 한 금액</span><small>원인행위액</small><strong>{formatReadableWon(filteredTotals.obligation)}</strong><em>{formatWon(filteredTotals.obligation)}</em></article>
+        <article className="business-summary-card planned"><div className="business-summary-icon"><CalendarDays size={19} /></div><span>앞으로 사용할 예정</span><small>입력한 집행계획</small><strong>{formatReadableWon(plannedTotal)}</strong><em>{formatWon(plannedTotal)}</em></article>
+        <article className={`business-summary-card forecast ${forecastTotal < 0 ? "negative" : ""}`}><div className="business-summary-icon"><CircleDollarSign size={19} /></div><span>예상 잔액</span><small>계획 반영 후 남는 금액</small><strong>{formatReadableWon(forecastTotal)}</strong><em>현재 사용 가능 {formatReadableWon(filteredTotals.budgetBalance)}</em></article>
+      </div>
     </section>
-    <section className="business-progress"><div className="section-heading"><span className="section-kicker">집행 단계</span><h2>사용 결정과 지급 완료를 나눠 봅니다</h2><p>두 비율 모두 전체 예산을 기준으로 계산합니다.</p></div><div className="business-progress-grid"><ProgressStep title="이미 사용하기로 한 금액" label="원인행위 기준" rate={obligationRate} primaryLabel="원인행위액" primaryValue={totals.obligation} remainderLabel="현재 사용 가능" remainderValue={totals.budgetBalance} tone="blue" /><ProgressStep title="지급 완료" label="지급 기준" rate={paymentRate} primaryLabel="지급액" primaryValue={totals.paid} remainderLabel="지급 전 금액 포함 잔액" remainderValue={totals.paymentBalance} tone="violet" /></div></section>
-    <section className="business-detail-section"><div className="split-heading business-list-head"><div className="section-heading"><span className="section-kicker">예산 상세</span><h2>어디에 얼마 남았나요?</h2><p>{viewMode === "project" ? "예산이 너무 많을 때는 세부사업으로 크게 묶어 보고, 필요할 때 세부항목과 산출내역을 펼쳐보세요." : viewMode === "item" ? "세부항목 단위로 먼저 보고, 필요한 항목만 펼쳐 산출내역을 확인하세요." : "합계·소계는 제외하고 실제 산출내역을 한 건씩 보여드려요."}</p></div><button className="button secondary compact" onClick={goPlan}><ListChecks size={16} />집행 계획 모아보기</button></div>
-      <div className="business-view-row"><div className="business-view-toggle" role="group" aria-label="예산 상세 보기 기준"><button className={viewMode === "project" ? "active" : ""} onClick={() => changeViewMode("project")}>세부사업별</button><button className={viewMode === "item" ? "active" : ""} onClick={() => changeViewMode("item")}>세부항목별</button><button className={viewMode === "detail" ? "active" : ""} onClick={() => changeViewMode("detail")}>산출내역별</button></div><span className="business-view-count">{viewMode === "project" ? `세부사업 ${filteredProjects.length}개 · 세부항목 ${filteredItems.length}개` : viewMode === "item" ? `세부항목 ${filteredItems.length}개 · 산출내역 ${rows.length}건` : `산출내역 ${filteredRows.length}건`}</span></div>
-      <div className="business-controls"><div className="filter-tabs" role="group" aria-label="예산 상세 필터">{(["all", "available", "complete"] as BusinessFilter[]).map((value) => <button key={value} className={filter === value ? "active" : ""} onClick={() => { setFilter(value); setShown(30); }}>{value === "all" ? "전체" : value === "available" ? "잔액 있음" : "집행 완료"}</button>)}</div><div className="business-control-tools"><label className="business-sort"><span>정렬</span><select value={sort} onChange={(event) => { setSort(event.target.value as BusinessSort); setShown(30); }}><option value="name-asc">전체 이름 가나다순</option><option value="name-desc">전체 이름 역순</option><option value="project-asc">세부사업 가나다순</option><option value="project-desc">세부사업 역순</option><option value="item-asc">세부항목 가나다순</option><option value="item-desc">세부항목 역순</option><option value="amount-desc">사용 가능액 많은 순</option><option value="amount-asc">사용 가능액 적은 순</option></select></label><label className="business-search"><span className="sr-only">예산 상세 검색</span><input value={search} onChange={(event) => { setSearch(event.target.value); setShown(30); }} placeholder={viewMode === "project" ? "세부사업·세부항목 검색" : viewMode === "item" ? "사업·세부항목 검색" : "사업·산출내역 검색"} /></label></div></div>
+
+    <section className="business-visual-section" aria-labelledby="business-visual-title">
+      <div className="business-visual-head"><div className="section-heading"><span className="section-kicker">한눈에 보기</span><h2 id="business-visual-title">세부사업별 예상 잔액</h2><p>계획까지 반영했을 때 많이 남는 사업부터 최대 10개를 보여드려요.</p></div><span className="business-top-badge">Top {Math.min(chartProjects.length, 10)}</span></div>
+      <div className="business-chart-legend" aria-label="차트 범례"><span><i className="committed" />이미 사용하기로 한 금액</span><span><i className="planned" />앞으로 사용할 예정</span><span><i className="forecast" />예상 잔액</span></div>
+      {chartProjects.length > 0 ? <div className="business-chart" role="list">{chartProjects.map((project, index) => {
+        const totalForScale = Math.max(project.currentBudget, project.obligation + project.planned + Math.max(project.forecast, 0), 1);
+        const committedPct = Math.max(0, project.obligation) / totalForScale * 100;
+        const plannedPct = Math.max(0, project.planned) / totalForScale * 100;
+        const forecastPct = Math.max(0, project.forecast) / totalForScale * 100;
+        const selected = selectedChartProject === project.id;
+        return <button type="button" role="listitem" key={project.id} className={`business-chart-row ${selected ? "selected" : ""}`} onClick={() => setSelectedChartProject(selected ? "" : project.id)} aria-expanded={selected}>
+          <span className="business-chart-rank">{index + 1}</span><span className="business-chart-name">{project.projectName}</span><span className={`business-chart-value ${project.forecast < 0 ? "negative-value" : ""}`}>{formatReadableWon(project.forecast)}</span>
+          <span className="business-chart-track" aria-hidden="true"><i className="committed" style={{ width: `${committedPct}%` }} /><i className="planned" style={{ width: `${plannedPct}%` }} /><i className="forecast" style={{ width: `${forecastPct}%` }} /></span>
+        </button>;
+      })}</div> : <EmptyState text="현재 검색·필터 조건에 맞는 세부사업이 없습니다." />}
+      {selectedChart && <div className="business-chart-detail" aria-live="polite"><div><span>선택한 세부사업</span><strong>{selectedChart.projectName}</strong></div><dl><div><dt>내 예산</dt><dd>{formatWon(selectedChart.currentBudget)}</dd></div><div><dt>사용 결정액</dt><dd>{formatWon(selectedChart.obligation)}</dd></div><div><dt>사용 예정</dt><dd>{formatWon(selectedChart.planned)}</dd></div><div><dt>예상 잔액</dt><dd className={selectedChart.forecast < 0 ? "negative-value" : ""}>{formatWon(selectedChart.forecast)}</dd></div></dl><button className="button secondary compact" onClick={() => focusChartProject(selectedChart.projectName)}>이 사업만 목록에서 보기<ChevronRight size={15} /></button></div>}
+      <p className="business-chart-note"><Info size={14} />회색은 원인행위액, 주황은 입력한 집행계획, 청록은 계획 반영 후 예상 잔액입니다. 집행률을 좋음·나쁨으로 평가하지 않습니다.</p>
+    </section>
+
+    <details className="business-progress business-progress-details"><summary><span><b>집행 단계도 확인하기</b><small>원인행위와 지급 완료를 전체 예산 기준으로 비교합니다.</small></span><ChevronDown size={18} /></summary><div className="business-progress-grid"><ProgressStep title="이미 사용하기로 한 금액" label="원인행위 기준" rate={obligationRate} primaryLabel="원인행위액" primaryValue={filteredTotals.obligation} remainderLabel="현재 사용 가능" remainderValue={filteredTotals.budgetBalance} tone="blue" /><ProgressStep title="지급 완료" label="지급 기준" rate={paymentRate} primaryLabel="지급액" primaryValue={filteredTotals.paid} remainderLabel="지급 전 금액 포함 잔액" remainderValue={filteredTotals.paymentBalance} tone="violet" /></div></details>
+
+    <section className="business-detail-section" id="business-detail-start"><div className="split-heading business-list-head"><div className="section-heading"><span className="section-kicker">예산 상세</span><h2>원하는 크기로 묶어 확인하세요</h2><p>{viewMode === "project" ? "세부사업 단위로 합산해서 보고, 필요한 사업만 펼쳐 세부항목을 확인하세요." : viewMode === "item" ? "같은 세부항목을 합산해 보고, 필요한 항목만 펼쳐 산출내역을 확인하세요." : "실제 산출내역을 한 건씩 확인하고 바로 집행계획을 입력할 수 있어요."}</p></div><button className="button secondary compact" onClick={goPlan}><ListChecks size={16} />집행 계획 모아보기</button></div>
+      <div className="business-view-row"><div className="business-view-toggle" role="group" aria-label="예산 상세 보기 기준"><button className={viewMode === "detail" ? "active" : ""} onClick={() => changeViewMode("detail")}>목록 보기</button><button className={viewMode === "project" ? "active" : ""} onClick={() => changeViewMode("project")}>세부사업 요약</button><button className={viewMode === "item" ? "active" : ""} onClick={() => changeViewMode("item")}>세부항목 요약</button></div><span className="business-view-count">{viewMode === "project" ? `세부사업 ${filteredProjects.length}개 · 산출내역 ${filteredRows.length}건` : viewMode === "item" ? `세부항목 ${filteredItems.length}개 · 산출내역 ${filteredRows.length}건` : `산출내역 ${filteredRows.length}건`}</span></div>
+      <div className="business-controls"><div className="filter-tabs" role="group" aria-label="예산 상세 필터">{(["all", "available", "complete"] as BusinessFilter[]).map((value) => <button key={value} className={filter === value ? "active" : ""} onClick={() => { setFilter(value); setShown(30); }}>{value === "all" ? "전체" : value === "available" ? "잔액 있음" : "집행 완료"}</button>)}</div><div className="business-control-tools"><label className="business-sort"><span>정렬</span><select value={sort} onChange={(event) => { setSort(event.target.value as BusinessSort); setShown(30); }}><option value="name-asc">이름 가나다순</option><option value="name-desc">이름 역순</option><option value="project-asc">세부사업 가나다순</option><option value="project-desc">세부사업 역순</option><option value="item-asc">세부항목 가나다순</option><option value="item-desc">세부항목 역순</option><option value="amount-desc">사용 가능액 많은 순</option><option value="amount-asc">사용 가능액 적은 순</option></select></label><label className="business-search"><span className="sr-only">예산 상세 검색</span><input value={search} onChange={(event) => { setSearch(event.target.value); setShown(30); }} placeholder={viewMode === "project" ? "세부사업·세부항목 검색" : viewMode === "item" ? "사업·세부항목 검색" : "사업·산출내역 검색"} /></label></div></div>
       {viewMode === "project" ? <div className="business-project-list">{filteredProjects.map((project) => {
         const expanded = expandedProjects.has(project.id);
-        const visibleItemIds = new Set(filteredItems.map((item) => item.id));
-        const projectItems = project.items.filter((item) => visibleItemIds.has(item.id));
         const planned = project.rows.reduce((total, row) => total + (plans[businessPlanKey(meta, row)] ?? 0), 0);
         const forecast = project.budgetBalance - planned;
         const rate = project.currentBudget ? Math.max(0, Math.min(100, project.obligation / project.currentBudget * 100)) : 0;
@@ -1119,9 +1170,9 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
             <div className="business-project-title"><span>세부사업</span><h3>{project.projectName}</h3><small>세부항목 {project.items.length}개 · 산출내역 {project.rows.length}건 · 원인행위 {formatPercent(rate)}</small></div>
             <div className="business-item-metrics"><span><small>전체 예산</small><strong>{formatWon(project.currentBudget)}</strong></span><span><small>이미 사용하기로 한 금액</small><strong>{formatWon(project.obligation)}</strong></span><span className="available"><small>현재 사용 가능</small><strong>{formatWon(project.budgetBalance)}</strong></span></div>
             <div className="business-item-forecast"><span><small>앞으로 사용할 예정</small><strong>{formatWon(planned)}</strong></span><span><small>예상 잔액</small><strong className={forecast < 0 ? "negative-value" : ""}>{formatWon(forecast)}</strong></span></div>
-            <span className="business-item-expand">{expanded ? "세부항목 접기" : `세부항목 ${projectItems.length}개 보기`}<ChevronDown className={expanded ? "rotated" : ""} size={17} /></span>
+            <span className="business-item-expand">{expanded ? "세부항목 접기" : `세부항목 ${project.items.length}개 보기`}<ChevronDown className={expanded ? "rotated" : ""} size={17} /></span>
           </button>
-          {expanded && <div className="business-project-items">{projectItems.map((item) => renderItemGroup(item, true))}{projectItems.length === 0 && <EmptyState text="조건에 맞는 세부항목이 없습니다." />}</div>}
+          {expanded && <div className="business-project-items">{project.items.map((item) => renderItemGroup(item, true))}{project.items.length === 0 && <EmptyState text="조건에 맞는 세부항목이 없습니다." />}</div>}
         </article>;
       })}{filteredProjects.length === 0 && <EmptyState text="조건에 맞는 세부사업이 없습니다." />}</div> : viewMode === "item" ? <div className="business-item-list">{filteredItems.map((group) => renderItemGroup(group))}{filteredItems.length === 0 && <EmptyState text="조건에 맞는 세부항목이 없습니다." />}</div> : <>
         <div className="business-detail-list">{filteredRows.slice(0, shown).map((row) => <BusinessDetailCard key={row.id} row={row} plan={plans[businessPlanKey(meta, row)] ?? 0} updatePlan={updatePlan} />)}{filteredRows.length === 0 && <EmptyState text="조건에 맞는 산출내역이 없습니다." />}</div>
@@ -1578,4 +1629,4 @@ function ProjectTable({ groups, expanded, toggle }: { groups: BudgetGroup[]; exp
 function ProjectDetails({ rows }: { rows: BudgetRow[] }) { return <div className="project-details">{groupItemRows(rows).map((item) => <article key={item.name} className={item.overrunRows.length ? "overrun-item" : ""}><div className="detail-title"><strong>{item.name}</strong><span className={item.available < 0 ? "negative-value" : ""}>사용 가능 {formatWon(item.available)}</span></div><div className="detail-metrics"><span>예산 {formatWon(item.budget)}</span><span>원인행위 {formatWon(item.obligation)}</span><span>지급 {formatWon(item.paid)}</span>{item.overrunRows.length > 0 && <b>초과 {item.overrunRows.length}건</b>}</div>{item.overrunRows.length > 0 ? <div className="overrun-lines">{item.overrunRows.map((row, index) => <span key={`${row.calculation}-${index}`}><em>{row.calculation}</em><strong>{formatWon(row.available)}</strong></span>)}</div> : item.calculations.length > 0 && <p>{item.calculations.slice(0, 3).join(" · ")}{item.calculations.length > 3 ? ` 외 ${item.calculations.length - 3}건` : ""}</p>}</article>)}</div>; }
 function AttentionButton({ selected, onClick, icon, tone, title, detail, value }: { selected: boolean; onClick: () => void; icon: React.ReactNode; tone: string; title: string; detail: string; value: string }) { return <button className={selected ? "selected" : ""} onClick={onClick}><div className={`attention-icon ${tone}`}>{icon}</div><div><strong>{title}</strong><span>{detail}</span></div><b>{value}</b><ChevronRight size={17} /></button>; }
 function EmptyState({ text }: { text: string }) { return <div className="empty-state"><SearchCheck size={22} /><p>{text}</p></div>; }
-function HelpModal({ close }: { close: () => void }) { return <div className="modal-backdrop" onMouseDown={close}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onMouseDown={(event) => event.stopPropagation()}><button className="icon-button modal-close" aria-label="도움말 닫기" onClick={close}><X size={20} /></button><span className="eyebrow">도움말</span><h2 id="help-title">예산현황판 사용 방법</h2><div className="help-steps"><div><b>1</b><span><strong>사업관리카드(현액) 내려받기</strong><small>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드 &gt; 사업관리카드(현액)에서 파일을 내려받습니다.</small></span></div><div><b>2</b><span><strong>내 사업 잔액 확인</strong><small>현재 사용 가능은 예산현액에서 원인행위액을 뺀 금액입니다. 기본 화면은 세부항목별이며, 필요하면 세부사업별로 더 크게 묶거나 산출내역별로 자세히 볼 수 있습니다.</small></span></div><div><b>3</b><span><strong>앞으로 쓸 금액 입력</strong><small>산출내역별 집행예정액을 입력하면 예상 잔액이 바로 계산됩니다. 입력값은 현재 브라우저에만 저장됩니다.</small></span></div><div><b>4</b><span><strong>102-2 내려받아 학교 전체 분석</strong><small>에듀파인 &gt; 학교회계 &gt; 예산결산 &gt; 결산현황 &gt; 집행실적에서 <b>엑셀저장(실시간)</b>을 누르고, 자료코드 <b>102-2</b>를 선택해 내려받습니다. 내려받은 파일을 학교 전체 메뉴에 넣으면 전체 현황·업무추진비·결산예측 기능이 열립니다.</small></span></div><div><b>5</b><span><strong>201 세입실적 연결</strong><small>결산예측에서 자료코드 201을 연결하고, 이전수입 반납예정액과 순세계잉여금 잠정값을 확인합니다.</small></span></div></div><div className="privacy-card"><ShieldCheck size={20} /><div><strong>브라우저 안에서만 처리됩니다.</strong><p>업로드한 엑셀은 서버로 전송되지 않습니다. 집행계획과 결산예측 입력도 현재 브라우저에만 저장됩니다.</p></div></div></section></div>; }
+function HelpModal({ close }: { close: () => void }) { return <div className="modal-backdrop" onMouseDown={close}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onMouseDown={(event) => event.stopPropagation()}><button className="icon-button modal-close" aria-label="도움말 닫기" onClick={close}><X size={20} /></button><span className="eyebrow">도움말</span><h2 id="help-title">예산현황판 사용 방법</h2><div className="help-steps"><div><b>1</b><span><strong>사업관리카드(현액) 내려받기</strong><small>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드 &gt; 사업관리카드(현액)에서 파일을 내려받습니다.</small></span></div><div><b>2</b><span><strong>한눈에 보기</strong><small>내 예산·원인행위액·앞으로 사용할 예정액·예상 잔액을 먼저 보여줍니다. 검색이나 필터를 적용하면 요약과 차트도 같은 조건으로 다시 계산됩니다.</small></span></div><div><b>3</b><span><strong>세부사업·세부항목 요약</strong><small>목록 보기는 산출내역을 한 건씩 보여주고, 세부사업 요약과 세부항목 요약은 같은 항목을 합산해 더 크게 묶어 보여줍니다.</small></span></div><div><b>4</b><span><strong>앞으로 쓸 금액 입력</strong><small>산출내역별 집행예정액을 입력하면 예상 잔액이 바로 계산됩니다. 입력값은 현재 브라우저에만 저장됩니다.</small></span></div><div><b>5</b><span><strong>102-2 내려받아 학교 전체 분석</strong><small>에듀파인 &gt; 학교회계 &gt; 예산결산 &gt; 결산현황 &gt; 집행실적에서 <b>엑셀저장(실시간)</b>을 누르고, 자료코드 <b>102-2</b>를 선택해 내려받습니다. 내려받은 파일을 학교 전체 메뉴에 넣으면 전체 현황·업무추진비·결산예측 기능이 열립니다.</small></span></div><div><b>6</b><span><strong>201 세입실적 연결</strong><small>결산예측에서 자료코드 201을 연결하고, 이전수입 반납예정액과 순세계잉여금 잠정값을 확인합니다.</small></span></div></div><div className="privacy-card"><ShieldCheck size={20} /><div><strong>브라우저 안에서만 처리됩니다.</strong><p>업로드한 엑셀은 서버로 전송되지 않습니다. 집행계획과 결산예측 입력도 현재 브라우저에만 저장됩니다.</p></div></div></section></div>; }
