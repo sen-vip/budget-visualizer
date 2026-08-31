@@ -251,7 +251,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.2";
+const APP_VERSION = "v0.6.3";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1176,7 +1176,8 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
   const chartProjects = useMemo(() => filteredProjects.map((project) => {
     const planned = project.rows.reduce((sum, row) => sum + (plans[businessPlanKey(meta, row)] ?? 0), 0);
     return { ...project, planned, forecast: project.budgetBalance - planned };
-  }).sort((a, b) => b.forecast - a.forecast).slice(0, 10), [filteredProjects, plans, meta]);
+  }).filter((project) => project.forecast > 0).sort((a, b) => b.forecast - a.forecast).slice(0, 10), [filteredProjects, plans, meta]);
+  const chartMaxForecast = useMemo(() => Math.max(...chartProjects.map((project) => project.forecast), 1), [chartProjects]);
   const selectedChart = chartProjects.find((project) => project.id === selectedChartProject) ?? null;
   const hasActiveScope = filter !== "all" || Boolean(normalize(search));
 
@@ -1227,21 +1228,20 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
     </section>
 
     <section className="business-visual-section" aria-labelledby="business-visual-title">
-      <div className="business-visual-head"><div className="section-heading"><span className="section-kicker">한눈에 보기</span><h2 id="business-visual-title">세부사업별 예상 잔액</h2><p>계획까지 반영했을 때 많이 남는 사업부터 최대 10개를 보여드려요.</p></div><span className="business-top-badge">Top {Math.min(chartProjects.length, 10)}</span></div>
-      <div className="business-chart-legend" aria-label="차트 범례"><span><i className="committed" />이미 사용하기로 한 금액</span><span><i className="planned" />앞으로 사용할 예정</span><span><i className="forecast" />예상 잔액</span></div>
+      <div className="business-visual-head"><div className="section-heading"><span className="section-kicker">한눈에 보기</span><h2 id="business-visual-title">돈이 많이 남는 사업</h2><p>앞으로 사용할 계획까지 반영한 예상 잔액입니다.</p></div><span className="business-top-badge">세부사업 기준 · Top {Math.min(chartProjects.length, 10)}</span></div>
       {chartProjects.length > 0 ? <div className="business-chart" role="list">{chartProjects.map((project, index) => {
-        const totalForScale = Math.max(project.currentBudget, project.obligation + project.planned + Math.max(project.forecast, 0), 1);
-        const committedPct = Math.max(0, project.obligation) / totalForScale * 100;
-        const plannedPct = Math.max(0, project.planned) / totalForScale * 100;
-        const forecastPct = Math.max(0, project.forecast) / totalForScale * 100;
+        const barPct = Math.max(3, (project.forecast / chartMaxForecast) * 100);
         const selected = selectedChartProject === project.id;
         return <button type="button" role="listitem" key={project.id} className={`business-chart-row ${selected ? "selected" : ""}`} onClick={() => setSelectedChartProject(selected ? "" : project.id)} aria-expanded={selected}>
-          <span className="business-chart-rank">{index + 1}</span><span className="business-chart-name">{project.projectName}</span><span className={`business-chart-value ${project.forecast < 0 ? "negative-value" : ""}`}>{formatReadableWon(project.forecast)}</span>
-          <span className="business-chart-track" aria-hidden="true"><i className="committed" style={{ width: `${committedPct}%` }} /><i className="planned" style={{ width: `${plannedPct}%` }} /><i className="forecast" style={{ width: `${forecastPct}%` }} /></span>
+          <span className="business-chart-rank">{index + 1}</span>
+          <span className="business-chart-name">{project.projectName}</span>
+          <span className="business-chart-value"><small>예상 잔액</small><strong>{formatReadableWon(project.forecast)}</strong></span>
+          <span className="business-chart-track" aria-hidden="true"><i className="forecast" style={{ width: `${barPct}%` }} /></span>
+          <span className="business-chart-meta"><span>사용 결정 <b>{formatCompactWon(project.obligation)}</b></span>{project.planned > 0 && <span className="planned">+ 사용 예정 <b>{formatCompactWon(project.planned)}</b></span>}</span>
         </button>;
-      })}</div> : <EmptyState text="현재 검색·필터 조건에 맞는 세부사업이 없습니다." />}
-      {selectedChart && <div className="business-chart-detail" aria-live="polite"><div><span>선택한 세부사업</span><strong>{selectedChart.projectName}</strong></div><dl><div><dt>내 예산</dt><dd>{formatWon(selectedChart.currentBudget)}</dd></div><div><dt>사용 결정액</dt><dd>{formatWon(selectedChart.obligation)}</dd></div><div><dt>사용 예정</dt><dd>{formatWon(selectedChart.planned)}</dd></div><div><dt>예상 잔액</dt><dd className={selectedChart.forecast < 0 ? "negative-value" : ""}>{formatWon(selectedChart.forecast)}</dd></div></dl><button className="button secondary compact" onClick={() => focusChartProject(selectedChart.projectName)}>이 사업만 목록에서 보기<ChevronRight size={15} /></button></div>}
-      <p className="business-chart-note"><Info size={14} />회색은 원인행위액, 주황은 입력한 집행계획, 청록은 계획 반영 후 예상 잔액입니다.</p>
+      })}</div> : <EmptyState text="계획 반영 후 남는 금액이 있는 세부사업이 없습니다." />}
+      {selectedChart && <div className="business-chart-detail" aria-live="polite"><div><span>선택한 세부사업</span><strong>{selectedChart.projectName}</strong></div><dl><div><dt>내 예산</dt><dd>{formatWon(selectedChart.currentBudget)}</dd></div><div><dt>사용 결정액</dt><dd>{formatWon(selectedChart.obligation)}</dd></div><div><dt>사용 예정</dt><dd>{formatWon(selectedChart.planned)}</dd></div><div><dt>예상 잔액</dt><dd>{formatWon(selectedChart.forecast)}</dd></div></dl><button className="button secondary compact" onClick={() => focusChartProject(selectedChart.projectName)}>이 사업만 목록에서 보기<ChevronRight size={15} /></button></div>}
+      <p className="business-chart-note"><Info size={14} />막대가 길수록 계획까지 반영한 뒤 남는 예산이 큽니다. 사용 예정 금액은 입력된 경우에만 표시합니다.</p>
     </section>
 
     <details className="business-progress business-progress-details"><summary><span><b>집행 단계도 확인하기</b><small>원인행위와 지급 완료를 전체 예산 기준으로 비교합니다.</small></span><ChevronDown size={18} /></summary><div className="business-progress-grid"><ProgressStep title="이미 사용하기로 한 금액" label="원인행위 기준" rate={obligationRate} primaryLabel="원인행위액" primaryValue={filteredTotals.obligation} remainderLabel="현재 사용 가능" remainderValue={filteredTotals.budgetBalance} tone="blue" /><ProgressStep title="지급 완료" label="지급 기준" rate={paymentRate} primaryLabel="지급액" primaryValue={filteredTotals.paid} remainderLabel="지급 전 금액 포함 잔액" remainderValue={filteredTotals.paymentBalance} tone="violet" /></div></details>
