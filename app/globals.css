@@ -34,7 +34,9 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .brand-block { display: flex; align-items: center; gap: 11px; }
 .brand-mark { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 11px; background: var(--ink); color: white; }
 .brand-block > div:last-child { display: flex; flex-direction: column; gap: 1px; }
+.brand-title-line { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .brand-block strong { font-size: 16px; font-weight: 700; letter-spacing: -.02em; }
+.version-badge { padding: 2px 6px; flex: 0 0 auto; color: #5f6f85; background: #eef2f7; border: 1px solid #dce3ec; border-radius: 999px; font-size: 10px; font-style: normal; font-weight: 800; line-height: 1.35; letter-spacing: .01em; }
 .brand-block span { color: var(--muted); font-size: 12px; }
 .top-actions { display: flex; align-items: center; gap: 7px; }
 .button { border: 0; border-radius: 10px; min-height: 42px; padding: 0 17px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-size: 14px; font-weight: 650; cursor: pointer; transition: .18s ease; }
@@ -341,8 +343,8 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
 .help-modal h2 { margin: 7px 0 23px; font-size: 24px; letter-spacing: -.035em; }
 .help-steps { display: flex; flex-direction: column; gap: 17px; }
 .help-steps > div { display: grid; grid-template-columns: 30px 1fr; gap: 11px; }
-.help-steps b { width: 30px; height: 30px; display: grid; place-items: center; color: var(--blue); background: var(--blue-soft); border-radius: 8px; font-size: 12px; }
-.help-steps span { display: flex; flex-direction: column; gap: 4px; }.help-steps strong { font-size: 14px; }.help-steps small { color: var(--muted); font-size: 12px; line-height: 1.55; }
+.help-steps > div > b { width: 30px; height: 30px; display: grid; place-items: center; color: var(--blue); background: var(--blue-soft); border-radius: 8px; font-size: 12px; }
+.help-steps span { display: flex; flex-direction: column; gap: 4px; }.help-steps strong { font-size: 14px; }.help-steps small { color: var(--muted); font-size: 12px; line-height: 1.55; }.help-steps small b { display: inline; width: auto; height: auto; color: inherit; background: none; border-radius: 0; font-size: inherit; font-weight: 800; }
 .privacy-card { margin-top: 24px; padding: 15px; display: flex; gap: 11px; color: var(--teal); background: var(--teal-soft); border-radius: 12px; }
 .privacy-card strong { font-size: 13px; }.privacy-card p { margin: 4px 0 0; color: #52736e; font-size: 12px; line-height: 1.6; }
 

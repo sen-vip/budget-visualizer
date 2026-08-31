@@ -33,7 +33,7 @@ import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "re
 type ViewTab = "overview" | "promotion" | "closing";
 type MainView = "mine" | "plan" | "school";
 type BusinessFilter = "all" | "available" | "complete";
-type BusinessSort = "name-asc" | "name-desc" | "amount-desc" | "amount-asc";
+type BusinessSort = "name-asc" | "name-desc" | "project-asc" | "project-desc" | "item-asc" | "item-desc" | "amount-desc" | "amount-asc";
 type BusinessViewMode = "project" | "item" | "detail";
 type FundFilter = "all" | "school" | "purpose" | "revenue";
 type AttentionKind = "all" | "overrun" | "unspent" | "low" | "large" | "nearly" | "pending";
@@ -233,6 +233,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
+const APP_VERSION = "v0.4.0";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -251,12 +252,26 @@ const formatCompactWon = (value: number) => {
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 const normalize = (value: unknown) => String(value ?? "").replace(/[\s\n\r]/g, "").trim();
 type SortableBusiness = { projectName: string; budgetBalance: number; itemName?: string; calculation?: string };
+const compareText = (a: string, b: string) => a.localeCompare(b, "ko-KR", { numeric: true, sensitivity: "base" });
 const compareBusiness = (a: SortableBusiness, b: SortableBusiness, sort: BusinessSort) => {
   if (sort === "amount-desc") return b.budgetBalance - a.budgetBalance;
   if (sort === "amount-asc") return a.budgetBalance - b.budgetBalance;
+
+  if (sort === "project-asc" || sort === "project-desc") {
+    const compared = compareText(a.projectName || "", b.projectName || "");
+    if (compared) return sort === "project-desc" ? -compared : compared;
+    return compareText(a.itemName ?? "", b.itemName ?? "");
+  }
+
+  if (sort === "item-asc" || sort === "item-desc") {
+    const compared = compareText(a.itemName ?? "", b.itemName ?? "");
+    if (compared) return sort === "item-desc" ? -compared : compared;
+    return compareText(a.projectName || "", b.projectName || "");
+  }
+
   const aName = `${a.projectName} ${a.itemName ?? ""} ${a.calculation ?? ""}`.trim();
   const bName = `${b.projectName} ${b.itemName ?? ""} ${b.calculation ?? ""}`.trim();
-  const compared = aName.localeCompare(bName, "ko-KR", { numeric: true, sensitivity: "base" });
+  const compared = compareText(aName, bName);
   return sort === "name-desc" ? -compared : compared;
 };
 const numberValue = (value: unknown) => {
@@ -923,7 +938,7 @@ export default function Home() {
       <input ref={fileInputRef} className="sr-only" type="file" accept=".xlsx,.xls" onChange={onFileChange} aria-label="102-2 엑셀 파일 선택" />
       <input ref={revenueFileInputRef} className="sr-only" type="file" accept=".xlsx,.xls" onChange={(event) => handleRevenueFile(event.target.files?.[0])} aria-label="201 세입실적 엑셀 파일 선택" />
       <header className="topbar">
-        <div className="brand-block"><div className="brand-mark"><BarChart3 size={19} /></div><div><strong>학교회계 예산현황판</strong><span>학돌랩</span></div></div>
+        <div className="brand-block"><div className="brand-mark"><BarChart3 size={19} /></div><div><div className="brand-title-line"><strong>학교회계 예산현황판</strong><em className="version-badge">{APP_VERSION}</em></div><span>학돌랩</span></div></div>
         <div className="top-actions">{(businessMeta || meta) && <button className="button secondary compact" onClick={() => (mainView === "school" ? fileInputRef : businessFileInputRef).current?.click()}><RefreshCw size={16} />자료 변경</button>}<button className="button ghost compact" onClick={() => setHelpOpen(true)}><HelpCircle size={17} />도움말</button></div>
       </header>
 
@@ -1091,7 +1106,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
     <section className="business-progress"><div className="section-heading"><span className="section-kicker">집행 단계</span><h2>사용 결정과 지급 완료를 나눠 봅니다</h2><p>두 비율 모두 전체 예산을 기준으로 계산합니다.</p></div><div className="business-progress-grid"><ProgressStep title="이미 사용하기로 한 금액" label="원인행위 기준" rate={obligationRate} primaryLabel="원인행위액" primaryValue={totals.obligation} remainderLabel="현재 사용 가능" remainderValue={totals.budgetBalance} tone="blue" /><ProgressStep title="지급 완료" label="지급 기준" rate={paymentRate} primaryLabel="지급액" primaryValue={totals.paid} remainderLabel="지급 전 금액 포함 잔액" remainderValue={totals.paymentBalance} tone="violet" /></div></section>
     <section className="business-detail-section"><div className="split-heading business-list-head"><div className="section-heading"><span className="section-kicker">예산 상세</span><h2>어디에 얼마 남았나요?</h2><p>{viewMode === "project" ? "예산이 너무 많을 때는 세부사업으로 크게 묶어 보고, 필요할 때 세부항목과 산출내역을 펼쳐보세요." : viewMode === "item" ? "세부항목 단위로 먼저 보고, 필요한 항목만 펼쳐 산출내역을 확인하세요." : "합계·소계는 제외하고 실제 산출내역을 한 건씩 보여드려요."}</p></div><button className="button secondary compact" onClick={goPlan}><ListChecks size={16} />집행 계획 모아보기</button></div>
       <div className="business-view-row"><div className="business-view-toggle" role="group" aria-label="예산 상세 보기 기준"><button className={viewMode === "project" ? "active" : ""} onClick={() => changeViewMode("project")}>세부사업별</button><button className={viewMode === "item" ? "active" : ""} onClick={() => changeViewMode("item")}>세부항목별</button><button className={viewMode === "detail" ? "active" : ""} onClick={() => changeViewMode("detail")}>산출내역별</button></div><span className="business-view-count">{viewMode === "project" ? `세부사업 ${filteredProjects.length}개 · 세부항목 ${filteredItems.length}개` : viewMode === "item" ? `세부항목 ${filteredItems.length}개 · 산출내역 ${rows.length}건` : `산출내역 ${filteredRows.length}건`}</span></div>
-      <div className="business-controls"><div className="filter-tabs" role="group" aria-label="예산 상세 필터">{(["all", "available", "complete"] as BusinessFilter[]).map((value) => <button key={value} className={filter === value ? "active" : ""} onClick={() => { setFilter(value); setShown(30); }}>{value === "all" ? "전체" : value === "available" ? "잔액 있음" : "집행 완료"}</button>)}</div><div className="business-control-tools"><label className="business-sort"><span>정렬</span><select value={sort} onChange={(event) => { setSort(event.target.value as BusinessSort); setShown(30); }}><option value="name-asc">이름 가나다순</option><option value="name-desc">이름 역순</option><option value="amount-desc">사용 가능액 많은 순</option><option value="amount-asc">사용 가능액 적은 순</option></select></label><label className="business-search"><span className="sr-only">예산 상세 검색</span><input value={search} onChange={(event) => { setSearch(event.target.value); setShown(30); }} placeholder={viewMode === "project" ? "세부사업·세부항목 검색" : viewMode === "item" ? "사업·세부항목 검색" : "사업·산출내역 검색"} /></label></div></div>
+      <div className="business-controls"><div className="filter-tabs" role="group" aria-label="예산 상세 필터">{(["all", "available", "complete"] as BusinessFilter[]).map((value) => <button key={value} className={filter === value ? "active" : ""} onClick={() => { setFilter(value); setShown(30); }}>{value === "all" ? "전체" : value === "available" ? "잔액 있음" : "집행 완료"}</button>)}</div><div className="business-control-tools"><label className="business-sort"><span>정렬</span><select value={sort} onChange={(event) => { setSort(event.target.value as BusinessSort); setShown(30); }}><option value="name-asc">전체 이름 가나다순</option><option value="name-desc">전체 이름 역순</option><option value="project-asc">세부사업 가나다순</option><option value="project-desc">세부사업 역순</option><option value="item-asc">세부항목 가나다순</option><option value="item-desc">세부항목 역순</option><option value="amount-desc">사용 가능액 많은 순</option><option value="amount-asc">사용 가능액 적은 순</option></select></label><label className="business-search"><span className="sr-only">예산 상세 검색</span><input value={search} onChange={(event) => { setSearch(event.target.value); setShown(30); }} placeholder={viewMode === "project" ? "세부사업·세부항목 검색" : viewMode === "item" ? "사업·세부항목 검색" : "사업·산출내역 검색"} /></label></div></div>
       {viewMode === "project" ? <div className="business-project-list">{filteredProjects.map((project) => {
         const expanded = expandedProjects.has(project.id);
         const visibleItemIds = new Set(filteredItems.map((item) => item.id));
@@ -1256,7 +1271,7 @@ function BusinessPlanView({ rows, meta, totals, plans, updatePlan }: {
     {summaryCondensed && <aside className={`plan-summary-compact ${forecastTotal < 0 ? "negative" : ""}`} aria-label="집행 계획 요약"><div className="plan-compact-title"><ListChecks size={17} /><strong>집행 계획</strong></div><div className="plan-compact-metrics"><span><small>사용 가능</small><strong>{formatCompactWon(totals.budgetBalance)}</strong></span><span><small>사용 예정</small><strong>{formatCompactWon(plannedTotal)}</strong></span><span className="forecast"><small>예상 잔액</small><strong>{formatCompactWon(forecastTotal)}</strong></span></div></aside>}
     <section className="business-detail-section">
       <div className="business-view-row"><div className="business-view-toggle" role="group" aria-label="집행 계획 보기 기준"><button className={viewMode === "project" ? "active" : ""} onClick={() => changeViewMode("project")}>세부사업별</button><button className={viewMode === "item" ? "active" : ""} onClick={() => changeViewMode("item")}>세부항목별</button><button className={viewMode === "detail" ? "active" : ""} onClick={() => changeViewMode("detail")}>산출내역별</button></div><span className="business-view-count">{viewMode === "project" ? `세부사업 ${visibleProjects.length}개 · 세부항목 ${visibleGroups.length}개` : viewMode === "item" ? `세부항목 ${visibleGroups.length}개 · 전체 산출내역 ${rows.length}건` : `산출내역 ${visibleRows.length}건`}</span></div>
-      <div className="business-controls"><div className="filter-tabs">{(["all", "planned", "empty"] as const).map((value) => <button key={value} className={filter === value ? "active" : ""} onClick={() => changeFilter(value)}>{value === "all" ? "전체" : value === "planned" ? "계획 입력됨" : "계획 미입력"}</button>)}</div><div className="business-control-tools"><label className="business-sort"><span>정렬</span><select value={sort} onChange={(event) => { setSort(event.target.value as BusinessSort); setShown(30); }}><option value="name-asc">이름 가나다순</option><option value="name-desc">이름 역순</option><option value="amount-desc">사용 가능액 많은 순</option><option value="amount-asc">사용 가능액 적은 순</option></select></label><label className="business-search"><span className="sr-only">집행 계획 검색</span><input value={search} onChange={(event) => { setSearch(event.target.value); setShown(30); }} placeholder={viewMode === "project" ? "세부사업·세부항목 검색" : viewMode === "item" ? "사업·세부항목 검색" : "사업·산출내역 검색"} /></label></div></div>
+      <div className="business-controls"><div className="filter-tabs">{(["all", "planned", "empty"] as const).map((value) => <button key={value} className={filter === value ? "active" : ""} onClick={() => changeFilter(value)}>{value === "all" ? "전체" : value === "planned" ? "계획 입력됨" : "계획 미입력"}</button>)}</div><div className="business-control-tools"><label className="business-sort"><span>정렬</span><select value={sort} onChange={(event) => { setSort(event.target.value as BusinessSort); setShown(30); }}><option value="name-asc">전체 이름 가나다순</option><option value="name-desc">전체 이름 역순</option><option value="project-asc">세부사업 가나다순</option><option value="project-desc">세부사업 역순</option><option value="item-asc">세부항목 가나다순</option><option value="item-desc">세부항목 역순</option><option value="amount-desc">사용 가능액 많은 순</option><option value="amount-asc">사용 가능액 적은 순</option></select></label><label className="business-search"><span className="sr-only">집행 계획 검색</span><input value={search} onChange={(event) => { setSearch(event.target.value); setShown(30); }} placeholder={viewMode === "project" ? "세부사업·세부항목 검색" : viewMode === "item" ? "사업·세부항목 검색" : "사업·산출내역 검색"} /></label></div></div>
       {viewMode === "project" ? <div className="business-plan-projects">{visibleProjects.map((project) => {
         const expanded = expandedProjects.has(project.id);
         const visibleItemIds = new Set(visibleGroups.map((group) => group.id));
