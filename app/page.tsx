@@ -251,7 +251,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.0";
+const APP_VERSION = "v0.6.1";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1502,17 +1502,17 @@ function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
   };
 
   return <section className="page-content school-overview-v6">
-    <div className="school-data-basis"><CalendarDays size={16} /><span><strong>데이터 기준 {dateLabel(meta.executionDate)}</strong><small>102-2 · {meta.rowCount.toLocaleString("ko-KR")}개 산출내역</small></span></div>
+    <div className="school-data-basis"><CalendarDays size={15} /><span><strong>{meta.year}회계연도 · 데이터 기준 {dateLabel(meta.executionDate)}</strong><small>102-2 · {meta.rowCount.toLocaleString("ko-KR")}개 산출내역</small></span></div>
 
     <div className="school-kpi-grid">
       <SchoolKpiCard title="전체 예산" term="예산현액" value={totals.budget} tone="blue" />
-      <SchoolKpiCard title="사용하기로 한 금액" term="원인행위액" value={totals.obligation} tone="slate" />
-      <SchoolKpiCard title="실제 지급한 금액" term="지출액 · 지급 완료" value={totals.paid} tone="navy" />
-      <SchoolKpiCard title="지급 대기" term="원인행위 후 아직 지급 전" value={pending} tone="orange" />
+      <SchoolKpiCard title="사용 결정" term="원인행위액" value={totals.obligation} tone="slate" />
+      <SchoolKpiCard title="지급 완료" term="지출액" value={totals.paid} tone="navy" />
+      <SchoolKpiCard title="지급 대기" term="원인행위 후 미지급" value={pending} tone="orange" />
     </div>
 
     <section className="school-flow-section">
-      <div className="section-heading split-heading"><div><span className="section-kicker">학교 전체 흐름</span><h2>예산이 지금 어느 단계에 있을까요?</h2><p>예산현액을 지급 완료 · 지급 대기 · 아직 원인행위 전으로 나누어 보여줍니다.</p></div><div className="budget-total-chip"><span>전체 예산</span><strong>{formatReadableWon(totals.budget)}</strong></div></div>
+      <div className="section-heading"><span className="section-kicker">예산 흐름</span><h2>전체 예산이 지금 어디에 있을까요?</h2><p>지급 완료 · 지급 대기 · 원인행위 전 상태로 나누어 보여줍니다.</p></div>
       <SchoolFlowBar budget={totals.budget} paid={totals.paid} pending={pending} uncommitted={uncommitted} />
       {totals.carryover > 0 && <p className="carryover-note">102-2의 다음연도 이월액 {formatReadableWon(totals.carryover)}도 별도 집계되어 있습니다.</p>}
     </section>
@@ -1536,7 +1536,7 @@ function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
 }
 
 function SchoolKpiCard({ title, term, value, tone }: { title: string; term: string; value: number; tone: "blue" | "slate" | "navy" | "orange" }) {
-  return <article className={`school-kpi-card tone-${tone}`}><span>{title}</span><small>{term}</small><strong>{formatReadableWon(value)}</strong><em>{formatWon(value)}</em></article>;
+  return <article className={`school-kpi-card tone-${tone}`}><span>{title}</span><strong>{formatCompactWon(value)}</strong><small>{term}</small><em>{formatWon(value)}</em></article>;
 }
 
 function SchoolFlowBar({ budget, paid, pending, uncommitted }: { budget: number; paid: number; pending: number; uncommitted: number }) {
@@ -1544,7 +1544,7 @@ function SchoolFlowBar({ budget, paid, pending, uncommitted }: { budget: number;
   const paidWidth = Math.max(0, Math.min(100, (paid / denominator) * 100));
   const pendingWidth = Math.max(0, Math.min(100, (pending / denominator) * 100));
   const uncommittedWidth = Math.max(0, Math.min(100, (uncommitted / denominator) * 100));
-  return <div className="school-flow-wrap"><div className="school-flow-bar" role="img" aria-label={`지급 완료 ${formatReadableWon(paid)}, 지급 대기 ${formatReadableWon(pending)}, 아직 원인행위 전 ${formatReadableWon(uncommitted)}`}><span className="flow-paid" style={{ width: `${paidWidth}%` }} /><span className="flow-pending" style={{ width: `${pendingWidth}%` }} /><span className="flow-uncommitted" style={{ width: `${uncommittedWidth}%` }} /></div><div className="school-flow-legend"><div><i className="flow-paid" /><span>지급 완료</span><strong>{formatReadableWon(paid)}</strong><small>{formatPercent(budget ? (paid / budget) * 100 : 0)}</small></div><div><i className="flow-pending" /><span>지급 대기</span><strong>{formatReadableWon(pending)}</strong><small>{formatPercent(budget ? (pending / budget) * 100 : 0)}</small></div><div><i className="flow-uncommitted" /><span>아직 원인행위 전</span><strong>{formatReadableWon(uncommitted)}</strong><small>{formatPercent(budget ? (uncommitted / budget) * 100 : 0)}</small></div></div></div>;
+  return <div className="school-flow-wrap"><div className="school-flow-summary"><span><i className="flow-paid" />지급 완료 <b>{formatPercent(budget ? (paid / budget) * 100 : 0)}</b></span><span><i className="flow-pending" />지급 대기 <b>{formatPercent(budget ? (pending / budget) * 100 : 0)}</b></span><span><i className="flow-uncommitted" />원인행위 전 <b>{formatPercent(budget ? (uncommitted / budget) * 100 : 0)}</b></span></div><div className="school-flow-bar" role="img" aria-label={`지급 완료 ${formatReadableWon(paid)}, 지급 대기 ${formatReadableWon(pending)}, 아직 원인행위 전 ${formatReadableWon(uncommitted)}`}><span className="flow-paid" style={{ width: `${paidWidth}%` }} /><span className="flow-pending" style={{ width: `${pendingWidth}%` }} /><span className="flow-uncommitted" style={{ width: `${uncommittedWidth}%` }} /></div><div className="school-flow-legend"><div><i className="flow-paid" /><span>지급 완료</span><strong>{formatCompactWon(paid)}</strong><small>{formatPercent(budget ? (paid / budget) * 100 : 0)}</small></div><div><i className="flow-pending" /><span>지급 대기</span><strong>{formatCompactWon(pending)}</strong><small>{formatPercent(budget ? (pending / budget) * 100 : 0)}</small></div><div><i className="flow-uncommitted" /><span>원인행위 전</span><strong>{formatCompactWon(uncommitted)}</strong><small>{formatPercent(budget ? (uncommitted / budget) * 100 : 0)}</small></div></div></div>;
 }
 
 function PolicyFlowRow({ group, selected, onSelect }: { group: SchoolAnalysisGroup; selected: boolean; onSelect: () => void }) {
