@@ -28,7 +28,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { ChangeEvent, DragEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 type ViewTab = "overview" | "promotion" | "closing";
 type MainView = "mine" | "plan" | "school";
@@ -251,7 +251,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.1";
+const APP_VERSION = "v0.6.2";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -573,6 +573,38 @@ function schoolHierarchyParentLabel(row: BudgetRow, level: SchoolHierarchyLevel)
   if (level === "unit") return row.policyName || "정책사업 없음";
   if (level === "project") return [row.policyName, row.unitName].filter(Boolean).join(" · ");
   return [row.unitName, row.projectName].filter(Boolean).join(" · ");
+}
+
+function nextSchoolHierarchyLevel(level: SchoolHierarchyLevel): SchoolHierarchyLevel | null {
+  if (level === "policy") return "unit";
+  if (level === "unit") return "project";
+  if (level === "project") return "item";
+  return null;
+}
+
+function schoolHierarchyLevelLabel(level: SchoolHierarchyLevel) {
+  if (level === "policy") return "정책사업";
+  if (level === "unit") return "단위사업";
+  if (level === "project") return "세부사업";
+  return "세부항목";
+}
+
+function schoolHierarchyPathForGroup(group: SchoolAnalysisGroup) {
+  const row = group.rows[0];
+  if (!row) return [{ level: group.level, id: group.id, label: group.label }];
+  const order: SchoolHierarchyLevel[] = ["policy", "unit", "project", "item"];
+  const end = order.indexOf(group.level);
+  return order.slice(0, end + 1).flatMap((level) => {
+    const label = schoolHierarchyLabel(row, level);
+    if (!label || label.endsWith(" 없음")) return [];
+    return [{ level, id: schoolHierarchyId(row, level), label }];
+  });
+}
+
+function schoolChildCount(group: SchoolAnalysisGroup) {
+  const next = nextSchoolHierarchyLevel(group.level);
+  if (!next) return 0;
+  return new Set(group.rows.filter((row) => !schoolHierarchyLabel(row, next).endsWith(" 없음")).map((row) => schoolHierarchyId(row, next))).size;
 }
 
 function groupSchoolRows(rows: BudgetRow[], level: SchoolHierarchyLevel): SchoolAnalysisGroup[] {
@@ -1447,7 +1479,9 @@ function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
   const [level, setLevel] = useState<SchoolHierarchyLevel>("policy");
   const [schoolSort, setSchoolSort] = useState<SchoolSort>("budget-desc");
   const [search, setSearch] = useState("");
+  const [hierarchyView, setHierarchyView] = useState<"easy" | "table">("easy");
   const [scope, setScope] = useState<{ level: SchoolHierarchyLevel; id: string; label: string } | null>(null);
+  const [hierarchyPath, setHierarchyPath] = useState<Array<{ level: SchoolHierarchyLevel; id: string; label: string }>>([]);
   const availableLevels = useMemo(() => ({
     policy: rows.some((row) => Boolean(row.policyName)),
     unit: rows.some((row) => Boolean(row.unitName)),
@@ -1458,7 +1492,7 @@ function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
   useEffect(() => {
     if (availableLevels[level]) return;
     const fallback = (["policy", "unit", "project", "item"] as SchoolHierarchyLevel[]).find((candidate) => availableLevels[candidate]);
-    if (fallback) { setLevel(fallback); setScope(null); }
+    if (fallback) { setLevel(fallback); setScope(null); setHierarchyPath([]); }
   }, [availableLevels, level]);
 
   const totals = useMemo(() => ({
@@ -1485,18 +1519,39 @@ function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
     if (!availableLevels[next]) return;
     setLevel(next);
     setScope(null);
+    setHierarchyPath([]);
     setSearch("");
   };
   const drillDown = (group: SchoolAnalysisGroup) => {
-    const next: SchoolHierarchyLevel | null = group.level === "policy" ? "unit" : group.level === "unit" ? "project" : group.level === "project" ? "item" : null;
-    if (!next) return;
+    const next = nextSchoolHierarchyLevel(group.level);
+    if (!next || !availableLevels[next]) return;
     setScope({ level: group.level, id: group.id, label: group.label });
+    setHierarchyPath(schoolHierarchyPathForGroup(group));
+    setLevel(next);
+    setSearch("");
+  };
+  const resetHierarchy = () => {
+    const first = (["policy", "unit", "project", "item"] as SchoolHierarchyLevel[]).find((candidate) => availableLevels[candidate]);
+    if (first) setLevel(first);
+    setScope(null);
+    setHierarchyPath([]);
+    setSearch("");
+  };
+  const openBreadcrumb = (index: number) => {
+    if (index < 0) { resetHierarchy(); return; }
+    const target = hierarchyPath[index];
+    const next = nextSchoolHierarchyLevel(target.level);
+    if (!next || !availableLevels[next]) return;
+    setScope({ level: target.level, id: target.id, label: target.label });
+    setHierarchyPath(hierarchyPath.slice(0, index + 1));
     setLevel(next);
     setSearch("");
   };
   const openPolicyDetail = (group: SchoolAnalysisGroup) => {
     setScope({ level: "policy", id: group.id, label: group.label });
+    setHierarchyPath(schoolHierarchyPathForGroup(group));
     setLevel("unit");
+    setHierarchyView("easy");
     setSearch("");
     requestAnimationFrame(() => document.getElementById("school-hierarchy")?.scrollIntoView({ behavior: "smooth", block: "start" }));
   };
@@ -1526,10 +1581,14 @@ function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
     <section className="school-check-section"><div className="section-heading"><span className="section-kicker">숫자로 확인</span><h2>확인해 볼 예산</h2><p>금액이 큰 사업을 한 번에 모아봅니다.</p></div><div className="school-check-grid"><SchoolCheckList title="지급 대기 금액이 큰 사업" description="원인행위는 되었지만 아직 실제 지급되지 않은 금액" groups={pendingTop} valueKey="pending" /><SchoolCheckList title="아직 원인행위되지 않은 금액이 큰 사업" description="예산현액 중 아직 원인행위되지 않은 금액" groups={uncommittedTop} valueKey="uncommitted" /></div></section>
 
     <section className="school-hierarchy-section" id="school-hierarchy">
-      <div className="section-heading split-heading"><div><span className="section-kicker">단계별 상세 분석</span><h2>예산을 원하는 단위로 묶어보기</h2><p>{scope ? `${scope.label} 안에서 하위 항목을 보고 있습니다.` : "정책사업부터 세부항목까지 같은 기준으로 비교할 수 있습니다."}</p></div>{scope && <button className="text-button" onClick={() => { setScope(null); setLevel("policy"); }}><X size={15} />전체로 돌아가기</button>}</div>
-      <div className="school-hierarchy-tabs" role="tablist" aria-label="학교 전체 분석 단위"><button disabled={!availableLevels.policy} className={level === "policy" ? "active" : ""} onClick={() => setHierarchyLevel("policy")}>정책사업</button><button disabled={!availableLevels.unit} className={level === "unit" ? "active" : ""} onClick={() => setHierarchyLevel("unit")}>단위사업</button><button disabled={!availableLevels.project} className={level === "project" ? "active" : ""} onClick={() => setHierarchyLevel("project")}>세부사업</button><button disabled={!availableLevels.item} className={level === "item" ? "active" : ""} onClick={() => setHierarchyLevel("item")}>세부항목</button></div>
-      <div className="school-hierarchy-toolbar"><label className="school-search"><SearchCheck size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="사업명 검색" aria-label="학교 전체 사업명 검색" /></label><label className="school-sort-field">정렬<select value={schoolSort} onChange={(event) => setSchoolSort(event.target.value as SchoolSort)}><option value="budget-desc">예산현액 많은 순</option><option value="budget-asc">예산현액 적은 순</option><option value="obligation-desc">원인행위액 많은 순</option><option value="paid-desc">지출액 많은 순</option><option value="pending-desc">지급 대기 많은 순</option><option value="uncommitted-desc">미원인행위 잔액 많은 순</option><option value="name-asc">이름 가나다순</option></select></label></div>
-      <SchoolHierarchyTable groups={hierarchyGroups} onDrill={drillDown} />
+      <div className="school-structure-head">
+        <div className="section-heading"><span className="section-kicker">예산 구조 살펴보기</span><h2>{scope ? `${scope.label}의 ${schoolHierarchyLevelLabel(level)}` : `${schoolHierarchyLevelLabel(level)} ${hierarchyGroups.length}개`}</h2><p>{scope ? `${hierarchyGroups.length}개 항목의 예산 흐름을 보고 있습니다. 궁금한 항목을 누르면 더 자세히 볼 수 있어요.` : "큰 사업부터 시작해 궁금한 항목을 누르며 예산 구조를 따라가 보세요."}</p></div>
+        <div className="school-view-toggle" role="tablist" aria-label="예산 구조 보기 방식"><button className={hierarchyView === "easy" ? "active" : ""} onClick={() => setHierarchyView("easy")}>쉽게 보기</button><button className={hierarchyView === "table" ? "active" : ""} onClick={() => setHierarchyView("table")}>표로 보기</button></div>
+      </div>
+      <nav className="school-breadcrumb" aria-label="예산 구조 위치"><button onClick={() => openBreadcrumb(-1)}>학교 전체</button>{hierarchyPath.map((item, index) => <Fragment key={item.id}><ChevronRight size={13} /><button className={index === hierarchyPath.length - 1 ? "current" : ""} onClick={() => openBreadcrumb(index)}>{item.label}</button></Fragment>)}</nav>
+      {hierarchyView === "table" && <div className="school-hierarchy-tabs" role="tablist" aria-label="학교 전체 분석 단위"><button disabled={!availableLevels.policy} className={level === "policy" ? "active" : ""} onClick={() => setHierarchyLevel("policy")}>정책사업</button><button disabled={!availableLevels.unit} className={level === "unit" ? "active" : ""} onClick={() => setHierarchyLevel("unit")}>단위사업</button><button disabled={!availableLevels.project} className={level === "project" ? "active" : ""} onClick={() => setHierarchyLevel("project")}>세부사업</button><button disabled={!availableLevels.item} className={level === "item" ? "active" : ""} onClick={() => setHierarchyLevel("item")}>세부항목</button></div>}
+      <div className="school-hierarchy-toolbar"><label className="school-search"><SearchCheck size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`${schoolHierarchyLevelLabel(level)} 검색`} aria-label="학교 전체 사업명 검색" /></label><label className="school-sort-field">정렬<select value={schoolSort} onChange={(event) => setSchoolSort(event.target.value as SchoolSort)}><option value="budget-desc">예산현액 많은 순</option><option value="budget-asc">예산현액 적은 순</option><option value="obligation-desc">원인행위액 많은 순</option><option value="paid-desc">지출액 많은 순</option><option value="pending-desc">지급 대기 많은 순</option><option value="uncommitted-desc">미원인행위 잔액 많은 순</option><option value="name-asc">이름 가나다순</option></select></label></div>
+      {hierarchyView === "easy" ? <SchoolHierarchyEasyList groups={hierarchyGroups} onDrill={drillDown} /> : <SchoolHierarchyTable groups={hierarchyGroups} onDrill={drillDown} />}
       {!hierarchyGroups.length && <EmptyState text="해당 조건의 사업이 없습니다." />}
     </section>
   </section>;
@@ -1559,9 +1618,22 @@ function SchoolCheckList({ title, description, groups, valueKey }: { title: stri
   return <article className="school-check-card"><div><strong>{title}</strong><p>{description}</p></div>{groups.length ? <ol>{groups.map((group) => <li key={group.id}><span><b>{group.label}</b><small>{group.parentLabel}</small></span><strong>{formatReadableWon(group[valueKey])}</strong></li>)}</ol> : <div className="school-check-empty">해당 금액이 있는 사업이 없습니다.</div>}</article>;
 }
 
+function SchoolHierarchyEasyList({ groups, onDrill }: { groups: SchoolAnalysisGroup[]; onDrill: (group: SchoolAnalysisGroup) => void }) {
+  return <div className="school-easy-list">{groups.map((group) => {
+    const next = nextSchoolHierarchyLevel(group.level);
+    const childCount = schoolChildCount(group);
+    const denominator = Math.max(Math.abs(group.budget), 1);
+    const paidWidth = Math.max(0, Math.min(100, (group.paid / denominator) * 100));
+    const pendingWidth = Math.max(0, Math.min(100, (group.pending / denominator) * 100));
+    const uncommittedWidth = Math.max(0, Math.min(100, (group.uncommitted / denominator) * 100));
+    const content = <><div className="school-easy-main"><span className="school-easy-name"><strong>{group.label}</strong><small>{group.parentLabel}</small></span><b>{formatCompactWon(group.budget)}</b></div><div className="school-easy-track" aria-label={`${group.label} 예산 흐름`}><i className="flow-paid" style={{ width: `${paidWidth}%` }} /><i className="flow-pending" style={{ width: `${pendingWidth}%` }} /><i className="flow-uncommitted" style={{ width: `${uncommittedWidth}%` }} /></div><div className="school-easy-values"><span><small>지급 완료</small><b>{formatCompactWon(group.paid)}</b></span><span><small>지급 대기</small><b>{formatCompactWon(group.pending)}</b></span><span><small>원인행위 전</small><b className={group.uncommitted < 0 ? "negative-value" : ""}>{formatCompactWon(group.uncommitted)}</b></span></div>{next && childCount > 0 && <span className="school-easy-next">{schoolHierarchyLevelLabel(next)} {childCount}개 보기<ChevronRight size={15} /></span>}</>;
+    return next && childCount > 0 ? <button key={group.id} className="school-easy-card" onClick={() => onDrill(group)}>{content}</button> : <article key={group.id} className="school-easy-card terminal">{content}</article>;
+  })}</div>;
+}
+
 function SchoolHierarchyTable({ groups, onDrill }: { groups: SchoolAnalysisGroup[]; onDrill: (group: SchoolAnalysisGroup) => void }) {
   const canDrill = (level: SchoolHierarchyLevel) => level !== "item";
-  return <><div className="school-hierarchy-table-wrap"><table className="data-table school-hierarchy-table"><thead><tr><th>구분</th><th>예산현액</th><th>원인행위액</th><th>지출액</th><th>지급 대기</th><th>미원인행위 잔액</th><th>원인행위율</th><th>지출 집행률</th><th></th></tr></thead><tbody>{groups.map((group) => <tr key={group.id}><td><span className="school-group-name"><strong>{group.label}</strong><small>{group.parentLabel}</small></span></td><td>{formatWon(group.budget)}</td><td>{formatWon(group.obligation)}</td><td>{formatWon(group.paid)}</td><td>{formatWon(group.pending)}</td><td className={group.uncommitted < 0 ? "negative-value" : ""}>{formatWon(group.uncommitted)}</td><td>{formatPercent(group.obligationRate)}</td><td>{formatPercent(group.spendingRate)}</td><td>{canDrill(group.level) && <button className="hierarchy-drill" onClick={() => onDrill(group)}>하위 보기<ChevronRight size={14} /></button>}</td></tr>)}</tbody></table></div><div className="school-hierarchy-mobile">{groups.map((group) => <article key={group.id}><div className="school-hierarchy-mobile-head"><span><strong>{group.label}</strong><small>{group.parentLabel}</small></span>{canDrill(group.level) && <button onClick={() => onDrill(group)}>하위 보기<ChevronRight size={14} /></button>}</div><div className="school-hierarchy-mobile-grid"><span><small>예산현액</small><b>{formatReadableWon(group.budget)}</b></span><span><small>지급 완료</small><b>{formatReadableWon(group.paid)}</b></span><span><small>지급 대기</small><b>{formatReadableWon(group.pending)}</b></span><span><small>원인행위 전</small><b>{formatReadableWon(group.uncommitted)}</b></span></div><div className="school-hierarchy-rates"><span>원인행위율 {formatPercent(group.obligationRate)}</span><span>지출 집행률 {formatPercent(group.spendingRate)}</span></div></article>)}</div></>;
+  return <><div className="school-hierarchy-table-wrap"><table className="data-table school-hierarchy-table"><thead><tr><th>구분</th><th>예산현액</th><th>원인행위액</th><th>지출액</th><th>지급 대기</th><th>미원인행위 잔액</th><th>원인행위율</th><th>지출 집행률</th><th></th></tr></thead><tbody>{groups.map((group) => <tr key={group.id}><td><span className="school-group-name"><strong>{group.label}</strong><small>{group.parentLabel}</small></span></td><td>{formatWon(group.budget)}</td><td>{formatWon(group.obligation)}</td><td>{formatWon(group.paid)}</td><td>{formatWon(group.pending)}</td><td className={group.uncommitted < 0 ? "negative-value" : ""}>{formatWon(group.uncommitted)}</td><td>{formatPercent(group.obligationRate)}</td><td>{formatPercent(group.spendingRate)}</td><td>{canDrill(group.level) && <button className="hierarchy-drill" onClick={() => onDrill(group)}>{schoolHierarchyLevelLabel(nextSchoolHierarchyLevel(group.level)!)} 보기<ChevronRight size={14} /></button>}</td></tr>)}</tbody></table></div><div className="school-hierarchy-mobile">{groups.map((group) => <article key={group.id}><div className="school-hierarchy-mobile-head"><span><strong>{group.label}</strong><small>{group.parentLabel}</small></span>{canDrill(group.level) && <button onClick={() => onDrill(group)}>{schoolHierarchyLevelLabel(nextSchoolHierarchyLevel(group.level)!)} 보기<ChevronRight size={14} /></button>}</div><div className="school-hierarchy-mobile-grid"><span><small>예산현액</small><b>{formatReadableWon(group.budget)}</b></span><span><small>지급 완료</small><b>{formatReadableWon(group.paid)}</b></span><span><small>지급 대기</small><b>{formatReadableWon(group.pending)}</b></span><span><small>원인행위 전</small><b>{formatReadableWon(group.uncommitted)}</b></span></div><div className="school-hierarchy-rates"><span>원인행위율 {formatPercent(group.obligationRate)}</span><span>지출 집행률 {formatPercent(group.spendingRate)}</span></div></article>)}</div></>;
 }
 
 function ProgressStep({ title, label, rate, primaryLabel, primaryValue, remainderLabel, remainderValue, tone }: { title: string; label: string; rate: number; primaryLabel: string; primaryValue: number; remainderLabel: string; remainderValue: number; tone: "blue" | "violet" }) {
@@ -1837,7 +1909,7 @@ function HelpModal({ close }: { close: () => void }) {
     <div><b>4</b><span><strong>앞으로 쓸 금액 입력</strong><small>산출내역별 집행예정액을 입력하면 예상 잔액이 바로 계산됩니다. 입력값은 현재 브라우저에만 저장됩니다.</small></span></div>
     <div><b>5</b><span><strong>102-2 내려받아 학교 전체 분석</strong><small>에듀파인 &gt; 학교회계 &gt; 예산결산 &gt; 결산현황 &gt; 집행실적에서 <b>엑셀저장(실시간)</b>을 누르고, 자료코드 <b>102-2</b>를 선택해 내려받습니다.</small></span></div>
     <div><b>6</b><span><strong>학교 전체 예산 흐름</strong><small><b>사용하기로 한 금액</b>은 원인행위액, <b>실제 지급한 금액</b>은 지출액입니다. <b>지급 대기</b>는 원인행위액에서 지출액을 뺀 금액이며, <b>아직 원인행위되지 않은 금액</b>은 예산현액에서 원인행위액을 뺀 금액입니다.</small></span></div>
-    <div><b>7</b><span><strong>정책사업부터 세부항목까지 보기</strong><small>학교 전체 현황에서 정책사업·단위사업·세부사업·세부항목 단위로 묶어 보고, 하위 보기를 눌러 단계별로 내려갈 수 있습니다.</small></span></div>
+    <div><b>7</b><span><strong>정책사업부터 세부항목까지 보기</strong><small>학교 전체 현황의 ‘쉽게 보기’에서 궁금한 사업을 누르면 정책사업 → 단위사업 → 세부사업 → 세부항목 순서로 자연스럽게 자세히 볼 수 있습니다. 정확한 숫자 비교가 필요하면 ‘표로 보기’를 이용하세요.</small></span></div>
     <div><b>8</b><span><strong>201 세입실적 연결</strong><small>결산예측에서 자료코드 201을 연결하고, 이전수입 반납예정액과 순세계잉여금 잠정값을 확인합니다.</small></span></div>
   </div><div className="privacy-card"><ShieldCheck size={20} /><div><strong>브라우저 안에서만 처리됩니다.</strong><p>업로드한 엑셀은 서버로 전송되지 않습니다. 집행계획과 결산예측 입력도 현재 브라우저에만 저장됩니다.</p></div></div></section></div>;
 }
