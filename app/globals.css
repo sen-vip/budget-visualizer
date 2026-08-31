@@ -567,35 +567,6 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
 .school-check-card li > span small { overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .school-check-card li > strong { font-size: 12px; white-space: nowrap; }
 .school-check-empty { min-height: 120px; padding: 20px; display: grid; place-items: center; color: var(--muted); font-size: 12px; }
- .school-structure-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
-.school-view-toggle { flex: 0 0 auto; padding: 3px; display: grid; grid-template-columns: repeat(2,auto); gap: 2px; background: #f1f4f7; border-radius: 10px; }
-.school-view-toggle button { min-height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 750; cursor: pointer; }
-.school-view-toggle button.active { color: var(--blue); background: #fff; box-shadow: 0 1px 4px rgba(33,49,75,.08); }
-.school-breadcrumb { min-height: 34px; margin: 2px 0 13px; display: flex; align-items: center; gap: 3px; overflow-x: auto; color: #8a94a3; scrollbar-width: none; }
-.school-breadcrumb::-webkit-scrollbar { display: none; }
-.school-breadcrumb button { flex: 0 0 auto; min-height: 30px; padding: 0 7px; border: 0; border-radius: 7px; background: transparent; color: #667386; font-size: 11px; font-weight: 650; cursor: pointer; }
-.school-breadcrumb button.current { color: var(--ink); font-weight: 800; }
-.school-breadcrumb svg { flex: 0 0 auto; color: #a7b0bd; }
-.school-easy-list { display: flex; flex-direction: column; gap: 7px; }
-.school-easy-card { width: 100%; min-width: 0; padding: 16px 17px 14px; display: block; border: 1px solid #e3e8ef; border-radius: 13px; background: #fff; color: var(--ink); text-align: left; cursor: pointer; transition: border-color .16s ease, background .16s ease, box-shadow .16s ease; }
-.school-easy-card.terminal { cursor: default; }
-.school-easy-main { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
-.school-easy-name { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.school-easy-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
-.school-easy-name small { overflow: hidden; color: var(--muted); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.school-easy-main > b { flex: 0 0 auto; font-size: 15px; letter-spacing: -.02em; white-space: nowrap; }
-.school-easy-track { height: 11px; margin-top: 12px; display: flex; overflow: hidden; border-radius: 999px; background: #edf1f5; }
-.school-easy-track i { display: block; height: 100%; }
-.school-easy-values { margin-top: 9px; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
-.school-easy-values span { min-width: 0; display: flex; align-items: baseline; gap: 6px; }
-.school-easy-values small { color: var(--muted); font-size: 10px; white-space: nowrap; }
-.school-easy-values b { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.school-easy-next { margin-top: 11px; padding-top: 10px; display: flex; align-items: center; justify-content: flex-end; gap: 3px; border-top: 1px solid #edf1f5; color: var(--blue); font-size: 11px; font-weight: 800; }
-@media (hover: hover) and (pointer: fine) {
-  .school-easy-card:not(.terminal):hover { border-color: #cbd8e9; background: #fbfcfe; box-shadow: 0 4px 14px rgba(37,48,69,.04); }
-  .school-breadcrumb button:hover { background: #f5f7fa; color: var(--ink); }
-}
-.school-easy-card:focus-visible, .school-view-toggle button:focus-visible, .school-breadcrumb button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .school-hierarchy-tabs { width: fit-content; margin-bottom: 12px; padding: 3px; display: grid; grid-template-columns: repeat(4,auto); gap: 2px; background: #f1f4f7; border-radius: 9px; }
 .school-hierarchy-tabs button { min-height: 36px; padding: 0 14px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); font-size: 12px; font-weight: 700; cursor: pointer; }
 .school-hierarchy-tabs button.active { color: var(--blue); background: #fff; box-shadow: 0 1px 4px rgba(33,49,75,.08); }
@@ -620,9 +591,7 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
   .policy-detail-panel dl { grid-template-columns: repeat(4,minmax(0,1fr)); }
   .policy-detail-panel .button { justify-self: start; }
   .school-check-grid { grid-template-columns: 1fr; }
-  .school-easy-values { gap: 8px; }
 }
-
 
 @media (max-width: 720px) {
   .school-data-basis { width: 100%; margin-bottom: 12px; }
@@ -650,18 +619,6 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
   .policy-detail-panel dl { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .policy-detail-panel .button { width: 100%; justify-content: center; }
   .school-check-card li { min-height: 60px; padding: 10px 12px; }
-  .school-structure-head { align-items: stretch; flex-direction: column; gap: 10px; }
-  .school-view-toggle { width: 100%; grid-template-columns: repeat(2,1fr); }
-  .school-view-toggle button { min-height: 40px; }
-  .school-breadcrumb { margin-bottom: 10px; }
-  .school-easy-card { padding: 14px 13px 12px; }
-  .school-easy-main { gap: 10px; }
-  .school-easy-name strong { font-size: 13px; }
-  .school-easy-main > b { font-size: 13px; }
-  .school-easy-values { grid-template-columns: 1fr; gap: 5px; }
-  .school-easy-values span { justify-content: space-between; }
-  .school-easy-values b { font-size: 11px; }
-  .school-easy-next { min-height: 36px; margin-top: 8px; }
   .school-hierarchy-tabs { width: 100%; grid-template-columns: repeat(2,1fr); }
   .school-hierarchy-tabs button { padding: 0 8px; }
   .school-hierarchy-toolbar { align-items: stretch; flex-direction: column; }
