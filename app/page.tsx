@@ -251,7 +251,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.3";
+const APP_VERSION = "v0.6.4";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1480,6 +1480,7 @@ function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
     return sortSchoolGroups(groups, schoolSort);
   }, [scopedRows, level, schoolSort, search]);
   const selectedPolicy = selectedPolicyId ? policyGroups.find((group) => group.id === selectedPolicyId) ?? null : null;
+  const maxPolicyBudget = useMemo(() => Math.max(...policyGroups.map((group) => Math.max(group.budget, 0)), 1), [policyGroups]);
 
   const setHierarchyLevel = (next: SchoolHierarchyLevel) => {
     if (!availableLevels[next]) return;
@@ -1518,9 +1519,10 @@ function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
     </section>
 
     {availableLevels.policy && <section className="policy-flow-section">
-      <div className="section-heading split-heading"><div><span className="section-kicker">큰 단위부터 보기</span><h2>정책사업별 예산 흐름</h2><p>각 정책사업의 예산이 지급 완료, 지급 대기, 미원인행위 상태 중 어디에 있는지 비교합니다.</p></div><label className="school-sort-field">정렬<select value={policySort} onChange={(event) => setPolicySort(event.target.value as SchoolSort)}><option value="budget-desc">예산현액 많은 순</option><option value="budget-asc">예산현액 적은 순</option><option value="paid-desc">지급 완료 많은 순</option><option value="pending-desc">지급 대기 많은 순</option><option value="uncommitted-desc">미원인행위 잔액 많은 순</option><option value="name-asc">정책사업명 가나다순</option></select></label></div>
-      <div className="policy-flow-list">{policyGroups.map((group) => <PolicyFlowRow key={group.id} group={group} selected={selectedPolicyId === group.id} onSelect={() => setSelectedPolicyId((current) => current === group.id ? null : group.id)} />)}</div>
-      {selectedPolicy && <div className="policy-detail-panel"><div><strong>{selectedPolicy.label}</strong><span>예산현액 {formatReadableWon(selectedPolicy.budget)}</span></div><dl><div><dt>원인행위</dt><dd>{formatReadableWon(selectedPolicy.obligation)}</dd></div><div><dt>지급 완료</dt><dd>{formatReadableWon(selectedPolicy.paid)}</dd></div><div><dt>지급 대기</dt><dd>{formatReadableWon(selectedPolicy.pending)}</dd></div><div><dt>아직 원인행위 전</dt><dd>{formatReadableWon(selectedPolicy.uncommitted)}</dd></div></dl><button className="button secondary compact" onClick={() => openPolicyDetail(selectedPolicy)}>이 정책사업 상세보기<ChevronRight size={15} /></button></div>}
+      <div className="section-heading split-heading"><div><span className="section-kicker">큰 단위부터 보기</span><h2>정책사업별 예산 현황</h2><p>어디에 예산이 많이 배정됐고, 현재 어느 단계까지 진행됐는지 보여드려요.</p></div><label className="school-sort-field">정렬<select value={policySort} onChange={(event) => setPolicySort(event.target.value as SchoolSort)}><option value="budget-desc">예산현액 많은 순</option><option value="budget-asc">예산현액 적은 순</option><option value="paid-desc">지급 완료 많은 순</option><option value="pending-desc">지급 대기 많은 순</option><option value="uncommitted-desc">사용 결정 전 금액 많은 순</option><option value="name-asc">정책사업명 가나다순</option></select></label></div>
+      <div className="policy-flow-legend" aria-label="정책사업 예산 현황 범례"><span><i className="flow-paid" />지급 완료</span><span><i className="flow-pending" />지급 대기</span><span><i className="flow-uncommitted" />아직 사용 결정 전</span><small>막대 길이는 전체 예산 규모를 나타냅니다.</small></div>
+      <div className="policy-flow-list">{policyGroups.map((group) => <PolicyFlowRow key={group.id} group={group} maxBudget={maxPolicyBudget} selected={selectedPolicyId === group.id} onSelect={() => setSelectedPolicyId((current) => current === group.id ? null : group.id)} />)}</div>
+      {selectedPolicy && <div className="policy-detail-panel"><div><strong>{selectedPolicy.label}</strong><span>전체 예산 {formatReadableWon(selectedPolicy.budget)}</span></div><dl><div><dt>사용 결정</dt><dd>{formatReadableWon(selectedPolicy.obligation)}</dd></div><div><dt>지급 완료</dt><dd>{formatReadableWon(selectedPolicy.paid)}</dd></div><div><dt>지급 대기</dt><dd>{formatReadableWon(selectedPolicy.pending)}</dd></div><div><dt>아직 사용 결정 전</dt><dd>{formatReadableWon(selectedPolicy.uncommitted)}</dd></div></dl><button className="button secondary compact" onClick={() => openPolicyDetail(selectedPolicy)}>이 정책사업 상세보기<ChevronRight size={15} /></button></div>}
     </section>}
 
     <section className="school-check-section"><div className="section-heading"><span className="section-kicker">숫자로 확인</span><h2>확인해 볼 예산</h2><p>금액이 큰 사업을 한 번에 모아봅니다.</p></div><div className="school-check-grid"><SchoolCheckList title="지급 대기 금액이 큰 사업" description="원인행위는 되었지만 아직 실제 지급되지 않은 금액" groups={pendingTop} valueKey="pending" /><SchoolCheckList title="아직 원인행위되지 않은 금액이 큰 사업" description="예산현액 중 아직 원인행위되지 않은 금액" groups={uncommittedTop} valueKey="uncommitted" /></div></section>
@@ -1547,12 +1549,13 @@ function SchoolFlowBar({ budget, paid, pending, uncommitted }: { budget: number;
   return <div className="school-flow-wrap"><div className="school-flow-summary"><span><i className="flow-paid" />지급 완료 <b>{formatPercent(budget ? (paid / budget) * 100 : 0)}</b></span><span><i className="flow-pending" />지급 대기 <b>{formatPercent(budget ? (pending / budget) * 100 : 0)}</b></span><span><i className="flow-uncommitted" />원인행위 전 <b>{formatPercent(budget ? (uncommitted / budget) * 100 : 0)}</b></span></div><div className="school-flow-bar" role="img" aria-label={`지급 완료 ${formatReadableWon(paid)}, 지급 대기 ${formatReadableWon(pending)}, 아직 원인행위 전 ${formatReadableWon(uncommitted)}`}><span className="flow-paid" style={{ width: `${paidWidth}%` }} /><span className="flow-pending" style={{ width: `${pendingWidth}%` }} /><span className="flow-uncommitted" style={{ width: `${uncommittedWidth}%` }} /></div><div className="school-flow-legend"><div><i className="flow-paid" /><span>지급 완료</span><strong>{formatCompactWon(paid)}</strong><small>{formatPercent(budget ? (paid / budget) * 100 : 0)}</small></div><div><i className="flow-pending" /><span>지급 대기</span><strong>{formatCompactWon(pending)}</strong><small>{formatPercent(budget ? (pending / budget) * 100 : 0)}</small></div><div><i className="flow-uncommitted" /><span>원인행위 전</span><strong>{formatCompactWon(uncommitted)}</strong><small>{formatPercent(budget ? (uncommitted / budget) * 100 : 0)}</small></div></div></div>;
 }
 
-function PolicyFlowRow({ group, selected, onSelect }: { group: SchoolAnalysisGroup; selected: boolean; onSelect: () => void }) {
+function PolicyFlowRow({ group, maxBudget, selected, onSelect }: { group: SchoolAnalysisGroup; maxBudget: number; selected: boolean; onSelect: () => void }) {
   const denominator = Math.max(Math.abs(group.budget), 1);
   const paidWidth = Math.max(0, Math.min(100, (group.paid / denominator) * 100));
   const pendingWidth = Math.max(0, Math.min(100, (group.pending / denominator) * 100));
   const uncommittedWidth = Math.max(0, Math.min(100, (group.uncommitted / denominator) * 100));
-  return <button className={`policy-flow-row ${selected ? "selected" : ""}`} onClick={onSelect} aria-expanded={selected}><span className="policy-flow-name"><strong>{group.label}</strong><small>지출 집행률 {formatPercent(group.spendingRate)}</small></span><span className="policy-flow-track"><i className="flow-paid" style={{ width: `${paidWidth}%` }} /><i className="flow-pending" style={{ width: `${pendingWidth}%` }} /><i className="flow-uncommitted" style={{ width: `${uncommittedWidth}%` }} /></span><b>{formatReadableWon(group.budget)}</b><ChevronDown className={selected ? "rotated" : ""} size={16} /></button>;
+  const budgetWidth = Math.max(2, Math.min(100, (Math.max(group.budget, 0) / Math.max(maxBudget, 1)) * 100));
+  return <button className={`policy-flow-row ${selected ? "selected" : ""}`} onClick={onSelect} aria-expanded={selected}><span className="policy-flow-name"><strong>{group.label}</strong><small>전체 예산</small></span><span className="policy-flow-scale"><span className="policy-flow-track" style={{ width: `${budgetWidth}%` }}><i className="flow-paid" style={{ width: `${paidWidth}%` }} /><i className="flow-pending" style={{ width: `${pendingWidth}%` }} /><i className="flow-uncommitted" style={{ width: `${uncommittedWidth}%` }} /></span></span><b>{formatCompactWon(group.budget)}</b><ChevronDown className={selected ? "rotated" : ""} size={16} /></button>;
 }
 
 function SchoolCheckList({ title, description, groups, valueKey }: { title: string; description: string; groups: SchoolAnalysisGroup[]; valueKey: "pending" | "uncommitted" }) {
