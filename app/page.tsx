@@ -251,7 +251,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.8";
+const APP_VERSION = "v0.6.9";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1294,7 +1294,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
             <span className="business-chart-meta"><span>사용 결정 <b>{formatCompactWon(project.obligation)}</b></span>{project.planned > 0 && <span className="planned">+ 사용 예정 <b>{formatCompactWon(project.planned)}</b></span>}</span>
           </button>;
         })}</div> : <EmptyState text="계획 반영 후 남는 금액이 있는 세부사업이 없습니다." />}
-        {selectedChart && <div className="business-chart-detail" aria-live="polite"><div><span>선택한 세부사업</span><strong>{selectedChart.projectName}</strong></div><dl><div><dt>내 예산</dt><dd>{formatWon(selectedChart.currentBudget)}</dd></div><div><dt>사용 결정액</dt><dd>{formatWon(selectedChart.obligation)}</dd></div><div><dt>사용 예정</dt><dd>{formatWon(selectedChart.planned)}</dd></div><div><dt>예상 잔액</dt><dd>{formatWon(selectedChart.forecast)}</dd></div></dl><button className="button secondary compact" onClick={() => focusChartProject(selectedChart.projectName)}>이 사업만 목록에서 보기<ChevronRight size={15} /></button></div>}
+        {selectedChart && <div className="business-chart-detail" aria-live="polite"><div><span>선택한 세부사업</span><strong>{selectedChart.projectName}</strong></div><dl><div><dt>내 예산</dt><dd>{formatWon(selectedChart.currentBudget)}</dd></div><div><dt>사용 결정액</dt><dd>{formatWon(selectedChart.obligation)}</dd></div><div><dt>사용 예정</dt><dd>{formatWon(selectedChart.planned)}</dd></div><div><dt>예상 잔액</dt><dd>{formatWon(selectedChart.forecast)}</dd></div></dl><button className="business-chart-list-button" onClick={() => focusChartProject(selectedChart.projectName)}>목록에서 보기<ChevronRight size={14} /></button></div>}
         <p className="business-chart-note"><Info size={14} />막대가 길수록 계획까지 반영한 뒤 남는 예산이 큽니다. 사용 예정 금액은 입력된 경우에만 표시합니다.</p>
       </div>
     </section>
@@ -1503,6 +1503,7 @@ function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
   const [schoolSort, setSchoolSort] = useState<SchoolSort>("budget-desc");
   const [search, setSearch] = useState("");
   const [scope, setScope] = useState<{ level: SchoolHierarchyLevel; id: string; label: string } | null>(null);
+  const [hierarchyFlash, setHierarchyFlash] = useState(false);
   const availableLevels = useMemo(() => ({
     policy: rows.some((row) => Boolean(row.policyName)),
     unit: rows.some((row) => Boolean(row.unitName)),
@@ -1543,19 +1544,42 @@ function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
     setScope(null);
     setSearch("");
   };
+  const nextHierarchyLevel = (current: SchoolHierarchyLevel): SchoolHierarchyLevel | null => current === "policy" ? "unit" : current === "unit" ? "project" : current === "project" ? "item" : null;
+  const hasLevelData = (group: SchoolAnalysisGroup, target: SchoolHierarchyLevel) => group.rows.some((row) => {
+    if (target === "policy") return Boolean(row.policyName);
+    if (target === "unit") return Boolean(row.unitName);
+    if (target === "project") return Boolean(row.projectName);
+    return Boolean(row.itemName);
+  });
+  const flashHierarchy = () => {
+    setHierarchyFlash(true);
+    window.setTimeout(() => setHierarchyFlash(false), 1100);
+  };
+  const navigateToSchoolGroup = (group: SchoolAnalysisGroup) => {
+    const next = nextHierarchyLevel(group.level);
+    setSchoolSort("budget-desc");
+    setSelectedPolicyId(null);
+    if (next && availableLevels[next] && hasLevelData(group, next)) {
+      setScope({ level: group.level, id: group.id, label: group.label });
+      setLevel(next);
+      setSearch("");
+    } else {
+      setScope(null);
+      setLevel(group.level);
+      setSearch(group.label);
+    }
+    flashHierarchy();
+    requestAnimationFrame(() => document.getElementById("school-hierarchy")?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  };
   const drillDown = (group: SchoolAnalysisGroup) => {
-    const next: SchoolHierarchyLevel | null = group.level === "policy" ? "unit" : group.level === "unit" ? "project" : group.level === "project" ? "item" : null;
-    if (!next) return;
+    const next = nextHierarchyLevel(group.level);
+    if (!next || !availableLevels[next] || !hasLevelData(group, next)) return;
     setScope({ level: group.level, id: group.id, label: group.label });
     setLevel(next);
     setSearch("");
   };
-  const openPolicyDetail = (group: SchoolAnalysisGroup) => {
-    setScope({ level: "policy", id: group.id, label: group.label });
-    setLevel("unit");
-    setSearch("");
-    requestAnimationFrame(() => document.getElementById("school-hierarchy")?.scrollIntoView({ behavior: "smooth", block: "start" }));
-  };
+  const openPolicyDetail = (group: SchoolAnalysisGroup) => navigateToSchoolGroup(group);
+  const hierarchyLevelName = level === "policy" ? "정책사업" : level === "unit" ? "단위사업" : level === "project" ? "세부사업" : "세부항목";
 
   return <section className="page-content school-overview-v6">
     <div className="school-data-basis"><CalendarDays size={15} /><span><strong>{meta.year}회계연도 · 데이터 기준 {dateLabel(meta.executionDate)}</strong><small>102-2 · {meta.rowCount.toLocaleString("ko-KR")}개 산출내역</small></span></div>
@@ -1580,10 +1604,10 @@ function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
       {selectedPolicy && <div className="policy-detail-panel"><div><strong>{selectedPolicy.label}</strong><span>전체 예산 {formatReadableWon(selectedPolicy.budget)}</span></div><dl><div><dt>사용 결정</dt><dd>{formatReadableWon(selectedPolicy.obligation)}</dd></div><div><dt>지급 완료</dt><dd>{formatReadableWon(selectedPolicy.paid)}</dd></div><div><dt>지급 대기</dt><dd>{formatReadableWon(selectedPolicy.pending)}</dd></div><div><dt>아직 사용 결정 전</dt><dd>{formatReadableWon(selectedPolicy.uncommitted)}</dd></div></dl><button className="button secondary compact" onClick={() => openPolicyDetail(selectedPolicy)}>이 정책사업 상세보기<ChevronRight size={15} /></button></div>}
     </section>}
 
-    <section className="school-check-section"><div className="section-heading"><h2>확인해 볼 예산</h2><p>금액이 큰 사업을 한 번에 모아봅니다.</p></div><div className="school-check-grid"><SchoolCheckList title="지급 대기 금액이 큰 사업" description="원인행위는 되었지만 아직 실제 지급되지 않은 금액" groups={pendingTop} valueKey="pending" /><SchoolCheckList title="아직 원인행위되지 않은 금액이 큰 사업" description="예산현액 중 아직 원인행위되지 않은 금액" groups={uncommittedTop} valueKey="uncommitted" /></div></section>
+    <section className="school-check-section"><div className="section-heading"><h2>확인해 볼 예산</h2><p>금액이 큰 사업을 한 번에 모아봅니다. 궁금한 사업은 바로 세부내역으로 이어서 볼 수 있어요.</p></div><div className="school-check-grid"><SchoolCheckList title="지급 대기 금액이 큰 사업" description="원인행위는 되었지만 아직 실제 지급되지 않은 금액" groups={pendingTop} valueKey="pending" onOpen={navigateToSchoolGroup} /><SchoolCheckList title="아직 원인행위되지 않은 금액이 큰 사업" description="예산현액 중 아직 원인행위되지 않은 금액" groups={uncommittedTop} valueKey="uncommitted" onOpen={navigateToSchoolGroup} /></div></section>
 
-    <section className="school-hierarchy-section" id="school-hierarchy">
-      <div className="section-heading split-heading"><div><h2>예산을 원하는 단위로 묶어보기</h2><p>{scope ? `${scope.label} 안에서 하위 항목을 보고 있습니다.` : "정책사업부터 세부항목까지 같은 기준으로 비교할 수 있습니다."}</p></div>{scope && <button className="text-button" onClick={() => { setScope(null); setLevel("policy"); }}><X size={15} />전체로 돌아가기</button>}</div>
+    <section className={`school-hierarchy-section ${hierarchyFlash ? "focus-flash" : ""}`} id="school-hierarchy">
+      <div className="section-heading split-heading"><div><h2>예산을 원하는 단위로 묶어보기</h2><p>{scope ? `${scope.label}의 ${hierarchyLevelName}을 보고 있습니다.` : "정책사업부터 세부항목까지 같은 기준으로 비교할 수 있습니다."}</p></div>{scope && <button className="text-button" onClick={() => { setScope(null); setLevel("policy"); setSearch(""); }}><X size={15} />전체로 돌아가기</button>}</div>
       <div className="school-hierarchy-tabs" role="tablist" aria-label="학교 전체 분석 단위"><button disabled={!availableLevels.policy} className={level === "policy" ? "active" : ""} onClick={() => setHierarchyLevel("policy")}>정책사업</button><button disabled={!availableLevels.unit} className={level === "unit" ? "active" : ""} onClick={() => setHierarchyLevel("unit")}>단위사업</button><button disabled={!availableLevels.project} className={level === "project" ? "active" : ""} onClick={() => setHierarchyLevel("project")}>세부사업</button><button disabled={!availableLevels.item} className={level === "item" ? "active" : ""} onClick={() => setHierarchyLevel("item")}>세부항목</button></div>
       <div className="school-hierarchy-toolbar"><label className="school-search"><SearchCheck size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="사업명 검색" aria-label="학교 전체 사업명 검색" /></label><label className="school-sort-field">정렬<select value={schoolSort} onChange={(event) => setSchoolSort(event.target.value as SchoolSort)}><option value="budget-desc">예산현액 많은 순</option><option value="budget-asc">예산현액 적은 순</option><option value="obligation-desc">원인행위액 많은 순</option><option value="paid-desc">지출액 많은 순</option><option value="pending-desc">지급 대기 많은 순</option><option value="uncommitted-desc">미원인행위 잔액 많은 순</option><option value="name-asc">이름 가나다순</option></select></label></div>
       <SchoolHierarchyTable groups={hierarchyGroups} onDrill={drillDown} />
@@ -1613,8 +1637,8 @@ function PolicyFlowRow({ group, maxBudget, selected, onSelect }: { group: School
   return <button className={`policy-flow-row ${selected ? "selected" : ""}`} onClick={onSelect} aria-expanded={selected}><span className="policy-flow-name"><strong>{group.label}</strong><small>전체 예산</small></span><span className="policy-flow-scale"><span className="policy-flow-track" style={{ width: `${budgetWidth}%` }}><i className="flow-paid" style={{ width: `${paidWidth}%` }} /><i className="flow-pending" style={{ width: `${pendingWidth}%` }} /><i className="flow-uncommitted" style={{ width: `${uncommittedWidth}%` }} /></span></span><b>{formatCompactWon(group.budget)}</b><ChevronDown className={selected ? "rotated" : ""} size={16} /></button>;
 }
 
-function SchoolCheckList({ title, description, groups, valueKey }: { title: string; description: string; groups: SchoolAnalysisGroup[]; valueKey: "pending" | "uncommitted" }) {
-  return <article className="school-check-card"><div><strong>{title}</strong><p>{description}</p></div>{groups.length ? <ol>{groups.map((group) => <li key={group.id}><span><b>{group.label}</b><small>{group.parentLabel}</small></span><strong>{formatReadableWon(group[valueKey])}</strong></li>)}</ol> : <div className="school-check-empty">해당 금액이 있는 사업이 없습니다.</div>}</article>;
+function SchoolCheckList({ title, description, groups, valueKey, onOpen }: { title: string; description: string; groups: SchoolAnalysisGroup[]; valueKey: "pending" | "uncommitted"; onOpen: (group: SchoolAnalysisGroup) => void }) {
+  return <article className="school-check-card"><div><strong>{title}</strong><p>{description}</p></div>{groups.length ? <ol>{groups.map((group) => <li key={group.id}><button className="school-check-row" onClick={() => onOpen(group)} aria-label={`${group.label} 세부내역 보기`}><span className="school-check-name"><b>{group.label}</b><small>{group.parentLabel}</small></span><span className="school-check-value"><strong>{formatReadableWon(group[valueKey])}</strong><em>세부내역 보기<ChevronRight size={13} /></em></span></button></li>)}</ol> : <div className="school-check-empty">해당 금액이 있는 사업이 없습니다.</div>}</article>;
 }
 
 function SchoolHierarchyTable({ groups, onDrill }: { groups: SchoolAnalysisGroup[]; onDrill: (group: SchoolAnalysisGroup) => void }) {
