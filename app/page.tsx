@@ -251,7 +251,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.5";
+const APP_VERSION = "v0.6.7";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -801,6 +801,7 @@ export default function Home() {
   const [planMonth, setPlanMonth] = useState("미정");
   const [planMemo, setPlanMemo] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
+  const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [schoolDragging, setSchoolDragging] = useState(false);
@@ -1035,6 +1036,47 @@ export default function Home() {
     setClosingInputs(defaultClosingInputs(revenueRows, allTotals));
   };
 
+  const resetLoadedData = () => {
+    // 불러온 파일/화면 상태만 비웁니다. localStorage의 집행계획·결산예측 입력값은 삭제하지 않습니다.
+    setBusinessRows([]);
+    setBusinessMeta(null);
+    setBusinessManager("all");
+    setBusinessPlans({});
+    setBusinessDragging(false);
+    setBusinessLoading(false);
+    setBusinessError("");
+
+    setRows([]);
+    setMeta(null);
+    setTab("overview");
+    setFundFilter("all");
+    setAttention("all");
+    setExpandedProjects(new Set());
+    setPlans({});
+    setSelectedPromotionId(null);
+    setPlanPanelOpen(false);
+    setPlanAmount("");
+    setPlanMonth("미정");
+    setPlanMemo("");
+    setLoading(false);
+    setError("");
+    setSchoolDragging(false);
+
+    setRevenueRows([]);
+    setRevenueMeta(null);
+    setClosingInputs(null);
+    setClosingLoading(false);
+    setClosingError("");
+    setClosingDragging(false);
+
+    if (businessFileInputRef.current) businessFileInputRef.current.value = "";
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (revenueFileInputRef.current) revenueFileInputRef.current.value = "";
+
+    setMainView("mine");
+    setResetConfirmOpen(false);
+  };
+
   return (
     <main className="app-shell">
       <input ref={businessFileInputRef} className="sr-only" type="file" accept=".xlsx,.xls" onChange={(event) => handleBusinessFile(event.target.files?.[0])} aria-label="사업관리카드 현액 엑셀 파일 선택" />
@@ -1042,7 +1084,7 @@ export default function Home() {
       <input ref={revenueFileInputRef} className="sr-only" type="file" accept=".xlsx,.xls" onChange={(event) => handleRevenueFile(event.target.files?.[0])} aria-label="201 세입실적 엑셀 파일 선택" />
       <header className="topbar">
         <div className="brand-block"><div className="brand-mark"><BarChart3 size={19} /></div><div><div className="brand-title-line"><strong>학교회계 예산현황판</strong><em className="version-badge">{APP_VERSION}</em></div><span>학돌랩</span></div></div>
-        <div className="top-actions">{(businessMeta || meta) && <button className="button secondary compact" onClick={() => (mainView === "school" ? fileInputRef : businessFileInputRef).current?.click()}><RefreshCw size={16} />자료 변경</button>}<button className="button ghost compact" onClick={() => setHelpOpen(true)}><HelpCircle size={17} />도움말</button></div>
+        <div className="top-actions"><details className="privacy-popover"><summary><LockKeyhole size={15} />서버 전송 없음</summary><div><strong>파일은 이 브라우저에서만 분석됩니다.</strong><p>불러온 엑셀 파일은 서버로 전송하거나 저장하지 않습니다.</p><p>직접 입력한 집행계획·결산예측 값은 재접속을 위해 현재 브라우저 저장공간에 보관될 수 있습니다.</p></div></details>{(businessMeta || meta) && <><button className="button compact data-change-button" onClick={() => (mainView === "school" ? fileInputRef : businessFileInputRef).current?.click()}><RefreshCw size={16} />자료 변경</button><button className="button compact data-reset-button" onClick={() => setResetConfirmOpen(true)}><Trash2 size={15} />자료 초기화</button></>}<button className="button ghost compact" onClick={() => setHelpOpen(true)}><HelpCircle size={17} />도움말</button></div>
       </header>
 
       {!businessMeta && !meta ? (
@@ -1054,12 +1096,12 @@ export default function Home() {
             {businessError && <div className="error-message" role="alert"><AlertCircle size={17} />{businessError}</div>}
           </div>
           <div className={`school-upload-teaser school-drop-target ${schoolDragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setSchoolDragging(true); }} onDragLeave={() => setSchoolDragging(false)} onDrop={onSchoolDrop}><div><UploadCloud size={20} /><span><strong>{schoolDragging ? "102-2 파일을 여기에 놓으세요" : "학교 전체 예산을 관리하시나요?"}</strong><small>{schoolDragging ? "놓으면 바로 학교 전체 분석을 시작합니다." : "102-2 파일을 끌어놓거나 버튼으로 선택하면 학교 전체 집행현황과 결산예측을 확인할 수 있어요."}</small></span></div><button className="button ghost compact" onClick={() => fileInputRef.current?.click()} disabled={loading}>{loading ? "분석 중..." : "102-2 추가 분석"}<ChevronRight size={16} /></button>{error && <div className="error-message" role="alert"><AlertCircle size={17} />{error}</div>}</div>
-          <div className="privacy-strip"><ShieldCheck size={19} /><div><strong>외부 전송 없음</strong><span>파일은 서버로 전송되지 않고 현재 브라우저에서만 분석됩니다.</span></div></div>
+          <div className="privacy-strip"><LockKeyhole size={18} /><div><strong>서버 전송 없음</strong><span>파일은 서버로 전송되지 않고 현재 브라우저에서만 분석됩니다.</span></div></div>
         </section>
       ) : (
         <div className="workspace">
           <section className="context-row">
-            <div className="school-context"><span className="school-name">{mainView === "school" && meta ? meta.schoolName : `${businessMeta?.year ?? meta?.year ?? new Date().getFullYear()}년 예산`}</span><button className="context-chip context-button" onClick={() => (mainView === "school" ? fileInputRef : businessFileInputRef).current?.click()}><RefreshCw size={14} />자료 변경</button><details className="data-info"><summary>자료 정보</summary><div>{businessMeta && <span><b>사업관리카드</b>{businessMeta.fileName}</span>}{meta && <span><b>102-2</b>{meta.fileName}</span>}</div></details></div>
+            <div className="school-context"><span className="school-name">{mainView === "school" && meta ? meta.schoolName : `${businessMeta?.year ?? meta?.year ?? new Date().getFullYear()}년 예산`}</span><details className="data-info"><summary>자료 정보</summary><div>{businessMeta && <span><b>사업관리카드</b>{businessMeta.fileName}</span>}{meta && <span><b>102-2</b>{meta.fileName}</span>}</div></details></div>
             {mainView !== "school" && businessMeta?.hasManager && businessManagers.length > 0 && <label className="filter-field"><UserRound size={15} />담당자<select value={businessManager} onChange={(event) => setBusinessManager(event.target.value)}><option value="all">전체 담당 사업</option>{businessManagers.map((manager) => <option key={manager} value={manager}>{manager}</option>)}</select></label>}
           </section>
           <nav className="tabs main-tabs" aria-label="학교회계 예산현황판 주 메뉴">
@@ -1073,16 +1115,17 @@ export default function Home() {
             </>}
           </nav>
 
-          {mainView === "mine" && (businessMeta ? <MyBusinessView rows={visibleBusinessRows} meta={businessMeta} totals={businessTotals} plans={businessPlans} updatePlan={updateBusinessPlan} goPlan={() => setMainView("plan")} /> : <BusinessUploadPrompt choose={() => businessFileInputRef.current?.click()} loading={businessLoading} error={businessError} />)}
-          {mainView === "plan" && (businessMeta ? <BusinessPlanView rows={visibleBusinessRows} meta={businessMeta} totals={businessTotals} plans={businessPlans} updatePlan={updateBusinessPlan} /> : <BusinessUploadPrompt choose={() => businessFileInputRef.current?.click()} loading={businessLoading} error={businessError} />)}
+          {mainView === "mine" && (businessMeta ? <MyBusinessView rows={visibleBusinessRows} meta={businessMeta} totals={businessTotals} plans={businessPlans} updatePlan={updateBusinessPlan} goPlan={() => setMainView("plan")} /> : <BusinessUploadPrompt choose={() => businessFileInputRef.current?.click()} loading={businessLoading} error={businessError} dragging={businessDragging} setDragging={setBusinessDragging} dropFile={onBusinessDrop} />)}
+          {mainView === "plan" && (businessMeta ? <BusinessPlanView rows={visibleBusinessRows} meta={businessMeta} totals={businessTotals} plans={businessPlans} updatePlan={updateBusinessPlan} /> : <BusinessUploadPrompt choose={() => businessFileInputRef.current?.click()} loading={businessLoading} error={businessError} dragging={businessDragging} setDragging={setBusinessDragging} dropFile={onBusinessDrop} />)}
           {mainView === "school" && (!meta ? <SchoolUploadPrompt choose={() => fileInputRef.current?.click()} loading={loading} error={error} dragging={schoolDragging} setDragging={setSchoolDragging} dropFile={onSchoolDrop} /> : <section className="school-area"><div className="school-toolbar"><div><span className="section-kicker">학교 전체 분석 · {tab === "overview" ? "전체 현황" : tab === "promotion" ? "업무추진비" : "결산예측"}</span><strong>{dateLabel(meta.executionDate)} 기준 · {meta.year}회계연도</strong></div>{tab !== "closing" && <label className="filter-field">재원 보기<select value={fundFilter} onChange={(event) => setFundFilter(event.target.value as FundFilter)}><option value="all">전체 사업</option><option value="school">학교운영비</option><option value="purpose">목적사업비</option><option value="revenue">수익자부담</option></select></label>}</div>
           {tab === "overview" && <OverviewTab rows={filteredRows} meta={meta} />}
           {tab === "promotion" && <PromotionTab meta={meta} groups={promotionGroups} totals={promotionTotals} plans={plans} forecast={promotionForecast} plannedTotal={visiblePlannedTotal} recheckCount={promotionRecheckCount} selectedId={selectedPromotionId} selected={selectedPromotion} select={loadSelectedPlan} panelOpen={planPanelOpen} closePanel={() => setPlanPanelOpen(false)} amount={planAmount} setAmount={changePlanAmount} month={planMonth} setMonth={setPlanMonth} memo={planMemo} setMemo={setPlanMemo} save={savePlan} remove={removePlan} currentAmount={currentPlanAmount} selectedForecast={selectedForecast} />}
           {tab === "closing" && <ClosingTab meta={meta} expenseRows={rows} expenseTotals={allTotals} revenueRows={revenueRows} revenueMeta={revenueMeta} inputs={closingInputs} plannedPromotion={plannedTotal} plannedPromotionCount={plannedDetailCount} promotionRecheckCount={promotionRecheckCount} plannedYearEnd={plannedYearEndTotal} openPromotion={() => setTab("promotion")} loading={closingLoading} error={closingError} dragging={closingDragging} setDragging={setClosingDragging} dropFile={onRevenueDrop} chooseFile={() => revenueFileInputRef.current?.click()} changeAdditional={changeAdditionalReceipt} changeAmount={changeClosingAmount} changeTransferReturn={changeTransferReturn} removeTransferReturn={removeTransferReturn} changeDetailPlan={changeDetailSpendingPlan} clearDetailPlan={clearDetailSpendingPlan} resetDetailPlans={resetDetailSpendingPlans} setLegacyDecision={setLegacyDecision} changeMemo={(memo) => setClosingInputs((current) => current ? { ...current, memo } : current)} reset={resetClosing} />}</section>)}
-          <footer><span>학돌랩 · senvip</span><span><ShieldCheck size={14} />파일·입력값 외부 전송 없음</span></footer>
+          <footer><span>학돌랩 · senvip</span><span><LockKeyhole size={14} />서버 전송 없음 · 입력값은 현재 브라우저에 저장</span></footer>
         </div>
       )}
       {helpOpen && <HelpModal close={() => setHelpOpen(false)} />}
+      {resetConfirmOpen && <ResetDataModal close={() => setResetConfirmOpen(false)} confirm={resetLoadedData} />}
     </main>
   );
 }
@@ -1095,8 +1138,8 @@ function BusinessFileRouteGuide() {
   return <div className="file-route-guide"><span><Info size={16} />에듀파인 다운로드 경로</span><strong>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드 &gt; 사업관리카드(현액)</strong></div>;
 }
 
-function BusinessUploadPrompt({ choose, loading, error }: { choose: () => void; loading: boolean; error: string }) {
-  return <section className="centered-upload page-content"><div className="prompt-icon"><BriefcaseBusiness size={28} /></div><span className="section-kicker">내 사업 시작하기</span><h1>사업관리카드(현액)를 불러와주세요</h1><p>내가 지금 새로 사용할 수 있는 금액과 세부항목별 잔액을 먼저 보여드려요.</p><button className="button primary" onClick={choose} disabled={loading}><FileSpreadsheet size={18} />{loading ? "분석 중..." : "사업관리카드(현액) 불러오기"}</button><BusinessFileRouteGuide />{error && <div className="error-message" role="alert"><AlertCircle size={17} />{error}</div>}</section>;
+function BusinessUploadPrompt({ choose, loading, error, dragging, setDragging, dropFile }: { choose: () => void; loading: boolean; error: string; dragging: boolean; setDragging: (value: boolean) => void; dropFile: (event: DragEvent<HTMLDivElement>) => void }) {
+  return <section className="centered-upload page-content"><div className="prompt-icon"><BriefcaseBusiness size={28} /></div><span className="section-kicker">내 사업 시작하기</span><h1>사업관리카드(현액)를 불러와주세요</h1><p>내가 지금 새로 사용할 수 있는 금액과 세부항목별 잔액을 먼저 보여드려요.</p><div className={`business-prompt-drop-zone ${dragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={dropFile}><UploadCloud size={26} /><strong>{dragging ? "여기에 놓으세요" : "사업관리카드(현액)를 끌어놓으세요"}</strong><span>또는</span><button className="button primary" onClick={choose} disabled={loading}><FileSpreadsheet size={18} />{loading ? "분석 중..." : "파일 선택"}</button><small>.xlsx · .xls · 담당자 열이 없는 파일도 지원</small></div><BusinessFileRouteGuide />{error && <div className="error-message" role="alert"><AlertCircle size={17} />{error}</div>}</section>;
 }
 
 function SchoolUploadPrompt({ choose, loading, error, dragging, setDragging, dropFile }: { choose: () => void; loading: boolean; error: string; dragging: boolean; setDragging: (value: boolean) => void; dropFile: (event: DragEvent<HTMLDivElement>) => void }) {
@@ -1519,16 +1562,16 @@ function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
     </section>
 
     {availableLevels.policy && <section className="policy-flow-section">
-      <div className="section-heading split-heading"><div><span className="section-kicker">큰 단위부터 보기</span><h2>정책사업별 예산 현황</h2><p>어디에 예산이 많이 배정됐고, 현재 어느 단계까지 진행됐는지 보여드려요.</p></div><label className="school-sort-field">정렬<select value={policySort} onChange={(event) => setPolicySort(event.target.value as SchoolSort)}><option value="budget-desc">예산현액 많은 순</option><option value="budget-asc">예산현액 적은 순</option><option value="paid-desc">지급 완료 많은 순</option><option value="pending-desc">지급 대기 많은 순</option><option value="uncommitted-desc">사용 결정 전 금액 많은 순</option><option value="name-asc">정책사업명 가나다순</option></select></label></div>
+      <div className="section-heading split-heading"><div><h2>정책사업별 예산 현황</h2><p>어디에 예산이 많이 배정됐고, 현재 어느 단계까지 진행됐는지 보여드려요.</p></div><label className="school-sort-field">정렬<select value={policySort} onChange={(event) => setPolicySort(event.target.value as SchoolSort)}><option value="budget-desc">예산현액 많은 순</option><option value="budget-asc">예산현액 적은 순</option><option value="paid-desc">지급 완료 많은 순</option><option value="pending-desc">지급 대기 많은 순</option><option value="uncommitted-desc">사용 결정 전 금액 많은 순</option><option value="name-asc">정책사업명 가나다순</option></select></label></div>
       <div className="policy-flow-legend" aria-label="정책사업 예산 현황 범례"><span><i className="flow-paid" />지급 완료</span><span><i className="flow-pending" />지급 대기</span><span><i className="flow-uncommitted" />아직 사용 결정 전</span><small>막대 길이는 전체 예산 규모를 나타냅니다.</small></div>
       <div className="policy-flow-list">{policyGroups.map((group) => <PolicyFlowRow key={group.id} group={group} maxBudget={maxPolicyBudget} selected={selectedPolicyId === group.id} onSelect={() => setSelectedPolicyId((current) => current === group.id ? null : group.id)} />)}</div>
       {selectedPolicy && <div className="policy-detail-panel"><div><strong>{selectedPolicy.label}</strong><span>전체 예산 {formatReadableWon(selectedPolicy.budget)}</span></div><dl><div><dt>사용 결정</dt><dd>{formatReadableWon(selectedPolicy.obligation)}</dd></div><div><dt>지급 완료</dt><dd>{formatReadableWon(selectedPolicy.paid)}</dd></div><div><dt>지급 대기</dt><dd>{formatReadableWon(selectedPolicy.pending)}</dd></div><div><dt>아직 사용 결정 전</dt><dd>{formatReadableWon(selectedPolicy.uncommitted)}</dd></div></dl><button className="button secondary compact" onClick={() => openPolicyDetail(selectedPolicy)}>이 정책사업 상세보기<ChevronRight size={15} /></button></div>}
     </section>}
 
-    <section className="school-check-section"><div className="section-heading"><span className="section-kicker">숫자로 확인</span><h2>확인해 볼 예산</h2><p>금액이 큰 사업을 한 번에 모아봅니다.</p></div><div className="school-check-grid"><SchoolCheckList title="지급 대기 금액이 큰 사업" description="원인행위는 되었지만 아직 실제 지급되지 않은 금액" groups={pendingTop} valueKey="pending" /><SchoolCheckList title="아직 원인행위되지 않은 금액이 큰 사업" description="예산현액 중 아직 원인행위되지 않은 금액" groups={uncommittedTop} valueKey="uncommitted" /></div></section>
+    <section className="school-check-section"><div className="section-heading"><h2>확인해 볼 예산</h2><p>금액이 큰 사업을 한 번에 모아봅니다.</p></div><div className="school-check-grid"><SchoolCheckList title="지급 대기 금액이 큰 사업" description="원인행위는 되었지만 아직 실제 지급되지 않은 금액" groups={pendingTop} valueKey="pending" /><SchoolCheckList title="아직 원인행위되지 않은 금액이 큰 사업" description="예산현액 중 아직 원인행위되지 않은 금액" groups={uncommittedTop} valueKey="uncommitted" /></div></section>
 
     <section className="school-hierarchy-section" id="school-hierarchy">
-      <div className="section-heading split-heading"><div><span className="section-kicker">단계별 상세 분석</span><h2>예산을 원하는 단위로 묶어보기</h2><p>{scope ? `${scope.label} 안에서 하위 항목을 보고 있습니다.` : "정책사업부터 세부항목까지 같은 기준으로 비교할 수 있습니다."}</p></div>{scope && <button className="text-button" onClick={() => { setScope(null); setLevel("policy"); }}><X size={15} />전체로 돌아가기</button>}</div>
+      <div className="section-heading split-heading"><div><h2>예산을 원하는 단위로 묶어보기</h2><p>{scope ? `${scope.label} 안에서 하위 항목을 보고 있습니다.` : "정책사업부터 세부항목까지 같은 기준으로 비교할 수 있습니다."}</p></div>{scope && <button className="text-button" onClick={() => { setScope(null); setLevel("policy"); }}><X size={15} />전체로 돌아가기</button>}</div>
       <div className="school-hierarchy-tabs" role="tablist" aria-label="학교 전체 분석 단위"><button disabled={!availableLevels.policy} className={level === "policy" ? "active" : ""} onClick={() => setHierarchyLevel("policy")}>정책사업</button><button disabled={!availableLevels.unit} className={level === "unit" ? "active" : ""} onClick={() => setHierarchyLevel("unit")}>단위사업</button><button disabled={!availableLevels.project} className={level === "project" ? "active" : ""} onClick={() => setHierarchyLevel("project")}>세부사업</button><button disabled={!availableLevels.item} className={level === "item" ? "active" : ""} onClick={() => setHierarchyLevel("item")}>세부항목</button></div>
       <div className="school-hierarchy-toolbar"><label className="school-search"><SearchCheck size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="사업명 검색" aria-label="학교 전체 사업명 검색" /></label><label className="school-sort-field">정렬<select value={schoolSort} onChange={(event) => setSchoolSort(event.target.value as SchoolSort)}><option value="budget-desc">예산현액 많은 순</option><option value="budget-asc">예산현액 적은 순</option><option value="obligation-desc">원인행위액 많은 순</option><option value="paid-desc">지출액 많은 순</option><option value="pending-desc">지급 대기 많은 순</option><option value="uncommitted-desc">미원인행위 잔액 많은 순</option><option value="name-asc">이름 가나다순</option></select></label></div>
       <SchoolHierarchyTable groups={hierarchyGroups} onDrill={drillDown} />
@@ -1832,6 +1875,10 @@ function ProjectTable({ groups, expanded, toggle }: { groups: BudgetGroup[]; exp
 function ProjectDetails({ rows }: { rows: BudgetRow[] }) { return <div className="project-details">{groupItemRows(rows).map((item) => <article key={item.name} className={item.overrunRows.length ? "overrun-item" : ""}><div className="detail-title"><strong>{item.name}</strong><span className={item.available < 0 ? "negative-value" : ""}>사용 가능 {formatWon(item.available)}</span></div><div className="detail-metrics"><span>예산 {formatWon(item.budget)}</span><span>원인행위 {formatWon(item.obligation)}</span><span>지급 {formatWon(item.paid)}</span>{item.overrunRows.length > 0 && <b>초과 {item.overrunRows.length}건</b>}</div>{item.overrunRows.length > 0 ? <div className="overrun-lines">{item.overrunRows.map((row, index) => <span key={`${row.calculation}-${index}`}><em>{row.calculation}</em><strong>{formatWon(row.available)}</strong></span>)}</div> : item.calculations.length > 0 && <p>{item.calculations.slice(0, 3).join(" · ")}{item.calculations.length > 3 ? ` 외 ${item.calculations.length - 3}건` : ""}</p>}</article>)}</div>; }
 function AttentionButton({ selected, onClick, icon, tone, title, detail, value }: { selected: boolean; onClick: () => void; icon: React.ReactNode; tone: string; title: string; detail: string; value: string }) { return <button className={selected ? "selected" : ""} onClick={onClick}><div className={`attention-icon ${tone}`}>{icon}</div><div><strong>{title}</strong><span>{detail}</span></div><b>{value}</b><ChevronRight size={17} /></button>; }
 function EmptyState({ text }: { text: string }) { return <div className="empty-state"><SearchCheck size={22} /><p>{text}</p></div>; }
+function ResetDataModal({ close, confirm }: { close: () => void; confirm: () => void }) {
+  return <div className="modal-backdrop" onMouseDown={close}><section className="reset-modal" role="dialog" aria-modal="true" aria-labelledby="reset-data-title" onMouseDown={(event) => event.stopPropagation()}><div className="reset-modal-icon"><Trash2 size={20} /></div><h2 id="reset-data-title">불러온 자료를 초기화할까요?</h2><p>현재 불러온 엑셀 자료가 모두 화면에서 제거됩니다.</p><div className="reset-preserve-note"><ShieldCheck size={17} /><span><strong>직접 입력한 집행계획은 삭제되지 않습니다.</strong><small>집행계획·결산예측 입력값은 현재 브라우저 저장공간에 그대로 유지됩니다.</small></span></div><div className="reset-modal-actions"><button className="button ghost" onClick={close}>취소</button><button className="button danger" onClick={confirm}><Trash2 size={16} />자료 초기화</button></div></section></div>;
+}
+
 function HelpModal({ close }: { close: () => void }) {
   return <div className="modal-backdrop" onMouseDown={close}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onMouseDown={(event) => event.stopPropagation()}><button className="icon-button modal-close" aria-label="도움말 닫기" onClick={close}><X size={20} /></button><span className="eyebrow">도움말</span><h2 id="help-title">예산현황판 사용 방법</h2><div className="help-steps">
     <div><b>1</b><span><strong>사업관리카드(현액) 내려받기</strong><small>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드 &gt; 사업관리카드(현액)에서 파일을 내려받습니다.</small></span></div>
@@ -1842,5 +1889,6 @@ function HelpModal({ close }: { close: () => void }) {
     <div><b>6</b><span><strong>학교 전체 예산 흐름</strong><small><b>사용하기로 한 금액</b>은 원인행위액, <b>실제 지급한 금액</b>은 지출액입니다. <b>지급 대기</b>는 원인행위액에서 지출액을 뺀 금액이며, <b>아직 원인행위되지 않은 금액</b>은 예산현액에서 원인행위액을 뺀 금액입니다.</small></span></div>
     <div><b>7</b><span><strong>정책사업부터 세부항목까지 보기</strong><small>학교 전체 현황에서 정책사업·단위사업·세부사업·세부항목 단위로 묶어 보고, 단위사업 보기·세부사업 보기·세부항목 보기 버튼으로 다음 단계 내용을 확인할 수 있습니다.</small></span></div>
     <div><b>8</b><span><strong>201 세입실적 연결</strong><small>결산예측에서 자료코드 201을 연결하고, 이전수입 반납예정액과 순세계잉여금 잠정값을 확인합니다.</small></span></div>
-  </div><div className="privacy-card"><ShieldCheck size={20} /><div><strong>브라우저 안에서만 처리됩니다.</strong><p>업로드한 엑셀은 서버로 전송되지 않습니다. 집행계획과 결산예측 입력도 현재 브라우저에만 저장됩니다.</p></div></div></section></div>;
+    <div><b>9</b><span><strong>파일은 어디에 저장되나요?</strong><small>불러온 엑셀 파일은 서버로 업로드되지 않고 현재 브라우저에서 직접 분석됩니다. <b>자료 초기화</b>는 불러온 엑셀 자료만 제거하며, 직접 입력한 집행계획·결산예측 값은 삭제하지 않습니다.</small></span></div>
+  </div><div className="privacy-card"><LockKeyhole size={20} /><div><strong>서버로 파일을 보내지 않습니다.</strong><p>엑셀은 현재 브라우저에서만 분석됩니다. 직접 입력한 집행계획과 결산예측 값은 재접속을 위해 이 브라우저에 저장될 수 있습니다.</p></div></div></section></div>;
 }

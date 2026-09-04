@@ -660,3 +660,195 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
   .school-hierarchy-rates { margin-top: 10px; padding-top: 9px; display: flex; flex-wrap: wrap; gap: 7px 12px; border-top: 1px solid #edf0f4; color: var(--muted); font-size: 10px; }
 }
 .school-hierarchy-tabs button:disabled { opacity: .38; cursor: not-allowed; }
+
+/* v0.6.6 · 보안 안내 / 자료 초기화 / 디자인 시스템 정돈 */
+:root {
+  --amber: #d88732;
+  --amber-soft: #fff4e8;
+}
+
+/* 상단 액션 위계 */
+.top-actions { flex-wrap: wrap; justify-content: flex-end; }
+.data-change-button {
+  color: #315b96;
+  background: #fff;
+  border: 1px solid #cfd8e5;
+}
+.data-change-button:hover { background: #f6f8fb; border-color: #bfcbd9; }
+.data-reset-button {
+  color: #b5454b;
+  background: #fff;
+  border: 1px solid #e8c8cb;
+}
+.data-reset-button:hover { background: #fff5f5; border-color: #ddb5b9; }
+.button.danger {
+  color: #fff;
+  background: var(--red);
+  box-shadow: 0 6px 16px rgba(200,77,83,.16);
+}
+.button.danger:hover { background: #b84046; }
+
+/* 서버 전송 없음: 성공 배지가 아니라 차분한 정보 표시 */
+.privacy-popover { position: relative; }
+.privacy-popover > summary {
+  min-height: 36px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  color: #52657d;
+  background: #f4f7fb;
+  border: 1px solid #dde5ef;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.privacy-popover > summary::-webkit-details-marker { display: none; }
+.privacy-popover > summary:hover { color: #315b96; background: #f0f5fb; border-color: #ced9e7; }
+.privacy-popover[open] > summary { color: #315b96; background: #eef4fb; border-color: #c9d7e8; }
+.privacy-popover > div {
+  width: min(360px, calc(100vw - 28px));
+  padding: 15px 16px;
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 70;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid #dce4ee;
+  border-radius: 12px;
+  box-shadow: 0 16px 38px rgba(28,42,64,.14);
+}
+.privacy-popover > div strong { display: block; font-size: 13px; }
+.privacy-popover > div p { margin: 7px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+
+.privacy-strip,
+.privacy-card {
+  color: #315b96;
+  background: #f2f6fb;
+  border: 1px solid #dce5f0;
+}
+.privacy-strip span,
+.privacy-card p { color: #5d6d80; }
+
+/* 초기화 확인창 */
+.reset-modal {
+  width: min(430px, 100%);
+  padding: 27px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 70px rgba(12,23,43,.22);
+}
+.reset-modal-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  color: var(--red);
+  background: var(--red-soft);
+  border-radius: 11px;
+}
+.reset-modal h2 { margin: 16px 0 7px; font-size: 21px; letter-spacing: -.03em; }
+.reset-modal > p { margin: 0; color: var(--muted); font-size: 13px; }
+.reset-preserve-note {
+  margin-top: 18px;
+  padding: 13px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: #315b96;
+  background: #f4f7fb;
+  border: 1px solid #dfe6ef;
+  border-radius: 10px;
+}
+.reset-preserve-note > span { display: flex; flex-direction: column; gap: 3px; }
+.reset-preserve-note strong { color: var(--ink); font-size: 13px; }
+.reset-preserve-note small { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.reset-modal-actions { margin-top: 20px; display: flex; justify-content: flex-end; gap: 8px; }
+
+/* 카드/섹션 라운드 톤 정돈 */
+.business-overview-summary,
+.school-kpi-grid,
+.school-flow-section,
+.policy-flow-section,
+.school-check-section,
+.school-hierarchy-section,
+.help-modal { border-radius: 16px; }
+.school-check-card { border-radius: 12px; }
+
+/* 의미 있는 색만 유지 */
+.school-overview-v6 { --school-paid: #315b96; --school-pending: #d88732; --school-uncommitted: #dce2ea; }
+
+@media (max-width: 720px) {
+  .topbar { flex-wrap: wrap; }
+  .top-actions { width: 100%; justify-content: flex-start; gap: 6px; }
+  .privacy-popover > div { left: 0; right: auto; }
+  .privacy-popover > summary,
+  .top-actions .button { min-height: 40px; }
+  .reset-modal { padding: 23px 18px; }
+  .reset-modal-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .reset-modal-actions .button { width: 100%; }
+}
+
+@media (max-width: 430px) {
+  .privacy-popover { flex: 1 1 100%; }
+  .privacy-popover > summary { width: 100%; justify-content: center; }
+  .top-actions .data-change-button,
+  .top-actions .data-reset-button { flex: 1 1 calc(50% - 4px); }
+  .top-actions .button.ghost { flex: 1 1 100%; }
+}
+.help-modal { max-height: calc(100vh - 40px); overflow-y: auto; }
+/* v0.6.7 · 탭 내 드래그앤드롭 + 그래프 컬러 역할 고정 */
+:root {
+  --data-blue: #315b96;
+  --pending-orange: #d88732;
+  --forecast-teal: #2b9b8d;
+  --neutral-track: #dce2ea;
+}
+.business-prompt-drop-zone {
+  width: min(540px,100%);
+  min-height: 205px;
+  padding: 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--blue);
+  background: #fff;
+  border: 1.5px dashed #bdc8d8;
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(36,49,73,.05);
+  transition: .18s ease;
+}
+.business-prompt-drop-zone.dragging {
+  color: var(--blue-dark);
+  background: var(--blue-soft);
+  border-color: var(--blue);
+  box-shadow: 0 10px 28px rgba(55,111,208,.10);
+  transform: translateY(-2px);
+}
+.business-prompt-drop-zone strong { color: var(--ink); font-size: 16px; }
+.business-prompt-drop-zone > span,
+.business-prompt-drop-zone > small { color: var(--muted); font-size: 11px; }
+.business-prompt-drop-zone .button { margin-top: 2px; }
+
+/* 그래프는 UI 색이 아니라 데이터 의미에 따라 고정 */
+.school-overview-v6 {
+  --school-paid: var(--data-blue);
+  --school-pending: var(--pending-orange);
+  --school-uncommitted: var(--neutral-track);
+}
+.business-chart-track { background: #edf1f5; }
+.business-chart-track i.forecast { background: var(--forecast-teal); }
+.business-chart-meta .planned { color: #ad6e13; }
+.business-chart-meta .planned b { color: #9b600b; }
+
+@media (max-width: 720px) {
+  .business-prompt-drop-zone { min-height: 190px; padding: 22px 16px; }
+  .business-prompt-drop-zone .button { width: min(280px,100%); }
+}
+
