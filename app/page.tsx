@@ -251,7 +251,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.7";
+const APP_VERSION = "v0.6.8";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -280,6 +280,16 @@ const formatReadableWon = (value: number) => {
   if (man) parts.push(`${man.toLocaleString("ko-KR")}만`);
   if (won) parts.push(won.toLocaleString("ko-KR"));
   return `${sign}${parts.join(" ")}원`;
+};
+const formatKpiWon = (value: number) => {
+  const rounded = Math.round(value);
+  const abs = Math.abs(rounded);
+  const sign = rounded < 0 ? "-" : "";
+  if (abs < 10_000) return `${sign}${abs.toLocaleString("ko-KR")}원`;
+  const eok = Math.floor(abs / 100_000_000);
+  const man = Math.floor((abs % 100_000_000) / 10_000);
+  if (eok) return `${sign}${eok.toLocaleString("ko-KR")}억${man ? ` ${man.toLocaleString("ko-KR")}만원` : "원"}`;
+  return `${sign}${Math.floor(abs / 10_000).toLocaleString("ko-KR")}만원`;
 };
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 const normalize = (value: unknown) => String(value ?? "").replace(/[\s\n\r]/g, "").trim();
@@ -1263,28 +1273,30 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
     <section className="business-overview-summary" aria-labelledby="business-summary-title">
       <div className="business-summary-head"><div className="section-heading"><span className="section-kicker">내 사업 한눈에 보기</span><h1 id="business-summary-title">계획까지 반영한 예산 흐름</h1><p>{hasActiveScope ? `현재 검색·필터 결과 ${filteredRows.length}건을 기준으로 다시 계산했어요. 선택 범위 전체 예산은 ${formatReadableWon(totals.currentBudget)}입니다.` : "내 예산에서 사용 결정액과 앞으로의 계획을 빼고, 실제로 얼마나 남는지 먼저 보여드려요."}</p></div>{hasActiveScope && <button className="button ghost compact" onClick={() => { setFilter("all"); setSearch(""); setShown(30); }}>검색·필터 초기화</button>}</div>
       <div className="business-summary-grid">
-        <article className="business-summary-card budget"><div className="business-summary-icon"><WalletCards size={19} /></div><span>내 예산</span><small>예산현액</small><strong>{formatReadableWon(filteredTotals.currentBudget)}</strong><em>{formatWon(filteredTotals.currentBudget)}</em></article>
-        <article className="business-summary-card committed"><div className="business-summary-icon"><ReceiptText size={19} /></div><span>이미 사용하기로 한 금액</span><small>원인행위액</small><strong>{formatReadableWon(filteredTotals.obligation)}</strong><em>{formatWon(filteredTotals.obligation)}</em></article>
-        <article className="business-summary-card planned"><div className="business-summary-icon"><CalendarDays size={19} /></div><span>앞으로 사용할 예정</span><small>입력한 집행계획</small><strong>{formatReadableWon(plannedTotal)}</strong><em>{formatWon(plannedTotal)}</em></article>
-        <article className={`business-summary-card forecast ${forecastTotal < 0 ? "negative" : ""}`}><div className="business-summary-icon"><CircleDollarSign size={19} /></div><span>예상 잔액</span><small>계획 반영 후 남는 금액</small><strong>{formatReadableWon(forecastTotal)}</strong><em>현재 사용 가능 {formatReadableWon(filteredTotals.budgetBalance)}</em></article>
+        <article className="business-summary-card budget"><div className="business-summary-icon"><WalletCards size={19} /></div><span>내 예산</span><small>예산현액</small><strong>{formatKpiWon(filteredTotals.currentBudget)}</strong><em>{formatWon(filteredTotals.currentBudget)}</em></article>
+        <article className="business-summary-card committed"><div className="business-summary-icon"><ReceiptText size={19} /></div><span>이미 사용하기로 한 금액</span><small>원인행위액</small><strong>{formatKpiWon(filteredTotals.obligation)}</strong><em>{formatWon(filteredTotals.obligation)}</em></article>
+        <article className="business-summary-card planned"><div className="business-summary-icon"><CalendarDays size={19} /></div><span>앞으로 사용할 예정</span><small>입력한 집행계획</small><strong>{formatKpiWon(plannedTotal)}</strong><em>{formatWon(plannedTotal)}</em></article>
+        <article className={`business-summary-card forecast ${forecastTotal < 0 ? "negative" : ""}`}><div className="business-summary-icon"><CircleDollarSign size={19} /></div><span>예상 잔액</span><small>계획 반영 후 남는 금액</small><strong>{formatKpiWon(forecastTotal)}</strong><em>현재 사용 가능 {formatReadableWon(filteredTotals.budgetBalance)}</em></article>
       </div>
     </section>
 
     <section className="business-visual-section" aria-labelledby="business-visual-title">
-      <div className="business-visual-head"><div className="section-heading"><span className="section-kicker">한눈에 보기</span><h2 id="business-visual-title">돈이 많이 남는 사업</h2><p>앞으로 사용할 계획까지 반영한 예상 잔액입니다.</p></div><span className="business-top-badge">세부사업 기준 · Top {Math.min(chartProjects.length, 10)}</span></div>
-      {chartProjects.length > 0 ? <div className="business-chart" role="list">{chartProjects.map((project, index) => {
-        const barPct = Math.max(3, (project.forecast / chartMaxForecast) * 100);
-        const selected = selectedChartProject === project.id;
-        return <button type="button" role="listitem" key={project.id} className={`business-chart-row ${selected ? "selected" : ""}`} onClick={() => setSelectedChartProject(selected ? "" : project.id)} aria-expanded={selected}>
-          <span className="business-chart-rank">{index + 1}</span>
-          <span className="business-chart-name">{project.projectName}</span>
-          <span className="business-chart-value"><small>예상 잔액</small><strong>{formatReadableWon(project.forecast)}</strong></span>
-          <span className="business-chart-track" aria-hidden="true"><i className="forecast" style={{ width: `${barPct}%` }} /></span>
-          <span className="business-chart-meta"><span>사용 결정 <b>{formatCompactWon(project.obligation)}</b></span>{project.planned > 0 && <span className="planned">+ 사용 예정 <b>{formatCompactWon(project.planned)}</b></span>}</span>
-        </button>;
-      })}</div> : <EmptyState text="계획 반영 후 남는 금액이 있는 세부사업이 없습니다." />}
-      {selectedChart && <div className="business-chart-detail" aria-live="polite"><div><span>선택한 세부사업</span><strong>{selectedChart.projectName}</strong></div><dl><div><dt>내 예산</dt><dd>{formatWon(selectedChart.currentBudget)}</dd></div><div><dt>사용 결정액</dt><dd>{formatWon(selectedChart.obligation)}</dd></div><div><dt>사용 예정</dt><dd>{formatWon(selectedChart.planned)}</dd></div><div><dt>예상 잔액</dt><dd>{formatWon(selectedChart.forecast)}</dd></div></dl><button className="button secondary compact" onClick={() => focusChartProject(selectedChart.projectName)}>이 사업만 목록에서 보기<ChevronRight size={15} /></button></div>}
-      <p className="business-chart-note"><Info size={14} />막대가 길수록 계획까지 반영한 뒤 남는 예산이 큽니다. 사용 예정 금액은 입력된 경우에만 표시합니다.</p>
+      <div className="business-visual-head"><div className="section-heading"><span className="section-kicker">한눈에 보기</span><h2 id="business-visual-title">돈이 많이 남는 사업</h2><p>앞으로 사용할 계획까지 반영한 예상 잔액입니다.</p><span className="business-top-badge">세부사업 기준 · Top {Math.min(chartProjects.length, 10)}</span></div></div>
+      <div className="business-visual-content">
+        {chartProjects.length > 0 ? <div className="business-chart" role="list">{chartProjects.map((project, index) => {
+          const barPct = Math.max(3, (project.forecast / chartMaxForecast) * 100);
+          const selected = selectedChartProject === project.id;
+          return <button type="button" role="listitem" key={project.id} className={`business-chart-row ${selected ? "selected" : ""}`} onClick={() => setSelectedChartProject(selected ? "" : project.id)} aria-expanded={selected}>
+            <span className="business-chart-rank">{index + 1}</span>
+            <span className="business-chart-name">{project.projectName}</span>
+            <span className="business-chart-value"><strong>{formatKpiWon(project.forecast)}</strong></span>
+            <span className="business-chart-track" aria-hidden="true"><i className="forecast" style={{ width: `${barPct}%` }} /></span>
+            <span className="business-chart-meta"><span>사용 결정 <b>{formatCompactWon(project.obligation)}</b></span>{project.planned > 0 && <span className="planned">+ 사용 예정 <b>{formatCompactWon(project.planned)}</b></span>}</span>
+          </button>;
+        })}</div> : <EmptyState text="계획 반영 후 남는 금액이 있는 세부사업이 없습니다." />}
+        {selectedChart && <div className="business-chart-detail" aria-live="polite"><div><span>선택한 세부사업</span><strong>{selectedChart.projectName}</strong></div><dl><div><dt>내 예산</dt><dd>{formatWon(selectedChart.currentBudget)}</dd></div><div><dt>사용 결정액</dt><dd>{formatWon(selectedChart.obligation)}</dd></div><div><dt>사용 예정</dt><dd>{formatWon(selectedChart.planned)}</dd></div><div><dt>예상 잔액</dt><dd>{formatWon(selectedChart.forecast)}</dd></div></dl><button className="button secondary compact" onClick={() => focusChartProject(selectedChart.projectName)}>이 사업만 목록에서 보기<ChevronRight size={15} /></button></div>}
+        <p className="business-chart-note"><Info size={14} />막대가 길수록 계획까지 반영한 뒤 남는 예산이 큽니다. 사용 예정 금액은 입력된 경우에만 표시합니다.</p>
+      </div>
     </section>
 
     <details className="business-progress business-progress-details"><summary><span><b>집행 단계도 확인하기</b><small>원인행위와 지급 완료를 전체 예산 기준으로 비교합니다.</small></span><ChevronDown size={18} /></summary><div className="business-progress-grid"><ProgressStep title="이미 사용하기로 한 금액" label="원인행위 기준" rate={obligationRate} primaryLabel="원인행위액" primaryValue={filteredTotals.obligation} remainderLabel="현재 사용 가능" remainderValue={filteredTotals.budgetBalance} tone="blue" /><ProgressStep title="지급 완료" label="지급 기준" rate={paymentRate} primaryLabel="지급액" primaryValue={filteredTotals.paid} remainderLabel="지급 전 금액 포함 잔액" remainderValue={filteredTotals.paymentBalance} tone="violet" /></div></details>
@@ -1581,7 +1593,7 @@ function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
 }
 
 function SchoolKpiCard({ title, term, value, tone }: { title: string; term: string; value: number; tone: "blue" | "slate" | "navy" | "orange" }) {
-  return <article className={`school-kpi-card tone-${tone}`}><span>{title}</span><strong>{formatCompactWon(value)}</strong><small>{term}</small><em>{formatWon(value)}</em></article>;
+  return <article className={`school-kpi-card tone-${tone}`}><span>{title}</span><strong>{formatKpiWon(value)}</strong><small>{term}</small><em>{formatWon(value)}</em></article>;
 }
 
 function SchoolFlowBar({ budget, paid, pending, uncommitted }: { budget: number; paid: number; pending: number; uncommitted: number }) {
