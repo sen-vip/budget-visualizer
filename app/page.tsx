@@ -251,7 +251,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.10";
+const APP_VERSION = "v0.6.11";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1098,14 +1098,16 @@ export default function Home() {
       </header>
 
       {!businessMeta && !meta ? (
-        <section className="upload-page">
-          <div className="upload-intro"><span className="eyebrow">내 사업 예산 보기</span><h1>내 사업 예산,<br />지금 얼마나 남았을까?</h1><p>사업관리카드(현액)를 불러오면 현재 집행현황과 앞으로 사용할 수 있는 예산을 한눈에 확인할 수 있어요.</p><BusinessFileRouteGuide compact /></div>
-          <div className={`drop-zone ${businessDragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setBusinessDragging(true); }} onDragLeave={() => setBusinessDragging(false)} onDrop={onBusinessDrop}>
-            <div className="drop-icon"><UploadCloud size={28} /></div><h2>사업관리카드(현액) 불러오기</h2><p>파일을 끌어놓거나 아래 버튼으로 선택하세요.</p>
-            <button className="button primary" onClick={() => businessFileInputRef.current?.click()} disabled={businessLoading}><FileSpreadsheet size={18} />{businessLoading ? "분석 중..." : "파일 선택"}</button><span className="file-hint">.xlsx · .xls · 담당자 열이 없는 파일도 지원</span><span className="browser-security-note"><LockKeyhole size={13} />파일은 이 브라우저에서만 분석됩니다.</span>
-            {businessError && <div className="error-message" role="alert"><AlertCircle size={17} />{businessError}</div>}
+        <section className="upload-page launch-home">
+          <div className="landing-hero-panel">
+            <div className="upload-intro"><span className="eyebrow">내 사업 예산 보기</span><h1>내 사업 예산,<br />지금 얼마나 남았을까?</h1><p>사업관리카드(현액) 하나만 불러오면 현재 집행현황과 앞으로 사용할 수 있는 예산을 바로 정리해드려요.</p><div className="landing-flow" aria-label="예산현황판 이용 순서"><span><b>1</b>현액 업로드</span><i>→</i><span><b>2</b>자동 분석</span><i>→</i><span><b>3</b>잔액 확인</span></div><BusinessFileRouteGuide compact /></div>
+            <div className={`drop-zone ${businessDragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setBusinessDragging(true); }} onDragLeave={() => setBusinessDragging(false)} onDrop={onBusinessDrop}>
+              <span className="drop-kicker">가장 먼저</span><div className="drop-icon"><UploadCloud size={28} /></div><h2>사업관리카드(현액) 불러오기</h2><p>파일을 끌어놓거나 아래 버튼으로 선택하세요.</p>
+              <button className="button primary landing-upload-button" onClick={() => businessFileInputRef.current?.click()} disabled={businessLoading}><FileSpreadsheet size={18} />{businessLoading ? "분석 중..." : "파일 선택"}</button><span className="file-hint">.xlsx · .xls · 담당자 열이 없는 파일도 지원</span><span className="browser-security-note"><LockKeyhole size={13} />파일은 이 브라우저에서만 분석됩니다.</span>
+              {businessError && <div className="error-message" role="alert"><AlertCircle size={17} />{businessError}</div>}
+            </div>
           </div>
-          <div className={`school-upload-teaser school-drop-target ${schoolDragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setSchoolDragging(true); }} onDragLeave={() => setSchoolDragging(false)} onDrop={onSchoolDrop}><div><UploadCloud size={20} /><span><strong>{schoolDragging ? "102-2 파일을 여기에 놓으세요" : "학교 전체 예산을 관리하시나요?"}</strong><small>{schoolDragging ? "놓으면 바로 학교 전체 분석을 시작합니다." : "102-2 파일을 끌어놓거나 버튼으로 선택하면 학교 전체 집행현황과 결산예측을 확인할 수 있어요."}</small></span></div><button className="button ghost compact" onClick={() => fileInputRef.current?.click()} disabled={loading}>{loading ? "분석 중..." : "102-2 추가 분석"}<ChevronRight size={16} /></button>{error && <div className="error-message" role="alert"><AlertCircle size={17} />{error}</div>}</div>
+          <div className={`school-upload-teaser school-drop-target ${schoolDragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setSchoolDragging(true); }} onDragLeave={() => setSchoolDragging(false)} onDrop={onSchoolDrop}><div><span className="school-teaser-icon"><Building2 size={19} /></span><span><em>선택 기능</em><strong>{schoolDragging ? "102-2 파일을 여기에 놓으세요" : "학교 전체 예산을 관리하시나요?"}</strong><small>{schoolDragging ? "놓으면 바로 학교 전체 분석을 시작합니다." : "102-2를 추가하면 학교 전체 집행현황과 결산예측까지 이어서 볼 수 있어요."}</small></span></div><button className="button ghost compact" onClick={() => fileInputRef.current?.click()} disabled={loading}>{loading ? "분석 중..." : "102-2 추가 분석"}<ChevronRight size={16} /></button>{error && <div className="error-message" role="alert"><AlertCircle size={17} />{error}</div>}</div>
         </section>
       ) : (
         <div className="workspace">
