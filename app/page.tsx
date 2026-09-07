@@ -251,7 +251,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.9.1";
+const APP_VERSION = "v0.6.10";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1099,14 +1099,13 @@ export default function Home() {
 
       {!businessMeta && !meta ? (
         <section className="upload-page">
-          <div className="upload-intro"><span className="eyebrow">학돌랩</span><h1>내 사업 예산,<br />지금 얼마나 남았을까?</h1><p>사업관리카드(현액)를 불러오면 현재 집행현황과 앞으로 사용할 수 있는 예산을 한눈에 확인할 수 있어요.</p><BusinessFileRouteGuide /></div>
+          <div className="upload-intro"><span className="eyebrow">내 사업 예산 보기</span><h1>내 사업 예산,<br />지금 얼마나 남았을까?</h1><p>사업관리카드(현액)를 불러오면 현재 집행현황과 앞으로 사용할 수 있는 예산을 한눈에 확인할 수 있어요.</p><BusinessFileRouteGuide compact /></div>
           <div className={`drop-zone ${businessDragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setBusinessDragging(true); }} onDragLeave={() => setBusinessDragging(false)} onDrop={onBusinessDrop}>
             <div className="drop-icon"><UploadCloud size={28} /></div><h2>사업관리카드(현액) 불러오기</h2><p>파일을 끌어놓거나 아래 버튼으로 선택하세요.</p>
-            <button className="button primary" onClick={() => businessFileInputRef.current?.click()} disabled={businessLoading}><FileSpreadsheet size={18} />{businessLoading ? "분석 중..." : "파일 선택"}</button><span className="file-hint">.xlsx · .xls · 담당자 열이 없는 파일도 지원</span>
+            <button className="button primary" onClick={() => businessFileInputRef.current?.click()} disabled={businessLoading}><FileSpreadsheet size={18} />{businessLoading ? "분석 중..." : "파일 선택"}</button><span className="file-hint">.xlsx · .xls · 담당자 열이 없는 파일도 지원</span><span className="browser-security-note"><LockKeyhole size={13} />파일은 이 브라우저에서만 분석됩니다.</span>
             {businessError && <div className="error-message" role="alert"><AlertCircle size={17} />{businessError}</div>}
           </div>
           <div className={`school-upload-teaser school-drop-target ${schoolDragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setSchoolDragging(true); }} onDragLeave={() => setSchoolDragging(false)} onDrop={onSchoolDrop}><div><UploadCloud size={20} /><span><strong>{schoolDragging ? "102-2 파일을 여기에 놓으세요" : "학교 전체 예산을 관리하시나요?"}</strong><small>{schoolDragging ? "놓으면 바로 학교 전체 분석을 시작합니다." : "102-2 파일을 끌어놓거나 버튼으로 선택하면 학교 전체 집행현황과 결산예측을 확인할 수 있어요."}</small></span></div><button className="button ghost compact" onClick={() => fileInputRef.current?.click()} disabled={loading}>{loading ? "분석 중..." : "102-2 추가 분석"}<ChevronRight size={16} /></button>{error && <div className="error-message" role="alert"><AlertCircle size={17} />{error}</div>}</div>
-          <div className="privacy-strip"><LockKeyhole size={18} /><div><strong>서버 전송 없음</strong><span>파일은 서버로 전송되지 않고 현재 브라우저에서만 분석됩니다.</span></div></div>
         </section>
       ) : (
         <div className="workspace">
@@ -1144,8 +1143,8 @@ function FileRouteGuide({ detail }: { detail: string }) {
   return <div className="file-route-guide"><span><Info size={16} />파일 다운로드 경로</span><strong>에듀파인 &gt; 학교회계 &gt; 예산결산 &gt; 결산현황 &gt; 집행실적 엑셀저장(실시간)</strong><small>{detail}</small></div>;
 }
 
-function BusinessFileRouteGuide() {
-  return <div className="file-route-guide"><span><Info size={16} />에듀파인 다운로드 경로</span><strong>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드 &gt; 사업관리카드(현액)</strong></div>;
+function BusinessFileRouteGuide({ compact = false }: { compact?: boolean }) {
+  return <div className={`file-route-guide ${compact ? "landing-route-guide" : ""}`}><span><Info size={16} />{compact ? "어디서 받나요?" : "에듀파인 다운로드 경로"}</span><strong>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드 &gt; 사업관리카드(현액)</strong></div>;
 }
 
 function BusinessUploadPrompt({ choose, loading, error, dragging, setDragging, dropFile }: { choose: () => void; loading: boolean; error: string; dragging: boolean; setDragging: (value: boolean) => void; dropFile: (event: DragEvent<HTMLDivElement>) => void }) {
