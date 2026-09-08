@@ -25,8 +25,8 @@
   --status-paid-hover: #456daa;
   --status-pending: #6f9fa3;
   --status-pending-hover: #5f8f94;
-  --status-uncommitted: #d29a3a;
-  --status-uncommitted-hover: #b97a2e;
+  --status-uncommitted: #d9e1ea;
+  --status-uncommitted-hover: #cbd5e1;
 }
 
 * { box-sizing: border-box; }
@@ -1202,4 +1202,4 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
 }
 
 
-/* v0.6.19 · 102-2 상태 컬러 개선 — 블루/스틸 틸/골든 앰버 */
+/* v0.6.18 · 102-2 상태 컬러 개선 — 블루/스틸 틸/쿨그레이 */
