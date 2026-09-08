@@ -252,7 +252,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.16";
+const APP_VERSION = "v0.6.17";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1662,7 +1662,7 @@ function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
         <SchoolKpiCard title="전체 예산" term="예산현액" value={totals.budget} tone="blue" />
         <SchoolKpiCard title="사용 결정" term="원인행위액" value={totals.obligation} tone="slate" />
         <SchoolKpiCard title="지급 완료" term="지출액" value={totals.paid} tone="navy" />
-        <SchoolKpiCard title="지급 대기" term="원인행위 후 미지급" value={pending} tone="orange" />
+        <SchoolKpiCard title="지급 대기" term="원인행위 후 미지급" value={pending} tone="pending" />
       </div>
     </section>
 
@@ -1691,7 +1691,7 @@ function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
   </section>;
 }
 
-function SchoolKpiCard({ title, term, value, tone }: { title: string; term: string; value: number; tone: "blue" | "slate" | "navy" | "orange" }) {
+function SchoolKpiCard({ title, term, value, tone }: { title: string; term: string; value: number; tone: "blue" | "slate" | "navy" | "pending" }) {
   return <article className={`school-kpi-card tone-${tone}`}><span>{title}</span><strong>{formatKpiWon(value)}</strong><small>{term}</small><em>{formatWon(value)}</em></article>;
 }
 
