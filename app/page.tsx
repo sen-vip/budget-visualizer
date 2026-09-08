@@ -251,7 +251,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.12";
+const APP_VERSION = "v0.6.13";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1107,7 +1107,7 @@ export default function Home() {
               {businessError && <div className="error-message" role="alert"><AlertCircle size={17} />{businessError}</div>}
             </div>
           </div>
-          <div className={`school-upload-teaser school-drop-target ${schoolDragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setSchoolDragging(true); }} onDragLeave={() => setSchoolDragging(false)} onDrop={onSchoolDrop}><div><span className="school-teaser-icon"><Building2 size={19} /></span><span><em>선택 기능</em><strong>{schoolDragging ? "102-2 파일을 여기에 놓으세요" : "학교 전체 예산을 관리하시나요?"}</strong><small>{schoolDragging ? "놓으면 바로 학교 전체 분석을 시작합니다." : "102-2를 추가하면 학교 전체 집행현황과 결산예측까지 이어서 볼 수 있어요."}</small></span></div><button className="button ghost compact" onClick={() => fileInputRef.current?.click()} disabled={loading}>{loading ? "분석 중..." : "102-2 추가 분석"}<ChevronRight size={16} /></button>{error && <div className="error-message" role="alert"><AlertCircle size={17} />{error}</div>}</div>
+          <div className={`school-upload-teaser school-drop-target ${schoolDragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setSchoolDragging(true); }} onDragLeave={() => setSchoolDragging(false)} onDrop={onSchoolDrop}><div><span className="school-teaser-icon"><Building2 size={19} /></span><span><em>선택 기능 · 102-2</em><strong>{schoolDragging ? "102-2 파일을 여기에 놓으세요" : "학교 전체 예산도 이어서 볼까요?"}</strong><small>{schoolDragging ? "놓으면 바로 학교 전체 분석을 시작합니다." : "102-2 파일을 이 영역에 끌어놓거나 버튼으로 불러오면 학교 전체 집행현황과 결산예측까지 이어서 볼 수 있어요."}</small></span></div><button className="button ghost compact" onClick={() => fileInputRef.current?.click()} disabled={loading}>{loading ? "분석 중..." : "102-2 불러오기"}<ChevronRight size={16} /></button>{error && <div className="error-message" role="alert"><AlertCircle size={17} />{error}</div>}</div>
         </section>
       ) : (
         <div className="workspace">
@@ -1128,7 +1128,7 @@ export default function Home() {
 
           {mainView === "mine" && (businessMeta ? <MyBusinessView rows={visibleBusinessRows} meta={businessMeta} totals={businessTotals} plans={businessPlans} updatePlan={updateBusinessPlan} goPlan={() => setMainView("plan")} /> : <BusinessUploadPrompt choose={() => businessFileInputRef.current?.click()} loading={businessLoading} error={businessError} dragging={businessDragging} setDragging={setBusinessDragging} dropFile={onBusinessDrop} />)}
           {mainView === "plan" && (businessMeta ? <BusinessPlanView rows={visibleBusinessRows} meta={businessMeta} totals={businessTotals} plans={businessPlans} updatePlan={updateBusinessPlan} /> : <BusinessUploadPrompt choose={() => businessFileInputRef.current?.click()} loading={businessLoading} error={businessError} dragging={businessDragging} setDragging={setBusinessDragging} dropFile={onBusinessDrop} />)}
-          {mainView === "school" && (!meta ? <SchoolUploadPrompt choose={() => fileInputRef.current?.click()} loading={loading} error={error} dragging={schoolDragging} setDragging={setSchoolDragging} dropFile={onSchoolDrop} /> : <section className="school-area"><div className="school-toolbar"><div><span className="section-kicker">학교 전체 분석 · {tab === "overview" ? "전체 현황" : tab === "promotion" ? "업무추진비" : "결산예측"}</span><strong>{dateLabel(meta.executionDate)} 기준 · {meta.year}회계연도</strong></div>{tab !== "closing" && <label className="filter-field">재원 보기<select value={fundFilter} onChange={(event) => setFundFilter(event.target.value as FundFilter)}><option value="all">전체 사업</option><option value="school">학교운영비</option><option value="purpose">목적사업비</option><option value="revenue">수익자부담</option></select></label>}</div>
+          {mainView === "school" && (!meta ? <SchoolUploadPrompt choose={() => fileInputRef.current?.click()} loading={loading} error={error} dragging={schoolDragging} setDragging={setSchoolDragging} dropFile={onSchoolDrop} /> : <section className="school-area"><div className="school-toolbar"><div className="school-toolbar-main"><span className="school-toolbar-icon"><Building2 size={20} /></span><span className="school-toolbar-copy"><span className="section-kicker">학교 전체 분석</span><strong>{tab === "overview" ? "학교 전체 예산 흐름" : tab === "promotion" ? "업무추진비 계획과 잔액" : "연말 결산예측"}</strong><small>102-2 · {meta.rowCount.toLocaleString("ko-KR")}개 산출내역 · {dateLabel(meta.executionDate)} 기준</small></span></div>{tab !== "closing" && <label className="filter-field school-fund-filter">재원 보기<select value={fundFilter} onChange={(event) => setFundFilter(event.target.value as FundFilter)}><option value="all">전체 사업</option><option value="school">학교운영비</option><option value="purpose">목적사업비</option><option value="revenue">수익자부담</option></select></label>}</div>
           {tab === "overview" && <OverviewTab rows={filteredRows} meta={meta} />}
           {tab === "promotion" && <PromotionTab meta={meta} groups={promotionGroups} totals={promotionTotals} plans={plans} forecast={promotionForecast} plannedTotal={visiblePlannedTotal} recheckCount={promotionRecheckCount} selectedId={selectedPromotionId} selected={selectedPromotion} select={loadSelectedPlan} panelOpen={planPanelOpen} closePanel={() => setPlanPanelOpen(false)} amount={planAmount} setAmount={changePlanAmount} month={planMonth} setMonth={setPlanMonth} memo={planMemo} setMemo={setPlanMemo} save={savePlan} remove={removePlan} currentAmount={currentPlanAmount} selectedForecast={selectedForecast} />}
           {tab === "closing" && <ClosingTab meta={meta} expenseRows={rows} expenseTotals={allTotals} revenueRows={revenueRows} revenueMeta={revenueMeta} inputs={closingInputs} plannedPromotion={plannedTotal} plannedPromotionCount={plannedDetailCount} promotionRecheckCount={promotionRecheckCount} plannedYearEnd={plannedYearEndTotal} openPromotion={() => setTab("promotion")} loading={closingLoading} error={closingError} dragging={closingDragging} setDragging={setClosingDragging} dropFile={onRevenueDrop} chooseFile={() => revenueFileInputRef.current?.click()} changeAdditional={changeAdditionalReceipt} changeAmount={changeClosingAmount} changeTransferReturn={changeTransferReturn} removeTransferReturn={removeTransferReturn} changeDetailPlan={changeDetailSpendingPlan} clearDetailPlan={clearDetailSpendingPlan} resetDetailPlans={resetDetailSpendingPlans} setLegacyDecision={setLegacyDecision} changeMemo={(memo) => setClosingInputs((current) => current ? { ...current, memo } : current)} reset={resetClosing} />}</section>)}
@@ -1154,7 +1154,7 @@ function BusinessUploadPrompt({ choose, loading, error, dragging, setDragging, d
 }
 
 function SchoolUploadPrompt({ choose, loading, error, dragging, setDragging, dropFile }: { choose: () => void; loading: boolean; error: string; dragging: boolean; setDragging: (value: boolean) => void; dropFile: (event: DragEvent<HTMLDivElement>) => void }) {
-  return <section className="centered-upload page-content"><div className="prompt-icon school"><Building2 size={28} /></div><span className="section-kicker">선택 기능</span><h1>학교 전체 예산도 확인할 수 있어요</h1><p>102-2 파일을 추가하면 학교 전체 사업의 예산·집행·업무추진비·결산예측을 분석할 수 있습니다.</p><div className={`school-prompt-drop-zone ${dragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={dropFile}><UploadCloud size={27} /><strong>{dragging ? "여기에 놓으세요" : "102-2 파일을 여기에 끌어놓으세요"}</strong><span>또는</span><button className="button primary" onClick={choose} disabled={loading}><FileSpreadsheet size={18} />{loading ? "분석 중..." : "102-2 불러오기"}</button><small>.xlsx · .xls</small></div><FileRouteGuide detail="자료코드 102-2를 선택해 내려받으세요." />{error && <div className="error-message" role="alert"><AlertCircle size={17} />{error}</div>}</section>;
+  return <section className="centered-upload page-content school-upload-prompt"><div className="prompt-icon school"><Building2 size={28} /></div><span className="section-kicker">학교 전체 예산 보기</span><h1>102-2로 학교 전체 예산을<br />이어서 살펴봐요</h1><p>102-2 파일을 이 화면에 끌어놓거나 버튼으로 불러오면 학교 전체 집행현황·업무추진비·결산예측까지 한 흐름으로 볼 수 있습니다.</p><div className={`school-prompt-drop-zone ${dragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={dropFile}><span className="drop-kicker">102-2 추가</span><div className="school-prompt-icon"><UploadCloud size={27} /></div><strong>{dragging ? "여기에 놓으세요" : "102-2 파일을 여기에 끌어놓으세요"}</strong><span>또는</span><button className="button primary" onClick={choose} disabled={loading}><FileSpreadsheet size={18} />{loading ? "분석 중..." : "102-2 불러오기"}</button><small>.xlsx · .xls · 파일은 이 브라우저에서만 분석됩니다.</small></div><FileRouteGuide detail="자료코드 102-2를 선택해 내려받으세요." />{error && <div className="error-message" role="alert"><AlertCircle size={17} />{error}</div>}</section>;
 }
 
 function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
@@ -1583,14 +1583,15 @@ function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
   const hierarchyLevelName = level === "policy" ? "정책사업" : level === "unit" ? "단위사업" : level === "project" ? "세부사업" : "세부항목";
 
   return <section className="page-content school-overview-v6">
-    <div className="school-data-basis"><CalendarDays size={15} /><span><strong>{meta.year}회계연도 · 데이터 기준 {dateLabel(meta.executionDate)}</strong><small>102-2 · {meta.rowCount.toLocaleString("ko-KR")}개 산출내역</small></span></div>
-
-    <div className="school-kpi-grid">
-      <SchoolKpiCard title="전체 예산" term="예산현액" value={totals.budget} tone="blue" />
-      <SchoolKpiCard title="사용 결정" term="원인행위액" value={totals.obligation} tone="slate" />
-      <SchoolKpiCard title="지급 완료" term="지출액" value={totals.paid} tone="navy" />
-      <SchoolKpiCard title="지급 대기" term="원인행위 후 미지급" value={pending} tone="orange" />
-    </div>
+    <section className="school-overview-lead">
+      <div className="school-overview-lead-head"><div className="school-overview-lead-copy"><span className="section-kicker">학교 전체 한눈에 보기</span><h1>학교 전체 예산,<br />지금 어디에 있을까?</h1><p>102-2를 기준으로 전체 예산을 지급 완료·지급 대기·아직 사용 결정 전으로 나누어 보여드려요.</p></div><div className="school-data-basis"><CalendarDays size={15} /><span><strong>{meta.year}회계연도 · 데이터 기준 {dateLabel(meta.executionDate)}</strong><small>102-2 · {meta.rowCount.toLocaleString("ko-KR")}개 산출내역</small></span></div></div>
+      <div className="school-kpi-grid">
+        <SchoolKpiCard title="전체 예산" term="예산현액" value={totals.budget} tone="blue" />
+        <SchoolKpiCard title="사용 결정" term="원인행위액" value={totals.obligation} tone="slate" />
+        <SchoolKpiCard title="지급 완료" term="지출액" value={totals.paid} tone="navy" />
+        <SchoolKpiCard title="지급 대기" term="원인행위 후 미지급" value={pending} tone="orange" />
+      </div>
+    </section>
 
     <section className="school-flow-section">
       <div className="section-heading"><span className="section-kicker">예산 흐름</span><h2>전체 예산이 지금 어디에 있을까요?</h2><p>지급 완료 · 지급 대기 · 원인행위 전 상태로 나누어 보여줍니다.</p></div>

@@ -916,3 +916,188 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
 @media (prefers-reduced-motion: reduce) {
   .school-hierarchy-section, .school-check-row { transition: none; }
 }
+
+/* v0.6.13 · 메인 ↔ 102-2 디자인 언어 통합 */
+.school-upload-teaser {
+  position: relative;
+  overflow: hidden;
+  padding: 16px 18px;
+  background: linear-gradient(110deg, rgba(255,255,255,.96), rgba(245,249,255,.94));
+  border: 1px dashed #c8d5e6;
+  box-shadow: 0 8px 24px rgba(35,55,88,.035);
+}
+.school-upload-teaser > div:first-child { min-width: 0; }
+.school-teaser-icon {
+  color: var(--blue);
+  background: var(--blue-soft);
+  box-shadow: inset 0 0 0 1px rgba(55,111,208,.07);
+}
+.school-upload-teaser small { max-width: 760px; line-height: 1.55; word-break: keep-all; }
+.school-upload-teaser .button { flex: 0 0 auto; color: var(--blue-dark); background: #fff; border: 1px solid #d9e3f0; }
+.school-upload-teaser .button:hover { background: #f5f9ff; border-color: #bfd0e6; }
+
+.school-upload-prompt {
+  width: min(980px,100%);
+  min-height: 0;
+  margin: 30px auto 52px;
+  padding: clamp(34px,4vw,48px);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg,#fff 0%,#fbfdff 50%,#f0f6ff 100%);
+  border: 1px solid #dce5f1;
+  border-radius: 28px;
+  box-shadow: 0 22px 58px rgba(35,55,88,.075);
+}
+.school-upload-prompt::after {
+  content: "";
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  right: -145px;
+  top: -150px;
+  border-radius: 999px;
+  background: radial-gradient(circle,rgba(55,111,208,.10),rgba(55,111,208,0) 68%);
+  pointer-events: none;
+}
+.school-upload-prompt > * { position: relative; z-index: 1; }
+.school-upload-prompt .prompt-icon.school { color: #fff; background: linear-gradient(145deg,var(--blue-dark),var(--blue)); box-shadow: 0 10px 24px rgba(55,111,208,.20); }
+.school-upload-prompt h1 { margin-top: 10px; font-size: clamp(31px,3.2vw,40px); line-height: 1.14; word-break: keep-all; }
+.school-upload-prompt > p { margin-bottom: 25px; max-width: 640px; }
+.school-upload-prompt .school-prompt-drop-zone {
+  width: min(620px,100%);
+  min-height: 255px;
+  padding: 27px 24px;
+  background: rgba(255,255,255,.96);
+  border-color: #aebfd6;
+  border-radius: 21px;
+  box-shadow: 0 16px 40px rgba(36,65,108,.09);
+}
+.school-prompt-icon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(145deg,var(--blue-dark),var(--blue));
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(55,111,208,.18);
+}
+.school-upload-prompt .school-prompt-drop-zone .drop-kicker { margin: 0 0 2px; color: var(--blue-dark); }
+.school-upload-prompt .school-prompt-drop-zone .button { min-width: 180px; min-height: 44px; border-radius: 11px; }
+.school-upload-prompt .file-route-guide { background: rgba(255,255,255,.78); border-color: #dce5f1; }
+
+.school-area { padding-top: 18px; }
+.school-toolbar {
+  min-height: 76px;
+  padding: 14px 16px;
+  background: linear-gradient(110deg,#fff,#f7faff);
+  border: 1px solid #dfe7f1;
+  border-radius: 18px;
+  box-shadow: 0 7px 24px rgba(35,55,88,.035);
+}
+.school-toolbar > div.school-toolbar-main {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 12px;
+}
+.school-toolbar-icon {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: var(--blue);
+  background: var(--blue-soft);
+  border-radius: 13px;
+}
+.school-toolbar-copy { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.school-toolbar-copy .section-kicker { font-size: 10px; letter-spacing: .06em; }
+.school-toolbar-copy strong { font-size: 16px; letter-spacing: -.02em; }
+.school-toolbar-copy small { color: #7a8697; font-size: 11px; }
+.school-fund-filter { padding-left: 14px; border-left: 1px solid #e2e8f0; }
+.school-fund-filter select { border-color: #d8e1ec; }
+
+.school-overview-v6 { padding-top: 16px; }
+.school-overview-lead {
+  position: relative;
+  overflow: hidden;
+  padding: 29px 30px 30px;
+  background: linear-gradient(135deg,#ffffff 0%,#fbfdff 48%,#eef5ff 100%);
+  border: 1px solid #dce5f1;
+  border-radius: 24px;
+  box-shadow: 0 18px 48px rgba(35,55,88,.065);
+}
+.school-overview-lead::after {
+  content: "";
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  right: -140px;
+  top: -145px;
+  border-radius: 999px;
+  background: radial-gradient(circle,rgba(55,111,208,.10),rgba(55,111,208,0) 68%);
+  pointer-events: none;
+}
+.school-overview-lead-head { position: relative; z-index: 1; display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; }
+.school-overview-lead-copy { min-width: 0; }
+.school-overview-lead-copy h1 { margin: 8px 0 9px; font-size: clamp(28px,3vw,38px); line-height: 1.12; letter-spacing: -.045em; word-break: keep-all; }
+.school-overview-lead-copy p { margin: 0; max-width: 660px; color: var(--muted); font-size: 14px; line-height: 1.65; word-break: keep-all; }
+.school-overview-lead .school-data-basis {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 10px 12px;
+  align-self: flex-start;
+  background: rgba(255,255,255,.75);
+  border: 1px solid #e1e8f1;
+  border-radius: 11px;
+}
+.school-overview-lead .school-data-basis > span { align-items: flex-start; flex-direction: column; gap: 1px; }
+.school-overview-lead .school-data-basis strong { color: #48566b; font-size: 11px; }
+.school-overview-lead .school-data-basis small { font-size: 10px; }
+.school-overview-lead .school-kpi-grid {
+  position: relative;
+  z-index: 1;
+  margin-top: 24px;
+  border-color: #dbe4ef;
+  border-radius: 18px;
+  box-shadow: 0 13px 34px rgba(37,48,69,.055);
+}
+.school-overview-lead .school-kpi-card { padding-top: 22px; padding-bottom: 20px; background: rgba(255,255,255,.96); }
+.school-overview-lead .school-kpi-card:first-child { background: linear-gradient(145deg,#f8fbff,#eef5ff); }
+.school-overview-lead .school-kpi-card:first-child > strong { color: var(--blue-dark); }
+
+.school-flow-section, .policy-flow-section, .school-check-section, .school-hierarchy-section {
+  border-color: #dfe6ef;
+  box-shadow: 0 6px 22px rgba(37,48,69,.025);
+}
+.school-flow-section .section-heading h2,
+.policy-flow-section .section-heading h2,
+.school-check-section .section-heading h2,
+.school-hierarchy-section .section-heading h2 { letter-spacing: -.025em; }
+.school-flow-section .section-kicker { font-size: 11px; }
+
+@media (max-width: 980px) {
+  .school-overview-lead-head { align-items: flex-start; flex-direction: column; gap: 16px; }
+  .school-overview-lead .school-data-basis { align-self: stretch; }
+}
+
+@media (max-width: 720px) {
+  .school-upload-teaser { padding: 15px; border-radius: 15px; }
+  .school-upload-teaser small { max-width: none; }
+  .school-upload-prompt { margin: 18px auto 36px; padding: 28px 16px 18px; border-radius: 22px; }
+  .school-upload-prompt h1 { font-size: 30px; }
+  .school-upload-prompt .school-prompt-drop-zone { min-height: 230px; padding: 24px 16px; border-radius: 18px; }
+  .school-toolbar { align-items: stretch; flex-direction: column; gap: 12px; padding: 14px; }
+  .school-toolbar > div.school-toolbar-main { align-items: flex-start; }
+  .school-toolbar-copy strong { font-size: 15px; }
+  .school-fund-filter { padding: 11px 0 0; border-left: 0; border-top: 1px solid #e4eaf2; }
+  .school-overview-v6 { padding-top: 12px; }
+  .school-overview-lead { padding: 24px 14px 14px; border-radius: 20px; }
+  .school-overview-lead-copy h1 { font-size: 30px; }
+  .school-overview-lead-copy p { font-size: 13px; }
+  .school-overview-lead .school-data-basis { padding: 9px 10px; }
+  .school-overview-lead .school-kpi-grid { margin-top: 18px; border-radius: 14px; }
+  .school-overview-lead .school-kpi-card { padding: 16px 14px; }
+}
