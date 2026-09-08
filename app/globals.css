@@ -19,6 +19,14 @@
   --violet-soft: #f2efff;
   --red: #c84d53;
   --red-soft: #fff0f1;
+
+  /* 102-2 학교 전체 분석 상태 색상 */
+  --status-paid: #4f78b8;
+  --status-paid-hover: #456daa;
+  --status-pending: #d7a45d;
+  --status-pending-hover: #c8954f;
+  --status-uncommitted: #d9e1ea;
+  --status-uncommitted-hover: #cbd5e1;
 }
 
 * { box-sizing: border-box; }
@@ -546,7 +554,7 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
 }
 
 /* v0.6.1 · 학교 전체 예산 흐름 디자인 정돈 */
-.school-overview-v6 { --school-paid: #315b96; --school-pending: #d88732; --school-uncommitted: #dce2ea; }
+.school-overview-v6 { --school-paid: var(--status-paid); --school-pending: var(--status-pending); --school-uncommitted: var(--status-uncommitted); }
 .school-data-basis { margin-bottom: 14px; padding: 0; display: inline-flex; align-items: center; gap: 7px; color: #5b6778; background: transparent; border: none; border-radius: 0; }
 .school-data-basis > span { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
 .school-data-basis strong { font-size: 12px; }
@@ -563,13 +571,17 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
 .school-flow-wrap { margin-top: 4px; }
 .school-flow-summary { margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 10px 18px; color: #536071; font-size: 12px; }
 .school-flow-summary span { display: inline-flex; align-items: center; gap: 6px; }
-.school-flow-summary i, .school-flow-legend i { width: 8px; height: 8px; border-radius: 99px; }
+.school-flow-summary i, .school-flow-legend i { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 99px; }
 .school-flow-summary b { color: var(--ink); font-size: 12px; }
 .school-flow-bar { height: 20px; display: flex; overflow: hidden; background: #edf1f5; border-radius: 999px; }
 .school-flow-bar > span, .policy-flow-track > i { display: block; min-width: 0; height: 100%; }
 .school-overview-v6 .flow-paid { background: var(--school-paid); }
 .school-overview-v6 .flow-pending { background: var(--school-pending); }
 .school-overview-v6 .flow-uncommitted { background: var(--school-uncommitted); }
+.school-flow-bar > span, .policy-flow-track > i { transition: background-color .16s ease, width .18s ease; }
+.school-flow-bar:hover .flow-paid, .policy-flow-row:hover .flow-paid { background: var(--status-paid-hover); }
+.school-flow-bar:hover .flow-pending, .policy-flow-row:hover .flow-pending { background: var(--status-pending-hover); }
+.school-flow-bar:hover .flow-uncommitted, .policy-flow-row:hover .flow-uncommitted { background: var(--status-uncommitted-hover); }
 .school-flow-legend { margin-top: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .school-flow-legend > div { padding: 0; display: grid; grid-template-columns: auto 1fr auto; gap: 2px 8px; align-items: center; background: transparent; border-radius: 0; }
 .school-flow-legend span { color: var(--muted); font-size: 11px; }
@@ -579,7 +591,7 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
 .school-sort-field select { height: 38px; padding: 0 31px 0 11px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--ink); font-size: 12px; }
 .policy-flow-legend { margin: 2px 0 14px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; color: var(--muted); font-size: 11px; }
 .policy-flow-legend span { display: inline-flex; align-items: center; gap: 6px; }
-.policy-flow-legend i { width: 8px; height: 8px; border-radius: 99px; }
+.policy-flow-legend i { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 99px; }
 .policy-flow-legend small { margin-left: auto; color: #7d8898; font-size: 10px; }
 .policy-flow-list { display: flex; flex-direction: column; gap: 4px; }
 .policy-flow-row { width: 100%; min-height: 56px; padding: 8px 10px; display: grid; grid-template-columns: minmax(190px,.9fr) minmax(300px,1.5fr) 150px 20px; gap: 13px; align-items: center; border: 0; border-radius: 9px; background: transparent; color: var(--ink); text-align: left; cursor: pointer; }
@@ -826,7 +838,7 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
 .school-check-card { border-radius: 12px; }
 
 /* 의미 있는 색만 유지 */
-.school-overview-v6 { --school-paid: #315b96; --school-pending: #d88732; --school-uncommitted: #dce2ea; }
+.school-overview-v6 { --school-paid: var(--status-paid); --school-pending: var(--status-pending); --school-uncommitted: var(--status-uncommitted); }
 
 @media (max-width: 720px) {
   .topbar { flex-wrap: wrap; }
@@ -882,11 +894,11 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
 .business-prompt-drop-zone > small { color: var(--muted); font-size: 11px; }
 .business-prompt-drop-zone .button { margin-top: 2px; }
 
-/* 그래프는 UI 색이 아니라 데이터 의미에 따라 고정 */
+/* 102-2 그래프는 UI 색이 아니라 상태 의미에 따라 고정 */
 .school-overview-v6 {
-  --school-paid: var(--data-blue);
-  --school-pending: var(--pending-orange);
-  --school-uncommitted: var(--neutral-track);
+  --school-paid: var(--status-paid);
+  --school-pending: var(--status-pending);
+  --school-uncommitted: var(--status-uncommitted);
 }
 .business-chart-track { background: #edf1f5; }
 .business-chart-track i.forecast { background: var(--forecast-teal); }
@@ -1187,3 +1199,6 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
 @media (prefers-reduced-motion: reduce) {
   .business-chart-back-button, .business-back-to-top-button { transition: none; }
 }
+
+
+/* v0.6.16 · 102-2 상태 컬러 시스템 정돈 — 지급 완료/대기/원인행위 전 */
