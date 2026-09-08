@@ -3,6 +3,7 @@
 import {
   AlertCircle,
   ArrowDownRight,
+  ArrowUp,
   BarChart3,
   BriefcaseBusiness,
   Building2,
@@ -251,7 +252,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.14";
+const APP_VERSION = "v0.6.15";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1173,15 +1174,18 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [selectedChartProject, setSelectedChartProject] = useState("");
+  const [selectedDetailProject, setSelectedDetailProject] = useState("");
   const [chartDetailFocused, setChartDetailFocused] = useState(false);
   const selectedChartDetailRef = useRef<HTMLDivElement>(null);
+  const businessVisualRef = useRef<HTMLElement>(null);
 
   const filteredRows = useMemo(() => rows.filter((row) => {
+    if (selectedDetailProject && normalize(row.projectName) !== normalize(selectedDetailProject)) return false;
     if (filter === "available" && row.budgetBalance <= 0) return false;
     if (filter === "complete" && row.budgetBalance !== 0) return false;
     const needle = normalize(search);
     return !needle || normalize(`${row.projectName}${row.itemName}${row.costName}${row.calculation}`).includes(needle);
-  }).sort((a, b) => compareBusiness(a, b, sort)), [rows, filter, search, sort]);
+  }).sort((a, b) => compareBusiness(a, b, sort)), [rows, selectedDetailProject, filter, search, sort]);
 
   const filteredItems = useMemo(() => {
     const grouped = new Map<string, BusinessItemGroup>();
@@ -1229,13 +1233,27 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
   const obligationRate = filteredTotals.currentBudget ? Math.max(0, Math.min(100, filteredTotals.obligation / filteredTotals.currentBudget * 100)) : 0;
   const paymentRate = filteredTotals.currentBudget ? Math.max(0, Math.min(100, filteredTotals.paid / filteredTotals.currentBudget * 100)) : 0;
 
-  const chartProjects = useMemo(() => filteredProjects.map((project) => {
-    const planned = project.rows.reduce((sum, row) => sum + (plans[businessPlanKey(meta, row)] ?? 0), 0);
-    return { ...project, planned, forecast: project.budgetBalance - planned };
-  }).filter((project) => project.forecast > 0).sort((a, b) => b.forecast - a.forecast).slice(0, 10), [filteredProjects, plans, meta]);
+  const chartProjects = useMemo(() => {
+    const grouped = new Map<string, BusinessProjectGroup>();
+    rows.forEach((row) => {
+      const id = normalize(row.projectName) || "project";
+      const current = grouped.get(id) ?? { id, projectName: row.projectName || "사업명 없음", currentBudget: 0, obligation: 0, paid: 0, budgetBalance: 0, paymentBalance: 0, rows: [], items: [] };
+      current.currentBudget += row.currentBudget;
+      current.obligation += row.obligation;
+      current.paid += row.paid;
+      current.budgetBalance += row.budgetBalance;
+      current.paymentBalance += row.paymentBalance;
+      current.rows.push(row);
+      grouped.set(id, current);
+    });
+    return [...grouped.values()].map((project) => {
+      const planned = project.rows.reduce((sum, row) => sum + (plans[businessPlanKey(meta, row)] ?? 0), 0);
+      return { ...project, planned, forecast: project.budgetBalance - planned };
+    }).filter((project) => project.forecast > 0).sort((a, b) => b.forecast - a.forecast).slice(0, 10);
+  }, [rows, plans, meta]);
   const chartMaxForecast = useMemo(() => Math.max(...chartProjects.map((project) => project.forecast), 1), [chartProjects]);
   const selectedChart = chartProjects.find((project) => project.id === selectedChartProject) ?? null;
-  const hasActiveScope = filter !== "all" || Boolean(normalize(search));
+  const hasActiveScope = Boolean(selectedDetailProject) || filter !== "all" || Boolean(normalize(search));
 
   useEffect(() => {
     if (!selectedChartProject) {
@@ -1276,12 +1294,36 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
     return next;
   });
   const changeViewMode = (mode: BusinessViewMode) => { setViewMode(mode); setShown(30); };
+  const returnToProjectNavigator = () => {
+    const element = businessVisualRef.current;
+    if (!element) return;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    element.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+  };
+  const clearDetailProjectScope = () => {
+    setSelectedDetailProject("");
+    setShown(30);
+  };
+  const selectChartProject = (project: { id: string; projectName: string }) => {
+    const selected = selectedChartProject === project.id;
+    setSelectedChartProject(selected ? "" : project.id);
+    if (!selected && selectedDetailProject && normalize(selectedDetailProject) !== normalize(project.projectName)) {
+      setSelectedDetailProject("");
+      setShown(30);
+    }
+  };
   const focusChartProject = (projectName: string) => {
-    setSearch(projectName);
+    setSelectedDetailProject(projectName);
+    setSearch("");
     setFilter("all");
     setViewMode("project");
     setShown(30);
-    window.setTimeout(() => document.getElementById("business-detail-start")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+    window.setTimeout(() => {
+      const element = document.getElementById("business-detail-start");
+      if (!element) return;
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      element.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+    }, 0);
   };
 
   const renderItemGroup = (group: BusinessItemGroup, nested = false) => {
@@ -1302,7 +1344,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
 
   return <div className="page-content business-page">
     <section className="business-overview-summary" aria-labelledby="business-summary-title">
-      <div className="business-summary-head"><div className="section-heading"><span className="section-kicker">내 사업 한눈에 보기</span><h1 id="business-summary-title">계획까지 반영한 예산 흐름</h1><p>{hasActiveScope ? `현재 검색·필터 결과 ${filteredRows.length}건을 기준으로 다시 계산했어요. 선택 범위 전체 예산은 ${formatReadableWon(totals.currentBudget)}입니다.` : "내 예산에서 사용 결정액과 앞으로의 계획을 빼고, 실제로 얼마나 남는지 먼저 보여드려요."}</p></div>{hasActiveScope && <button className="button ghost compact" onClick={() => { setFilter("all"); setSearch(""); setShown(30); }}>검색·필터 초기화</button>}</div>
+      <div className="business-summary-head"><div className="section-heading"><span className="section-kicker">내 사업 한눈에 보기</span><h1 id="business-summary-title">계획까지 반영한 예산 흐름</h1><p>{hasActiveScope ? `${selectedDetailProject ? `선택한 세부사업 ‘${selectedDetailProject}’` : `현재 검색·필터 결과 ${filteredRows.length}건`}을 기준으로 다시 계산했어요. 선택 범위 전체 예산은 ${formatReadableWon(filteredTotals.currentBudget)}입니다.` : "내 예산에서 사용 결정액과 앞으로의 계획을 빼고, 실제로 얼마나 남는지 먼저 보여드려요."}</p></div>{hasActiveScope && <button className="button ghost compact" onClick={() => { setSelectedDetailProject(""); setFilter("all"); setSearch(""); setShown(30); }}>선택·검색 초기화</button>}</div>
       <div className="business-summary-grid">
         <article className="business-summary-card budget"><div className="business-summary-icon"><WalletCards size={19} /></div><span>내 예산</span><small>예산현액</small><strong>{formatKpiWon(filteredTotals.currentBudget)}</strong><em>{formatWon(filteredTotals.currentBudget)}</em></article>
         <article className="business-summary-card committed"><div className="business-summary-icon"><ReceiptText size={19} /></div><span>이미 사용하기로 한 금액</span><small>원인행위액</small><strong>{formatKpiWon(filteredTotals.obligation)}</strong><em>{formatWon(filteredTotals.obligation)}</em></article>
@@ -1311,13 +1353,13 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
       </div>
     </section>
 
-    <section className="business-visual-section" aria-labelledby="business-visual-title">
+    <section ref={businessVisualRef} className="business-visual-section" aria-labelledby="business-visual-title">
       <div className="business-visual-head"><div className="section-heading"><span className="section-kicker">한눈에 보기</span><h2 id="business-visual-title">돈이 많이 남는 사업</h2><p>앞으로 사용할 계획까지 반영한 예상 잔액입니다.</p><span className="business-top-badge">세부사업 기준 · Top {Math.min(chartProjects.length, 10)}</span></div></div>
       <div className="business-visual-content">
         {chartProjects.length > 0 ? <div className="business-chart" role="list">{chartProjects.map((project, index) => {
           const barPct = Math.max(3, (project.forecast / chartMaxForecast) * 100);
           const selected = selectedChartProject === project.id;
-          return <button type="button" role="listitem" key={project.id} className={`business-chart-row ${selected ? "selected" : ""}`} onClick={() => setSelectedChartProject(selected ? "" : project.id)} aria-expanded={selected}>
+          return <button type="button" role="listitem" key={project.id} className={`business-chart-row ${selected ? "selected" : ""}`} onClick={() => selectChartProject(project)} aria-expanded={selected}>
             <span className="business-chart-rank">{index + 1}</span>
             <span className="business-chart-name">{project.projectName}</span>
             <span className="business-chart-value"><strong>{formatKpiWon(project.forecast)}</strong></span>
@@ -1325,14 +1367,15 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
             <span className="business-chart-meta"><span>사용 결정 <b>{formatCompactWon(project.obligation)}</b></span>{project.planned > 0 && <span className="planned">+ 사용 예정 <b>{formatCompactWon(project.planned)}</b></span>}</span>
           </button>;
         })}</div> : <EmptyState text="계획 반영 후 남는 금액이 있는 세부사업이 없습니다." />}
-        {selectedChart && <div ref={selectedChartDetailRef} className={`business-chart-detail ${chartDetailFocused ? "is-focused" : ""}`} aria-live="polite"><div><span>선택한 세부사업</span><strong>{selectedChart.projectName}</strong></div><dl><div><dt>내 예산</dt><dd title={formatWon(selectedChart.currentBudget)}>{formatKpiWon(selectedChart.currentBudget)}</dd></div><div><dt>사용 결정액</dt><dd title={formatWon(selectedChart.obligation)}>{formatKpiWon(selectedChart.obligation)}</dd></div><div><dt>사용 예정</dt><dd title={formatWon(selectedChart.planned)}>{formatKpiWon(selectedChart.planned)}</dd></div><div><dt>예상 잔액</dt><dd title={formatWon(selectedChart.forecast)}>{formatKpiWon(selectedChart.forecast)}</dd></div></dl><button className="business-chart-list-button" onClick={() => focusChartProject(selectedChart.projectName)}>목록에서 보기<ChevronRight size={14} /></button></div>}
+        {selectedChart && <div ref={selectedChartDetailRef} className={`business-chart-detail ${chartDetailFocused ? "is-focused" : ""}`} aria-live="polite"><div><span>선택한 세부사업</span><strong>{selectedChart.projectName}</strong></div><dl><div><dt>내 예산</dt><dd title={formatWon(selectedChart.currentBudget)}>{formatKpiWon(selectedChart.currentBudget)}</dd></div><div><dt>사용 결정액</dt><dd title={formatWon(selectedChart.obligation)}>{formatKpiWon(selectedChart.obligation)}</dd></div><div><dt>사용 예정</dt><dd title={formatWon(selectedChart.planned)}>{formatKpiWon(selectedChart.planned)}</dd></div><div><dt>예상 잔액</dt><dd title={formatWon(selectedChart.forecast)}>{formatKpiWon(selectedChart.forecast)}</dd></div></dl><div className="business-chart-actions"><button className="business-chart-list-button" onClick={() => focusChartProject(selectedChart.projectName)}>이 사업 상세 보기<ChevronRight size={14} /></button><button className="business-chart-back-button" onClick={returnToProjectNavigator}><ArrowUp size={14} />다른 사업 선택</button></div></div>}
         <p className="business-chart-note"><Info size={14} />막대가 길수록 계획까지 반영한 뒤 남는 예산이 큽니다. 사용 예정 금액은 입력된 경우에만 표시합니다.</p>
       </div>
     </section>
 
     <details className="business-progress business-progress-details"><summary><span><b>집행 단계도 확인하기</b><small>원인행위와 지급 완료를 전체 예산 기준으로 비교합니다.</small></span><ChevronDown size={18} /></summary><div className="business-progress-grid"><ProgressStep title="이미 사용하기로 한 금액" label="원인행위 기준" rate={obligationRate} primaryLabel="원인행위액" primaryValue={filteredTotals.obligation} remainderLabel="현재 사용 가능" remainderValue={filteredTotals.budgetBalance} tone="blue" /><ProgressStep title="지급 완료" label="지급 기준" rate={paymentRate} primaryLabel="지급액" primaryValue={filteredTotals.paid} remainderLabel="지급 전 금액 포함 잔액" remainderValue={filteredTotals.paymentBalance} tone="violet" /></div></details>
 
-    <section className="business-detail-section" id="business-detail-start"><div className="split-heading business-list-head"><div className="section-heading"><span className="section-kicker">예산 상세</span><h2>원하는 크기로 묶어 확인하세요</h2><p>{viewMode === "project" ? "세부사업 단위로 합산해서 보고, 필요한 사업만 펼쳐 세부항목을 확인하세요." : viewMode === "item" ? "같은 세부항목을 합산해 보고, 필요한 항목만 펼쳐 산출내역을 확인하세요." : "실제 산출내역을 한 건씩 확인하고 바로 집행계획을 입력할 수 있어요."}</p></div><button className="button secondary compact" onClick={goPlan}><ListChecks size={16} />집행 계획 모아보기</button></div>
+    <section className="business-detail-section" id="business-detail-start"><div className="split-heading business-list-head"><div className="section-heading"><span className="section-kicker">예산 상세</span><h2>원하는 크기로 묶어 확인하세요</h2><p>{viewMode === "project" ? "세부사업 단위로 합산해서 보고, 필요한 사업만 펼쳐 세부항목을 확인하세요." : viewMode === "item" ? "같은 세부항목을 합산해 보고, 필요한 항목만 펼쳐 산출내역을 확인하세요." : "실제 산출내역을 한 건씩 확인하고 바로 집행계획을 입력할 수 있어요."}</p></div><div className="business-list-head-actions">{selectedDetailProject && <button className="business-back-to-top-button" onClick={returnToProjectNavigator}><ArrowUp size={15} />다른 사업 선택</button>}<button className="button secondary compact" onClick={goPlan}><ListChecks size={16} />집행 계획 모아보기</button></div></div>
+      {selectedDetailProject && <div className="business-active-project-scope" aria-label="선택한 세부사업 필터"><span>선택한 사업</span><strong>{selectedDetailProject}</strong><button onClick={clearDetailProjectScope} aria-label={`${selectedDetailProject} 선택 해제`}><X size={14} />전체 보기</button></div>}
       <div className="business-view-row"><div className="business-view-toggle" role="group" aria-label="예산 상세 보기 기준"><button className={viewMode === "detail" ? "active" : ""} onClick={() => changeViewMode("detail")}>목록 보기</button><button className={viewMode === "project" ? "active" : ""} onClick={() => changeViewMode("project")}>세부사업 요약</button><button className={viewMode === "item" ? "active" : ""} onClick={() => changeViewMode("item")}>세부항목 요약</button></div><span className="business-view-count">{viewMode === "project" ? `세부사업 ${filteredProjects.length}개 · 산출내역 ${filteredRows.length}건` : viewMode === "item" ? `세부항목 ${filteredItems.length}개 · 산출내역 ${filteredRows.length}건` : `산출내역 ${filteredRows.length}건`}</span></div>
       <div className="business-controls"><div className="filter-tabs" role="group" aria-label="예산 상세 필터">{(["all", "available", "complete"] as BusinessFilter[]).map((value) => <button key={value} className={filter === value ? "active" : ""} onClick={() => { setFilter(value); setShown(30); }}>{value === "all" ? "전체" : value === "available" ? "잔액 있음" : "집행 완료"}</button>)}</div><div className="business-control-tools"><label className="business-sort"><span>정렬</span><select value={sort} onChange={(event) => { setSort(event.target.value as BusinessSort); setShown(30); }}><option value="name-asc">이름 가나다순</option><option value="name-desc">이름 역순</option><option value="project-asc">세부사업 가나다순</option><option value="project-desc">세부사업 역순</option><option value="item-asc">세부항목 가나다순</option><option value="item-desc">세부항목 역순</option><option value="amount-desc">사용 가능액 많은 순</option><option value="amount-asc">사용 가능액 적은 순</option></select></label><label className="business-search"><span className="sr-only">예산 상세 검색</span><input value={search} onChange={(event) => { setSearch(event.target.value); setShown(30); }} placeholder={viewMode === "project" ? "세부사업·세부항목 검색" : viewMode === "item" ? "사업·세부항목 검색" : "사업·산출내역 검색"} /></label></div></div>
       {viewMode === "project" ? <div className="business-project-list">{filteredProjects.map((project) => {
@@ -1950,8 +1993,8 @@ function ResetDataModal({ close, confirm }: { close: () => void; confirm: () => 
 function HelpModal({ close }: { close: () => void }) {
   return <div className="modal-backdrop" onMouseDown={close}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onMouseDown={(event) => event.stopPropagation()}><button className="icon-button modal-close" aria-label="도움말 닫기" onClick={close}><X size={20} /></button><span className="eyebrow">도움말</span><h2 id="help-title">예산현황판 사용 방법</h2><div className="help-steps">
     <div><b>1</b><span><strong>사업관리카드(현액) 내려받기</strong><small>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드 &gt; 사업관리카드(현액)에서 파일을 내려받습니다.</small></span></div>
-    <div><b>2</b><span><strong>한눈에 보기</strong><small>내 예산·원인행위액·앞으로 사용할 예정액·예상 잔액을 먼저 보여줍니다. 검색이나 필터를 적용하면 요약과 차트도 같은 조건으로 다시 계산됩니다.</small></span></div>
-    <div><b>3</b><span><strong>세부사업·세부항목 요약</strong><small>목록 보기는 산출내역을 한 건씩 보여주고, 세부사업 요약과 세부항목 요약은 같은 항목을 합산해 더 크게 묶어 보여줍니다.</small></span></div>
+    <div><b>2</b><span><strong>한눈에 보기</strong><small>내 예산·원인행위액·앞으로 사용할 예정액·예상 잔액을 먼저 보여줍니다. ‘돈이 많이 남는 사업’ Top10은 전체 사업 기준으로 유지되어 다른 사업을 계속 탐색할 수 있습니다.</small></span></div>
+    <div><b>3</b><span><strong>세부사업·세부항목 요약</strong><small>Top10에서 사업을 고른 뒤 ‘이 사업 상세 보기’를 누르면 해당 사업만 모아봅니다. ‘다른 사업 선택’으로 Top10에 돌아가거나 ‘전체 보기’로 선택 필터를 해제할 수 있습니다. 목록 보기는 산출내역을 한 건씩 보여줍니다.</small></span></div>
     <div><b>4</b><span><strong>앞으로 쓸 금액 입력</strong><small>산출내역별 집행예정액을 입력하면 예상 잔액이 바로 계산됩니다. 입력값은 현재 브라우저에만 저장됩니다.</small></span></div>
     <div><b>5</b><span><strong>102-2 내려받아 학교 전체 분석</strong><small>에듀파인 &gt; 학교회계 &gt; 예산결산 &gt; 결산현황 &gt; 집행실적에서 <b>엑셀저장(실시간)</b>을 누르고, 자료코드 <b>102-2</b>를 선택해 내려받습니다.</small></span></div>
     <div><b>6</b><span><strong>학교 전체 예산 흐름</strong><small><b>사용하기로 한 금액</b>은 원인행위액, <b>실제 지급한 금액</b>은 지출액입니다. <b>지급 대기</b>는 원인행위액에서 지출액을 뺀 금액이며, <b>아직 원인행위되지 않은 금액</b>은 예산현액에서 원인행위액을 뺀 금액입니다.</small></span></div>
