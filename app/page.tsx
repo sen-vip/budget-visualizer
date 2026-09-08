@@ -251,7 +251,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.13";
+const APP_VERSION = "v0.6.14";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1173,6 +1173,8 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [selectedChartProject, setSelectedChartProject] = useState("");
+  const [chartDetailFocused, setChartDetailFocused] = useState(false);
+  const selectedChartDetailRef = useRef<HTMLDivElement>(null);
 
   const filteredRows = useMemo(() => rows.filter((row) => {
     if (filter === "available" && row.budgetBalance <= 0) return false;
@@ -1235,6 +1237,34 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
   const selectedChart = chartProjects.find((project) => project.id === selectedChartProject) ?? null;
   const hasActiveScope = filter !== "all" || Boolean(normalize(search));
 
+  useEffect(() => {
+    if (!selectedChartProject) {
+      setChartDetailFocused(false);
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      const element = selectedChartDetailRef.current;
+      if (!element) return;
+
+      const rect = element.getBoundingClientRect();
+      const sufficientlyVisible = rect.top >= 88 && rect.bottom <= window.innerHeight - 36;
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      if (!sufficientlyVisible) {
+        element.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+      }
+
+      setChartDetailFocused(true);
+    });
+
+    const timer = window.setTimeout(() => setChartDetailFocused(false), 900);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
+  }, [selectedChartProject]);
+
   const toggleProject = (id: string) => setExpandedProjects((current) => {
     const next = new Set(current);
     if (next.has(id)) next.delete(id); else next.add(id);
@@ -1295,7 +1325,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
             <span className="business-chart-meta"><span>사용 결정 <b>{formatCompactWon(project.obligation)}</b></span>{project.planned > 0 && <span className="planned">+ 사용 예정 <b>{formatCompactWon(project.planned)}</b></span>}</span>
           </button>;
         })}</div> : <EmptyState text="계획 반영 후 남는 금액이 있는 세부사업이 없습니다." />}
-        {selectedChart && <div className="business-chart-detail" aria-live="polite"><div><span>선택한 세부사업</span><strong>{selectedChart.projectName}</strong></div><dl><div><dt>내 예산</dt><dd>{formatWon(selectedChart.currentBudget)}</dd></div><div><dt>사용 결정액</dt><dd>{formatWon(selectedChart.obligation)}</dd></div><div><dt>사용 예정</dt><dd>{formatWon(selectedChart.planned)}</dd></div><div><dt>예상 잔액</dt><dd>{formatWon(selectedChart.forecast)}</dd></div></dl><button className="business-chart-list-button" onClick={() => focusChartProject(selectedChart.projectName)}>목록에서 보기<ChevronRight size={14} /></button></div>}
+        {selectedChart && <div ref={selectedChartDetailRef} className={`business-chart-detail ${chartDetailFocused ? "is-focused" : ""}`} aria-live="polite"><div><span>선택한 세부사업</span><strong>{selectedChart.projectName}</strong></div><dl><div><dt>내 예산</dt><dd title={formatWon(selectedChart.currentBudget)}>{formatKpiWon(selectedChart.currentBudget)}</dd></div><div><dt>사용 결정액</dt><dd title={formatWon(selectedChart.obligation)}>{formatKpiWon(selectedChart.obligation)}</dd></div><div><dt>사용 예정</dt><dd title={formatWon(selectedChart.planned)}>{formatKpiWon(selectedChart.planned)}</dd></div><div><dt>예상 잔액</dt><dd title={formatWon(selectedChart.forecast)}>{formatKpiWon(selectedChart.forecast)}</dd></div></dl><button className="business-chart-list-button" onClick={() => focusChartProject(selectedChart.projectName)}>목록에서 보기<ChevronRight size={14} /></button></div>}
         <p className="business-chart-note"><Info size={14} />막대가 길수록 계획까지 반영한 뒤 남는 예산이 큽니다. 사용 예정 금액은 입력된 경우에만 표시합니다.</p>
       </div>
     </section>

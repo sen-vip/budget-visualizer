@@ -409,9 +409,10 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
 .business-chart-track i { min-width: 0; height: 100%; display: block; border-radius: 999px; }.business-chart-track i.forecast { background: var(--teal); }
 .business-chart-meta { grid-column: 2 / 4; grid-row: 3; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 13px; color: #748094; font-size: 10px; }
 .business-chart-meta span { display: inline-flex; align-items: center; gap: 4px; }.business-chart-meta b { color: #536071; font-size: 10px; }.business-chart-meta .planned { color: #b77915; }.business-chart-meta .planned b { color: #a8680a; }
-.business-chart-detail { margin-top: 13px; padding: 14px 15px; display: grid; grid-template-columns: minmax(160px,1.05fr) minmax(0,2.1fr) auto; gap: 12px; align-items: center; background: #f7f9fc; border: 1px solid #e1e6ed; border-radius: 11px; }
+.business-chart-detail { margin-top: 13px; padding: 14px 15px; display: grid; grid-template-columns: minmax(160px,1.05fr) minmax(0,2.1fr) auto; gap: 12px; align-items: center; background: #f7f9fc; border: 1px solid #e1e6ed; border-radius: 11px; scroll-margin-top: 96px; transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease; }
+.business-chart-detail.is-focused { border-color: #9bbcff; background: #f6f9ff; box-shadow: 0 0 0 4px rgba(55,111,208,.08); }
 .business-chart-detail > div:first-child { min-width: 0; display: flex; flex-direction: column; gap: 3px; }.business-chart-detail > div:first-child span { color: var(--muted); font-size: 10px; font-weight: 700; }.business-chart-detail > div:first-child strong { overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
-.business-chart-detail dl { min-width: 0; margin: 0; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 7px; }.business-chart-detail dl > div { min-width: 0; padding: 7px 8px; background: white; border-radius: 8px; }.business-chart-detail dt { color: var(--muted); font-size: 9px; }.business-chart-detail dd { margin: 2px 0 0; overflow: hidden; font-size: 11px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.business-chart-detail dl { min-width: 0; margin: 0; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 7px; }.business-chart-detail dl > div { min-width: 0; padding: 7px 8px; background: white; border-radius: 8px; }.business-chart-detail dt { color: var(--muted); font-size: 9px; }.business-chart-detail dd { margin: 2px 0 0; overflow: visible; font-size: 11px; font-weight: 800; text-overflow: clip; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .business-chart-list-button { min-width: 118px; max-width: 100%; min-height: 46px; padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; justify-self: end; flex-shrink: 0; border: 1px solid #d4e1f6; border-radius: 9px; background: #edf4ff; color: #245fbd; font-size: 13px; font-weight: 750; line-height: 1; white-space: nowrap; cursor: pointer; transition: background .16s ease, border-color .16s ease; }
 .business-chart-list-button:hover { background: #e4efff; border-color: #c4d7f4; }
 .business-chart-list-button:focus-visible { outline: 3px solid rgba(55,111,208,.18); outline-offset: 2px; }
@@ -914,7 +915,7 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
   .business-chart-detail .business-chart-list-button { width: auto; min-width: 118px; justify-self: start; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .school-hierarchy-section, .school-check-row { transition: none; }
+  .school-hierarchy-section, .school-check-row, .business-chart-detail { transition: none; }
 }
 
 /* v0.6.13 · 메인 ↔ 102-2 디자인 언어 통합 */
@@ -1101,3 +1102,7 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
   .school-overview-lead .school-kpi-grid { margin-top: 18px; border-radius: 14px; }
   .school-overview-lead .school-kpi-card { padding: 16px 14px; }
 }
+
+
+/* v0.6.14 · 선택 사업 가독성 및 클릭→요약 포커스 UX */
+.business-chart-detail dd[title] { cursor: help; }
