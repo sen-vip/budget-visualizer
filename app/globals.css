@@ -23,8 +23,8 @@
   /* 102-2 학교 전체 분석 상태 색상 */
   --status-paid: #4f78b8;
   --status-paid-hover: #456daa;
-  --status-pending: #5f8f94;
-  --status-pending-hover: #527f84;
+  --status-pending: #8fa6c7;
+  --status-pending-hover: #7e99be;
   --status-uncommitted: #d9e1ea;
   --status-uncommitted-hover: #cbd5e1;
 }
@@ -1202,4 +1202,4 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
 }
 
 
-/* v0.6.20 · v0.6.18 기반 롤백 + 지급 대기 컬러만 조정 */
+/* v0.6.21 · 102-2 상태 컬러 개선 — 블루/라이트 블루/쿨그레이블루 */
