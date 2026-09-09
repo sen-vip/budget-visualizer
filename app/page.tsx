@@ -252,21 +252,23 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.21";
+const APP_VERSION = "v0.6.22";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
 const formatWon = (value: number) => `${Math.round(value).toLocaleString("ko-KR")}원`;
 const formatCompactWon = (value: number) => {
-  const abs = Math.abs(value);
-  const sign = value < 0 ? "-" : "";
-  if (abs >= 100_000_000) {
-    const eok = Math.floor(abs / 100_000_000);
-    const man = Math.round((abs % 100_000_000) / 10_000);
-    return `${sign}${eok}억${man ? ` ${man.toLocaleString("ko-KR")}만` : ""}원`;
-  }
-  if (abs >= 10_000) return `${sign}${Math.round(abs / 10_000).toLocaleString("ko-KR")}만원`;
-  return `${sign}${Math.round(abs).toLocaleString("ko-KR")}원`;
+  const rounded = Math.round(value);
+  const abs = Math.abs(rounded);
+  const sign = rounded < 0 ? "-" : "";
+  if (abs < 10_000) return `${sign}${abs.toLocaleString("ko-KR")}원`;
+
+  // 먼저 만원 단위로 반올림한 뒤 억/만원을 나눠, 9,999만원대 반올림 시 단위 올림도 자연스럽게 처리합니다.
+  const totalMan = Math.round(abs / 10_000);
+  const eok = Math.floor(totalMan / 10_000);
+  const man = totalMan % 10_000;
+  if (eok) return `${sign}${eok.toLocaleString("ko-KR")}억${man ? ` ${man.toLocaleString("ko-KR")}만원` : "원"}`;
+  return `${sign}${totalMan.toLocaleString("ko-KR")}만원`;
 };
 const formatReadableWon = (value: number) => {
   const rounded = Math.round(value);
@@ -282,17 +284,17 @@ const formatReadableWon = (value: number) => {
   if (won) parts.push(won.toLocaleString("ko-KR"));
   return `${sign}${parts.join(" ")}원`;
 };
-const formatKpiWon = (value: number) => {
-  const rounded = Math.round(value);
-  const abs = Math.abs(rounded);
-  const sign = rounded < 0 ? "-" : "";
-  if (abs < 10_000) return `${sign}${abs.toLocaleString("ko-KR")}원`;
-  const eok = Math.floor(abs / 100_000_000);
-  const man = Math.floor((abs % 100_000_000) / 10_000);
-  if (eok) return `${sign}${eok.toLocaleString("ko-KR")}억${man ? ` ${man.toLocaleString("ko-KR")}만원` : "원"}`;
-  return `${sign}${Math.floor(abs / 10_000).toLocaleString("ko-KR")}만원`;
-};
+// KPI와 그래프 범례는 같은 요약 포맷터를 사용해 만원 단위 반올림 규칙을 통일합니다.
+const formatKpiWon = (value: number) => formatCompactWon(value);
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
+
+function ForecastAmount({ value, compact = false, showWarning = false }: { value: number; compact?: boolean; showWarning?: boolean }) {
+  const negative = value < 0;
+  return <>
+    <strong className={negative ? "negative-value" : ""}>{compact ? formatCompactWon(value) : formatWon(value)}</strong>
+    {negative && showWarning && <em className="forecast-overrun"><AlertCircle size={12} />예산 초과 {formatWon(Math.abs(value))}</em>}
+  </>;
+}
 const normalize = (value: unknown) => String(value ?? "").replace(/[\s\n\r]/g, "").trim();
 type SortableBusiness = { projectName: string; budgetBalance: number; itemName?: string; calculation?: string };
 const compareText = (a: string, b: string) => a.localeCompare(b, "ko-KR", { numeric: true, sensitivity: "base" });
@@ -1088,6 +1090,24 @@ export default function Home() {
     setResetConfirmOpen(false);
   };
 
+  const resetAllStoredInputs = () => {
+    // 이 앱이 사용하는 저장값만 선택적으로 삭제합니다. 다른 localStorage 값은 건드리지 않습니다.
+    localStorage.removeItem(BUSINESS_PLAN_STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY);
+
+    const closingKeys: string[] = [];
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (key?.startsWith(`${CLOSING_STORAGE_KEY}::`)) closingKeys.push(key);
+    }
+    closingKeys.forEach((key) => localStorage.removeItem(key));
+
+    resetLoadedData();
+    setBusinessPlans({});
+    setPlans({});
+    setClosingInputs(null);
+  };
+
   return (
     <main className="app-shell">
       <input ref={businessFileInputRef} className="sr-only" type="file" accept=".xlsx,.xls" onChange={(event) => handleBusinessFile(event.target.files?.[0])} aria-label="사업관리카드 현액 엑셀 파일 선택" />
@@ -1095,7 +1115,7 @@ export default function Home() {
       <input ref={revenueFileInputRef} className="sr-only" type="file" accept=".xlsx,.xls" onChange={(event) => handleRevenueFile(event.target.files?.[0])} aria-label="201 세입실적 엑셀 파일 선택" />
       <header className="topbar">
         <div className="brand-block"><div className="brand-mark"><BarChart3 size={19} /></div><div><div className="brand-title-line"><strong>학교회계 예산현황판</strong><em className="version-badge">{APP_VERSION}</em></div><span>학돌랩</span></div></div>
-        <div className="top-actions"><details className="privacy-popover"><summary><LockKeyhole size={15} />서버 전송 없음</summary><div><strong>파일은 이 브라우저에서만 분석됩니다.</strong><p>불러온 엑셀 파일은 서버로 전송하거나 저장하지 않습니다.</p><p>직접 입력한 집행계획·결산예측 값은 재접속을 위해 현재 브라우저 저장공간에 보관될 수 있습니다.</p></div></details>{(businessMeta || meta) && <><button className="button compact data-change-button" onClick={() => (mainView === "school" ? fileInputRef : businessFileInputRef).current?.click()}><RefreshCw size={16} />자료 변경</button><button className="button compact data-reset-button" onClick={() => setResetConfirmOpen(true)}><Trash2 size={15} />자료 초기화</button></>}<button className="button ghost compact" onClick={() => setHelpOpen(true)}><HelpCircle size={17} />도움말</button></div>
+        <div className="top-actions"><details className="privacy-popover"><summary><LockKeyhole size={15} />서버 전송 없음</summary><div><strong>파일은 이 브라우저에서만 분석됩니다.</strong><p>불러온 엑셀 파일은 서버로 전송하거나 저장하지 않습니다.</p><p>직접 입력한 집행계획·결산예측 값은 재접속을 위해 현재 브라우저 저장공간에 보관될 수 있습니다.</p></div></details>{(businessMeta || meta) && <><button className="button compact data-change-button" onClick={() => (mainView === "school" ? fileInputRef : businessFileInputRef).current?.click()}><RefreshCw size={16} />자료 변경</button><button className="button compact data-reset-button" onClick={() => setResetConfirmOpen(true)}><Trash2 size={15} />자료 비우기</button></>}<button className="button ghost compact" onClick={() => setHelpOpen(true)}><HelpCircle size={17} />도움말</button></div>
       </header>
 
       {!businessMeta && !meta ? (
@@ -1137,7 +1157,7 @@ export default function Home() {
         </div>
       )}
       {helpOpen && <HelpModal close={() => setHelpOpen(false)} />}
-      {resetConfirmOpen && <ResetDataModal close={() => setResetConfirmOpen(false)} confirm={resetLoadedData} />}
+      {resetConfirmOpen && <ResetDataModal close={() => setResetConfirmOpen(false)} clearExcel={resetLoadedData} clearAll={resetAllStoredInputs} />}
     </main>
   );
 }
@@ -1335,7 +1355,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
       <button className="business-item-summary" onClick={() => toggleItem(group.id)} aria-expanded={expanded}>
         <div className="business-item-title"><span>{nested ? "세부항목" : group.projectName}</span><h3>{group.itemName}</h3><small>산출내역 {group.rows.length}건 · 원인행위 {formatPercent(rate)}</small></div>
         <div className="business-item-metrics"><span><small>전체 예산</small><strong>{formatWon(group.currentBudget)}</strong></span><span><small>이미 사용하기로 한 금액</small><strong>{formatWon(group.obligation)}</strong></span><span className="available"><small>현재 사용 가능</small><strong>{formatWon(group.budgetBalance)}</strong></span></div>
-        <div className="business-item-forecast"><span><small>앞으로 사용할 예정</small><strong>{formatWon(planned)}</strong></span><span><small>예상 잔액</small><strong className={forecast < 0 ? "negative-value" : ""}>{formatWon(forecast)}</strong></span></div>
+        <div className="business-item-forecast"><span><small>앞으로 사용할 예정</small><strong>{formatWon(planned)}</strong></span><span><small>예상 잔액</small><ForecastAmount value={forecast} showWarning /></span></div>
         <span className="business-item-expand">{expanded ? "산출내역 접기" : `산출내역 ${group.rows.length}건 보기`}<ChevronDown className={expanded ? "rotated" : ""} size={17} /></span>
       </button>
       {expanded && <div className="business-item-details">{[...group.rows].sort((a, b) => compareBusiness(a, b, sort)).map((row) => <BusinessDetailCard key={row.id} row={row} plan={plans[businessPlanKey(meta, row)] ?? 0} updatePlan={updatePlan} />)}</div>}
@@ -1387,7 +1407,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
           <button className="business-project-summary" onClick={() => toggleProject(project.id)} aria-expanded={expanded}>
             <div className="business-project-title"><span>세부사업</span><h3>{project.projectName}</h3><small>세부항목 {project.items.length}개 · 산출내역 {project.rows.length}건 · 원인행위 {formatPercent(rate)}</small></div>
             <div className="business-item-metrics"><span><small>전체 예산</small><strong>{formatWon(project.currentBudget)}</strong></span><span><small>이미 사용하기로 한 금액</small><strong>{formatWon(project.obligation)}</strong></span><span className="available"><small>현재 사용 가능</small><strong>{formatWon(project.budgetBalance)}</strong></span></div>
-            <div className="business-item-forecast"><span><small>앞으로 사용할 예정</small><strong>{formatWon(planned)}</strong></span><span><small>예상 잔액</small><strong className={forecast < 0 ? "negative-value" : ""}>{formatWon(forecast)}</strong></span></div>
+            <div className="business-item-forecast"><span><small>앞으로 사용할 예정</small><strong>{formatWon(planned)}</strong></span><span><small>예상 잔액</small><ForecastAmount value={forecast} showWarning /></span></div>
             <span className="business-item-expand">{expanded ? "세부항목 접기" : `세부항목 ${project.items.length}개 보기`}<ChevronDown className={expanded ? "rotated" : ""} size={17} /></span>
           </button>
           {expanded && <div className="business-project-items">{project.items.map((item) => renderItemGroup(item, true))}{project.items.length === 0 && <EmptyState text="조건에 맞는 세부항목이 없습니다." />}</div>}
@@ -1405,7 +1425,7 @@ function BusinessDetailCard({ row, plan, updatePlan }: { row: BusinessCardRow; p
   return <article className={`business-detail-card ${row.budgetBalance === 0 ? "complete" : ""} ${forecast < 0 ? "over-plan" : ""}`}>
     <div className="business-detail-title"><span>{row.projectName} · {row.itemName}</span><h3>{row.calculation}</h3><small>{row.costName}</small></div>
     <div className="business-detail-metrics"><span><small>전체 예산</small><strong>{formatWon(row.currentBudget)}</strong></span><span><small>이미 사용하기로 한 금액</small><strong>{formatWon(row.obligation)}</strong></span><span className="available"><small>현재 사용 가능</small><strong>{formatWon(row.budgetBalance)}</strong></span></div>
-    <div className="inline-business-plan"><label><span>앞으로 사용할 예정</span><div className="won-input"><input inputMode="numeric" value={plan ? plan.toLocaleString("ko-KR") : ""} onChange={(event) => updatePlan(row, event.target.value)} placeholder="0" aria-label={`${row.calculation} 앞으로 사용할 예정 금액`} /><span>원</span></div></label><div><small>예상 잔액</small><strong className={forecast < 0 ? "negative-value" : ""}>{formatWon(forecast)}</strong></div></div>
+    <div className="inline-business-plan"><label><span>앞으로 사용할 예정</span><div className="won-input"><input inputMode="numeric" value={plan ? plan.toLocaleString("ko-KR") : ""} onChange={(event) => updatePlan(row, event.target.value)} placeholder="0" aria-label={`${row.calculation} 앞으로 사용할 예정 금액`} /><span>원</span></div></label><div><small>예상 잔액</small><ForecastAmount value={forecast} showWarning /></div></div>
   </article>;
 }
 
@@ -1528,7 +1548,7 @@ function BusinessPlanView({ rows, meta, totals, plans, updatePlan }: {
     return <article className={`business-plan-group ${nested ? "nested" : ""} ${forecast < 0 ? "over-plan" : ""}`} key={group.id}>
       <button className="business-plan-group-summary" onClick={() => toggleItem(group.id)} aria-expanded={expanded}>
         <div className="business-plan-group-title"><span>{nested ? "세부항목" : group.projectName}</span><h3>{group.itemName}</h3><small>산출내역 {group.rows.length}건 · 계획 {plannedCount}건 입력</small></div>
-        <div className="business-plan-group-metrics"><span><small>현재 사용 가능</small><strong>{formatWon(group.budgetBalance)}</strong></span><span><small>앞으로 사용할 예정</small><strong>{formatWon(planned)}</strong></span><span className="forecast"><small>예상 잔액</small><strong className={forecast < 0 ? "negative-value" : ""}>{formatWon(forecast)}</strong></span></div>
+        <div className="business-plan-group-metrics"><span><small>현재 사용 가능</small><strong>{formatWon(group.budgetBalance)}</strong></span><span><small>앞으로 사용할 예정</small><strong>{formatWon(planned)}</strong></span><span className="forecast"><small>예상 잔액</small><ForecastAmount value={forecast} showWarning /></span></div>
         <span className="business-item-expand">{expanded ? "산출내역 접기" : `산출내역 ${detailRows.length}건 보기`}<ChevronDown className={expanded ? "rotated" : ""} size={17} /></span>
       </button>
       {expanded && <div className="business-plan-group-details">{detailRows.map((row) => <BusinessPlanRow key={row.id} row={row} meta={meta} plans={plans} updatePlan={updatePlan} />)}{detailRows.length === 0 && <EmptyState text="조건에 맞는 산출내역이 없습니다." />}</div>}
@@ -1536,7 +1556,7 @@ function BusinessPlanView({ rows, meta, totals, plans, updatePlan }: {
   };
 
   return <div className="page-content business-page">
-    <section ref={summaryRef} className="plan-summary"><div className="section-heading"><span className="section-kicker">집행 계획</span><h1>앞으로 쓸 금액을 정리해요</h1><p>기본은 세부항목별로 보고, 예산이 많을 때는 세부사업별로 더 크게 묶어볼 수 있어요. 실제 금액 입력은 산출내역별로 유지됩니다.</p></div><div className="plan-summary-grid"><article><span>현재 사용 가능</span><strong>{formatCompactWon(totals.budgetBalance)}</strong></article><article><span>앞으로 사용할 예정</span><strong>{formatCompactWon(plannedTotal)}</strong></article><article className={forecastTotal < 0 ? "negative" : ""}><span>계획 반영 후 예상 잔액</span><strong>{formatCompactWon(forecastTotal)}</strong></article></div></section>
+    <section ref={summaryRef} className="plan-summary"><div className="section-heading"><span className="section-kicker">집행 계획</span><h1>앞으로 쓸 금액을 정리해요</h1><p>기본은 세부항목별로 보고, 예산이 많을 때는 세부사업별로 더 크게 묶어볼 수 있어요. 실제 금액 입력은 산출내역별로 유지됩니다.</p></div><div className="plan-summary-grid"><article><span>현재 사용 가능</span><strong>{formatCompactWon(totals.budgetBalance)}</strong></article><article><span>앞으로 사용할 예정</span><strong>{formatCompactWon(plannedTotal)}</strong></article><article className={forecastTotal < 0 ? "negative" : ""}><span>계획 반영 후 예상 잔액</span><ForecastAmount value={forecastTotal} compact showWarning /></article></div></section>
     {summaryCondensed && <aside className={`plan-summary-compact ${forecastTotal < 0 ? "negative" : ""}`} aria-label="집행 계획 요약"><div className="plan-compact-title"><ListChecks size={17} /><strong>집행 계획</strong></div><div className="plan-compact-metrics"><span><small>사용 가능</small><strong>{formatCompactWon(totals.budgetBalance)}</strong></span><span><small>사용 예정</small><strong>{formatCompactWon(plannedTotal)}</strong></span><span className="forecast"><small>예상 잔액</small><strong>{formatCompactWon(forecastTotal)}</strong></span></div></aside>}
     <section className="business-detail-section">
       <div className="business-view-row"><div className="business-view-toggle" role="group" aria-label="집행 계획 보기 기준"><button className={viewMode === "project" ? "active" : ""} onClick={() => changeViewMode("project")}>세부사업별</button><button className={viewMode === "item" ? "active" : ""} onClick={() => changeViewMode("item")}>세부항목별</button><button className={viewMode === "detail" ? "active" : ""} onClick={() => changeViewMode("detail")}>산출내역별</button></div><span className="business-view-count">{viewMode === "project" ? `세부사업 ${visibleProjects.length}개 · 세부항목 ${visibleGroups.length}개` : viewMode === "item" ? `세부항목 ${visibleGroups.length}개 · 전체 산출내역 ${rows.length}건` : `산출내역 ${visibleRows.length}건`}</span></div>
@@ -1551,7 +1571,7 @@ function BusinessPlanView({ rows, meta, totals, plans, updatePlan }: {
         return <article className={`business-plan-project ${forecast < 0 ? "over-plan" : ""}`} key={project.id}>
           <button className="business-plan-project-summary" onClick={() => toggleProject(project.id)} aria-expanded={expanded}>
             <div className="business-plan-group-title"><span>세부사업</span><h3>{project.projectName}</h3><small>세부항목 {project.items.length}개 · 산출내역 {project.rows.length}건 · 계획 {plannedCount}건 입력</small></div>
-            <div className="business-plan-group-metrics"><span><small>현재 사용 가능</small><strong>{formatWon(project.budgetBalance)}</strong></span><span><small>앞으로 사용할 예정</small><strong>{formatWon(planned)}</strong></span><span className="forecast"><small>예상 잔액</small><strong className={forecast < 0 ? "negative-value" : ""}>{formatWon(forecast)}</strong></span></div>
+            <div className="business-plan-group-metrics"><span><small>현재 사용 가능</small><strong>{formatWon(project.budgetBalance)}</strong></span><span><small>앞으로 사용할 예정</small><strong>{formatWon(planned)}</strong></span><span className="forecast"><small>예상 잔액</small><ForecastAmount value={forecast} showWarning /></span></div>
             <span className="business-item-expand">{expanded ? "세부항목 접기" : `세부항목 ${projectItems.length}개 보기`}<ChevronDown className={expanded ? "rotated" : ""} size={17} /></span>
           </button>
           {expanded && <div className="business-plan-project-items">{projectItems.map((item) => renderPlanItem(item, true))}{projectItems.length === 0 && <EmptyState text="조건에 맞는 세부항목이 없습니다." />}</div>}
@@ -1567,7 +1587,7 @@ function BusinessPlanView({ rows, meta, totals, plans, updatePlan }: {
 function BusinessPlanRow({ row, meta, plans, updatePlan }: { row: BusinessCardRow; meta: BusinessCardMeta; plans: Record<string, number>; updatePlan: (row: BusinessCardRow, value: string) => void }) {
   const plan = plans[businessPlanKey(meta, row)] ?? 0;
   const forecast = row.budgetBalance - plan;
-  return <article className={forecast < 0 ? "over-plan" : ""}><div><span>{row.projectName} · {row.itemName}</span><strong>{row.calculation}</strong><small>{row.costName}</small></div><div className="plan-balance"><small>현재 사용 가능</small><strong>{formatWon(row.budgetBalance)}</strong></div><label><span>앞으로 사용할 예정</span><div className="won-input"><input inputMode="numeric" value={plan ? plan.toLocaleString("ko-KR") : ""} onChange={(event) => updatePlan(row, event.target.value)} placeholder="0" aria-label={`${row.calculation} 앞으로 사용할 예정 금액`} /><span>원</span></div></label><div className="plan-balance forecast"><small>예상 잔액</small><strong className={forecast < 0 ? "negative-value" : ""}>{formatWon(forecast)}</strong></div>{plan > 0 && <button className="icon-button" onClick={() => updatePlan(row, "")} aria-label={`${row.calculation} 계획 삭제`}><Trash2 size={17} /></button>}</article>;
+  return <article className={forecast < 0 ? "over-plan" : ""}><div><span>{row.projectName} · {row.itemName}</span><strong>{row.calculation}</strong><small>{row.costName}</small></div><div className="plan-balance"><small>현재 사용 가능</small><strong>{formatWon(row.budgetBalance)}</strong></div><label><span>앞으로 사용할 예정</span><div className="won-input"><input inputMode="numeric" value={plan ? plan.toLocaleString("ko-KR") : ""} onChange={(event) => updatePlan(row, event.target.value)} placeholder="0" aria-label={`${row.calculation} 앞으로 사용할 예정 금액`} /><span>원</span></div></label><div className="plan-balance forecast"><small>예상 잔액</small><ForecastAmount value={forecast} showWarning /></div>{plan > 0 && <button className="icon-button" onClick={() => updatePlan(row, "")} aria-label={`${row.calculation} 계획 삭제`}><Trash2 size={17} /></button>}</article>;
 }
 
 function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
@@ -1986,8 +2006,8 @@ function ProjectTable({ groups, expanded, toggle }: { groups: BudgetGroup[]; exp
 function ProjectDetails({ rows }: { rows: BudgetRow[] }) { return <div className="project-details">{groupItemRows(rows).map((item) => <article key={item.name} className={item.overrunRows.length ? "overrun-item" : ""}><div className="detail-title"><strong>{item.name}</strong><span className={item.available < 0 ? "negative-value" : ""}>사용 가능 {formatWon(item.available)}</span></div><div className="detail-metrics"><span>예산 {formatWon(item.budget)}</span><span>원인행위 {formatWon(item.obligation)}</span><span>지급 {formatWon(item.paid)}</span>{item.overrunRows.length > 0 && <b>초과 {item.overrunRows.length}건</b>}</div>{item.overrunRows.length > 0 ? <div className="overrun-lines">{item.overrunRows.map((row, index) => <span key={`${row.calculation}-${index}`}><em>{row.calculation}</em><strong>{formatWon(row.available)}</strong></span>)}</div> : item.calculations.length > 0 && <p>{item.calculations.slice(0, 3).join(" · ")}{item.calculations.length > 3 ? ` 외 ${item.calculations.length - 3}건` : ""}</p>}</article>)}</div>; }
 function AttentionButton({ selected, onClick, icon, tone, title, detail, value }: { selected: boolean; onClick: () => void; icon: React.ReactNode; tone: string; title: string; detail: string; value: string }) { return <button className={selected ? "selected" : ""} onClick={onClick}><div className={`attention-icon ${tone}`}>{icon}</div><div><strong>{title}</strong><span>{detail}</span></div><b>{value}</b><ChevronRight size={17} /></button>; }
 function EmptyState({ text }: { text: string }) { return <div className="empty-state"><SearchCheck size={22} /><p>{text}</p></div>; }
-function ResetDataModal({ close, confirm }: { close: () => void; confirm: () => void }) {
-  return <div className="modal-backdrop" onMouseDown={close}><section className="reset-modal" role="dialog" aria-modal="true" aria-labelledby="reset-data-title" onMouseDown={(event) => event.stopPropagation()}><div className="reset-modal-icon"><Trash2 size={20} /></div><h2 id="reset-data-title">불러온 자료를 초기화할까요?</h2><p>현재 불러온 엑셀 자료가 모두 화면에서 제거됩니다.</p><div className="reset-preserve-note"><ShieldCheck size={17} /><span><strong>직접 입력한 집행계획은 삭제되지 않습니다.</strong><small>집행계획·결산예측 입력값은 현재 브라우저 저장공간에 그대로 유지됩니다.</small></span></div><div className="reset-modal-actions"><button className="button ghost" onClick={close}>취소</button><button className="button danger" onClick={confirm}><Trash2 size={16} />자료 초기화</button></div></section></div>;
+function ResetDataModal({ close, clearExcel, clearAll }: { close: () => void; clearExcel: () => void; clearAll: () => void }) {
+  return <div className="modal-backdrop" onMouseDown={close}><section className="reset-modal" role="dialog" aria-modal="true" aria-labelledby="reset-data-title" onMouseDown={(event) => event.stopPropagation()}><div className="reset-modal-icon"><Trash2 size={20} /></div><h2 id="reset-data-title">자료를 비울까요?</h2><p>불러온 엑셀만 비우거나, 이 브라우저에 저장된 입력값까지 함께 삭제할 수 있습니다.</p><div className="reset-choice-note"><ShieldCheck size={17} /><span><strong>저장된 입력값에는 다음 내용이 포함됩니다.</strong><small>내 사업 집행계획 · 업무추진비 계획·메모 · 결산예측 입력값</small></span></div><div className="reset-modal-actions"><button className="button ghost" onClick={close}>취소</button><button className="button secondary" onClick={clearExcel}>엑셀만 비우기</button><button className="button danger" onClick={clearAll}><Trash2 size={16} />저장된 입력값까지 모두 삭제</button></div></section></div>;
 }
 
 function HelpModal({ close }: { close: () => void }) {
@@ -2000,6 +2020,6 @@ function HelpModal({ close }: { close: () => void }) {
     <div><b>6</b><span><strong>학교 전체 예산 흐름</strong><small><b>사용하기로 한 금액</b>은 원인행위액, <b>실제 지급한 금액</b>은 지출액입니다. <b>지급 대기</b>는 원인행위액에서 지출액을 뺀 금액이며, <b>아직 원인행위되지 않은 금액</b>은 예산현액에서 원인행위액을 뺀 금액입니다.</small></span></div>
     <div><b>7</b><span><strong>정책사업부터 세부항목까지 보기</strong><small>학교 전체 현황에서 정책사업·단위사업·세부사업·세부항목 단위로 묶어 보고, 단위사업 보기·세부사업 보기·세부항목 보기 버튼으로 다음 단계 내용을 확인할 수 있습니다.</small></span></div>
     <div><b>8</b><span><strong>201 세입실적 연결</strong><small>결산예측에서 자료코드 201을 연결하고, 이전수입 반납예정액과 순세계잉여금 잠정값을 확인합니다.</small></span></div>
-    <div><b>9</b><span><strong>파일은 어디에 저장되나요?</strong><small>불러온 엑셀 파일은 서버로 업로드되지 않고 현재 브라우저에서 직접 분석됩니다. <b>자료 초기화</b>는 불러온 엑셀 자료만 제거하며, 직접 입력한 집행계획·결산예측 값은 삭제하지 않습니다.</small></span></div>
+    <div><b>9</b><span><strong>파일은 어디에 저장되나요?</strong><small>불러온 엑셀 파일은 서버로 업로드되지 않고 현재 브라우저에서 직접 분석됩니다. <b>자료 비우기</b>에서 엑셀만 비우거나, 내 사업 집행계획·업무추진비 계획·메모·결산예측 입력값까지 함께 삭제할 수 있습니다.</small></span></div>
   </div><div className="privacy-card"><LockKeyhole size={20} /><div><strong>서버로 파일을 보내지 않습니다.</strong><p>엑셀은 현재 브라우저에서만 분석됩니다. 직접 입력한 집행계획과 결산예측 값은 재접속을 위해 이 브라우저에 저장될 수 있습니다.</p></div></div></section></div>;
 }

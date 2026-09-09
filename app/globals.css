@@ -1203,3 +1203,51 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
 
 
 /* v0.6.21 · 102-2 상태 컬러 개선 — 블루/라이트 블루/쿨그레이블루 */
+
+/* v0.6.22 · 음수 예상잔액 경고 / 초기화 범위 선택 */
+.business-item-forecast strong.negative-value,
+.inline-business-plan strong.negative-value,
+.plan-balance.forecast strong.negative-value,
+.business-plan-group-metrics .forecast strong.negative-value {
+  color: var(--red);
+}
+.forecast-overrun {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--red);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+.reset-choice-note {
+  margin-top: 18px;
+  padding: 13px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: #315b96;
+  background: #f4f7fb;
+  border: 1px solid #dfe6ef;
+  border-radius: 10px;
+}
+.reset-choice-note > span { display: flex; flex-direction: column; gap: 3px; }
+.reset-choice-note strong { color: var(--ink); font-size: 13px; }
+.reset-choice-note small { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.reset-modal-actions .button.secondary {
+  color: #315b96;
+  background: #fff;
+  border: 1px solid #cfd8e5;
+}
+.reset-modal-actions .button.secondary:hover { background: #f6f8fb; border-color: #bfcbd9; }
+
+@media (max-width: 720px) {
+  .reset-modal-actions { grid-template-columns: 1fr; }
+  .reset-modal-actions .button { min-height: 44px; }
+}
+/* v0.6.22 · 모달/경고 문구 최종 반응형 보정 */
+.reset-modal { width: min(520px, 100%); }
+.reset-modal-actions { flex-wrap: wrap; }
+.forecast-overrun { white-space: normal; }
