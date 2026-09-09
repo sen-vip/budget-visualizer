@@ -252,7 +252,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.22";
+const APP_VERSION = "v0.6.23";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -882,6 +882,7 @@ export default function Home() {
   };
   const handleBusinessFile = async (file?: File) => {
     if (!file) return;
+    const previousFileName = businessMeta?.fileName ?? "";
     setBusinessLoading(true); setBusinessError("");
     try {
       const result = await parseBusinessCard(file);
@@ -891,7 +892,10 @@ export default function Home() {
       setBusinessPlans(readBusinessPlans());
       setMainView("mine");
     } catch (reason) {
-      setBusinessError(reason instanceof Error ? reason.message : "사업관리카드를 분석하지 못했습니다.");
+      const detail = reason instanceof Error ? reason.message : "사업관리카드를 분석하지 못했습니다.";
+      setBusinessError(previousFileName
+        ? `파일을 변경하지 못했습니다.\n${detail}\n기존 “${previousFileName}” 자료를 계속 표시하고 있습니다.`
+        : detail);
     } finally {
       setBusinessLoading(false);
       if (businessFileInputRef.current) businessFileInputRef.current.value = "";
@@ -911,6 +915,7 @@ export default function Home() {
   };
   const handleFile = async (file?: File) => {
     if (!file) return;
+    const previousFileName = meta?.fileName ?? "";
     setLoading(true); setError("");
     try {
       const result = await parseWorkbook(file);
@@ -934,7 +939,12 @@ export default function Home() {
       setPlanAmount(firstPlan?.amount ? firstPlan.amount.toLocaleString("ko-KR") : ""); setPlanMonth(firstPlan?.month ?? "미정"); setPlanMemo(firstPlan?.memo ?? "");
       setTab("overview"); setFundFilter("all"); setAttention("all"); setExpandedProjects(new Set());
       setMainView("school");
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "파일을 분석하지 못했습니다."); }
+    } catch (reason) {
+      const detail = reason instanceof Error ? reason.message : "파일을 분석하지 못했습니다.";
+      setError(previousFileName
+        ? `파일을 변경하지 못했습니다.\n${detail}\n기존 “${previousFileName}” 자료를 계속 표시하고 있습니다.`
+        : detail);
+    }
     finally { setLoading(false); if (fileInputRef.current) fileInputRef.current.value = ""; }
   };
   const onFileChange = (event: ChangeEvent<HTMLInputElement>) => handleFile(event.target.files?.[0]);
@@ -978,6 +988,7 @@ export default function Home() {
 
   const handleRevenueFile = async (file?: File) => {
     if (!file || !meta) return;
+    const previousFileName = revenueMeta?.fileName ?? "";
     setClosingLoading(true); setClosingError("");
     try {
       const result = await parseRevenueWorkbook(file);
@@ -991,7 +1002,10 @@ export default function Home() {
       const defaults = defaultClosingInputs(result.rows, allTotals);
       setClosingInputs(mergeClosingInputs(saved, defaults));
     } catch (reason) {
-      setClosingError(reason instanceof Error ? reason.message : "201 파일을 분석하지 못했습니다.");
+      const detail = reason instanceof Error ? reason.message : "201 파일을 분석하지 못했습니다.";
+      setClosingError(previousFileName
+        ? `파일을 변경하지 못했습니다.\n${detail}\n기존 “${previousFileName}” 자료를 계속 표시하고 있습니다.`
+        : detail);
     } finally {
       setClosingLoading(false);
       if (revenueFileInputRef.current) revenueFileInputRef.current.value = "";
@@ -1115,7 +1129,7 @@ export default function Home() {
       <input ref={revenueFileInputRef} className="sr-only" type="file" accept=".xlsx,.xls" onChange={(event) => handleRevenueFile(event.target.files?.[0])} aria-label="201 세입실적 엑셀 파일 선택" />
       <header className="topbar">
         <div className="brand-block"><div className="brand-mark"><BarChart3 size={19} /></div><div><div className="brand-title-line"><strong>학교회계 예산현황판</strong><em className="version-badge">{APP_VERSION}</em></div><span>학돌랩</span></div></div>
-        <div className="top-actions"><details className="privacy-popover"><summary><LockKeyhole size={15} />서버 전송 없음</summary><div><strong>파일은 이 브라우저에서만 분석됩니다.</strong><p>불러온 엑셀 파일은 서버로 전송하거나 저장하지 않습니다.</p><p>직접 입력한 집행계획·결산예측 값은 재접속을 위해 현재 브라우저 저장공간에 보관될 수 있습니다.</p></div></details>{(businessMeta || meta) && <><button className="button compact data-change-button" onClick={() => (mainView === "school" ? fileInputRef : businessFileInputRef).current?.click()}><RefreshCw size={16} />자료 변경</button><button className="button compact data-reset-button" onClick={() => setResetConfirmOpen(true)}><Trash2 size={15} />자료 비우기</button></>}<button className="button ghost compact" onClick={() => setHelpOpen(true)}><HelpCircle size={17} />도움말</button></div>
+        <div className="top-actions"><details className="privacy-popover"><summary><LockKeyhole size={15} />서버 전송 없음</summary><div><strong>파일은 이 브라우저에서만 분석됩니다.</strong><p>불러온 엑셀 파일은 서버로 전송하거나 저장하지 않습니다.</p><p>직접 입력한 집행계획·결산예측 값은 재접속을 위해 현재 브라우저 저장공간에 보관될 수 있습니다.</p></div></details>{(businessMeta || meta) && <><button className="button compact data-change-button" onClick={() => (mainView === "school" ? fileInputRef : businessFileInputRef).current?.click()}><RefreshCw size={16} />자료 변경</button><button className="button compact data-reset-button" onClick={() => setResetConfirmOpen(true)}><Trash2 size={15} />자료 비우기</button></>}<button className="button ghost compact help-button" onClick={() => setHelpOpen(true)}><HelpCircle size={17} />도움말</button></div>
       </header>
 
       {!businessMeta && !meta ? (
@@ -1146,6 +1160,8 @@ export default function Home() {
               <button className={mainView === "school" && tab === "closing" ? "active" : ""} onClick={() => { setMainView("school"); setTab("closing"); }}><Landmark size={17} />결산예측</button>
             </>}
           </nav>
+          {businessMeta && mainView !== "school" && businessError && <div className="replacement-error-banner" role="alert"><AlertCircle size={18} /><span>{businessError}</span></div>}
+          {meta && mainView === "school" && error && <div className="replacement-error-banner" role="alert"><AlertCircle size={18} /><span>{error}</span></div>}
 
           {mainView === "mine" && (businessMeta ? <MyBusinessView rows={visibleBusinessRows} meta={businessMeta} totals={businessTotals} plans={businessPlans} updatePlan={updateBusinessPlan} goPlan={() => setMainView("plan")} /> : <BusinessUploadPrompt choose={() => businessFileInputRef.current?.click()} loading={businessLoading} error={businessError} dragging={businessDragging} setDragging={setBusinessDragging} dropFile={onBusinessDrop} />)}
           {mainView === "plan" && (businessMeta ? <BusinessPlanView rows={visibleBusinessRows} meta={businessMeta} totals={businessTotals} plans={businessPlans} updatePlan={updateBusinessPlan} /> : <BusinessUploadPrompt choose={() => businessFileInputRef.current?.click()} loading={businessLoading} error={businessError} dragging={businessDragging} setDragging={setBusinessDragging} dropFile={onBusinessDrop} />)}
