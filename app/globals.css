@@ -1572,3 +1572,5 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
   border-color: #e5eaf0;
   box-shadow: none;
 }
+
+/* v0.6.28 — 예산 상세 보기 방식 명칭 개선: 구조/계산 변경 없음 */
