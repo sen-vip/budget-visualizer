@@ -36,7 +36,8 @@ type MainView = "mine" | "plan" | "school";
 type BusinessFilter = "all" | "available" | "complete";
 type BusinessSort = "name-asc" | "name-desc" | "project-asc" | "project-desc" | "item-asc" | "item-desc" | "amount-desc" | "amount-asc";
 type BusinessViewMode = "project" | "item" | "detail";
-type FundFilter = "all" | "school" | "purpose" | "revenue";
+type FundType = "school" | "purpose" | "revenue" | "conflict";
+type FundFilter = "all" | Exclude<FundType, "conflict">;
 type AttentionKind = "all" | "overrun" | "unspent" | "low" | "large" | "nearly" | "pending";
 type SchoolHierarchyLevel = "policy" | "unit" | "project" | "item";
 type SchoolSort = "budget-desc" | "budget-asc" | "obligation-desc" | "obligation-asc" | "paid-desc" | "paid-asc" | "pending-desc" | "pending-asc" | "uncommitted-desc" | "uncommitted-asc" | "name-asc";
@@ -66,7 +67,7 @@ type BudgetRow = {
   paid: number;
   carryover: number;
   available: number;
-  fundType: Exclude<FundFilter, "all">;
+  fundType: FundType;
 };
 
 type BudgetGroup = {
@@ -252,7 +253,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.23";
+const APP_VERSION = "v0.6.24";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -358,10 +359,34 @@ function koreanMoney(value: number) {
   return `${value < 0 ? "마이너스 " : ""}${chunks.join(" ")}원`;
 }
 
-const rowFundType = (calculation: string): BudgetRow["fundType"] => {
-  const text = normalize(calculation);
-  if (text.includes("(목적)")) return "purpose";
-  if (text.includes("(수익)")) return "revenue";
+const PURPOSE_FUND_MARKERS = new Set(["목", "목적", "목적사업", "목적사업비"]);
+const REVENUE_FUND_MARKERS = new Set(["수", "수익", "수익자", "수익자부담", "수익자부담경비"]);
+
+function detectFundMarkers(value: unknown): Set<Exclude<FundType, "school" | "conflict">> {
+  const text = normalize(value)
+    .replace(/[（]/g, "(")
+    .replace(/[）]/g, ")")
+    .replace(/[［]/g, "[")
+    .replace(/[］]/g, "]");
+  const detected = new Set<Exclude<FundType, "school" | "conflict">>();
+  const markerPattern = /(?:\((목적사업비|목적사업|목적|목|수익자부담경비|수익자부담|수익자|수익|수)\)|\[(목적사업비|목적사업|목적|목|수익자부담경비|수익자부담|수익자|수익|수)\])/g;
+  let match: RegExpExecArray | null;
+  while ((match = markerPattern.exec(text)) !== null) {
+    const marker = match[1] ?? match[2] ?? "";
+    if (PURPOSE_FUND_MARKERS.has(marker)) detected.add("purpose");
+    if (REVENUE_FUND_MARKERS.has(marker)) detected.add("revenue");
+  }
+  return detected;
+}
+
+const rowFundType = (itemName: string, calculation: string): BudgetRow["fundType"] => {
+  const detected = new Set<Exclude<FundType, "school" | "conflict">>([
+    ...detectFundMarkers(itemName),
+    ...detectFundMarkers(calculation),
+  ]);
+  if (detected.size > 1) return "conflict";
+  if (detected.has("purpose")) return "purpose";
+  if (detected.has("revenue")) return "revenue";
   return "school";
 };
 
@@ -484,7 +509,7 @@ async function parseWorkbook(file: File): Promise<{ rows: BudgetRow[]; meta: Fil
       policyCode: normalize(cell(row, columns.policyCode)), policyName: String(cell(row, columns.policyName) ?? "").trim(), unitCode: normalize(cell(row, columns.unitCode)), unitName: String(cell(row, columns.unitName) ?? "").trim(),
       projectCode: normalize(cell(row, columns.projectCode)), projectName, itemCode: normalize(cell(row, columns.itemCode)), itemName: String(cell(row, columns.itemName) ?? "").trim(),
       accountCode: normalize(cell(row, columns.accountCode)), accountName: String(cell(row, columns.accountName) ?? "").trim(), subAccountCode: normalize(cell(row, columns.subAccountCode)), subAccountName: String(cell(row, columns.subAccountName) ?? "").trim(),
-      costCode: normalize(cell(row, columns.costCode)), costName: String(cell(row, columns.costName) ?? "").trim(), calculation, budget, obligation, paid, carryover, available: directAvailable, fundType: rowFundType(calculation),
+      costCode: normalize(cell(row, columns.costCode)), costName: String(cell(row, columns.costName) ?? "").trim(), calculation, budget, obligation, paid, carryover, available: directAvailable, fundType: rowFundType(String(cell(row, columns.itemName) ?? "").trim(), calculation),
     }];
   });
   if (!rows.length) throw new Error("분석할 세출 데이터가 없습니다.");
@@ -1166,6 +1191,7 @@ export default function Home() {
           {mainView === "mine" && (businessMeta ? <MyBusinessView rows={visibleBusinessRows} meta={businessMeta} totals={businessTotals} plans={businessPlans} updatePlan={updateBusinessPlan} goPlan={() => setMainView("plan")} /> : <BusinessUploadPrompt choose={() => businessFileInputRef.current?.click()} loading={businessLoading} error={businessError} dragging={businessDragging} setDragging={setBusinessDragging} dropFile={onBusinessDrop} />)}
           {mainView === "plan" && (businessMeta ? <BusinessPlanView rows={visibleBusinessRows} meta={businessMeta} totals={businessTotals} plans={businessPlans} updatePlan={updateBusinessPlan} /> : <BusinessUploadPrompt choose={() => businessFileInputRef.current?.click()} loading={businessLoading} error={businessError} dragging={businessDragging} setDragging={setBusinessDragging} dropFile={onBusinessDrop} />)}
           {mainView === "school" && (!meta ? <SchoolUploadPrompt choose={() => fileInputRef.current?.click()} loading={loading} error={error} dragging={schoolDragging} setDragging={setSchoolDragging} dropFile={onSchoolDrop} /> : <section className="school-area"><div className="school-toolbar"><div className="school-toolbar-main"><span className="school-toolbar-icon"><Building2 size={20} /></span><span className="school-toolbar-copy"><span className="section-kicker">학교 전체 분석</span><strong>{tab === "overview" ? "학교 전체 예산 흐름" : tab === "promotion" ? "업무추진비 계획과 잔액" : "연말 결산예측"}</strong><small>102-2 · {meta.rowCount.toLocaleString("ko-KR")}개 산출내역 · {dateLabel(meta.executionDate)} 기준</small></span></div>{tab !== "closing" && <label className="filter-field school-fund-filter">재원 보기<select value={fundFilter} onChange={(event) => setFundFilter(event.target.value as FundFilter)}><option value="all">전체 사업</option><option value="school">학교운영비</option><option value="purpose">목적사업비</option><option value="revenue">수익자부담</option></select></label>}</div>
+          {tab !== "closing" && <FundClassificationSummary rows={rows} />}
           {tab === "overview" && <OverviewTab rows={filteredRows} meta={meta} />}
           {tab === "promotion" && <PromotionTab meta={meta} groups={promotionGroups} totals={promotionTotals} plans={plans} forecast={promotionForecast} plannedTotal={visiblePlannedTotal} recheckCount={promotionRecheckCount} selectedId={selectedPromotionId} selected={selectedPromotion} select={loadSelectedPlan} panelOpen={planPanelOpen} closePanel={() => setPlanPanelOpen(false)} amount={planAmount} setAmount={changePlanAmount} month={planMonth} setMonth={setPlanMonth} memo={planMemo} setMemo={setPlanMemo} save={savePlan} remove={removePlan} currentAmount={currentPlanAmount} selectedForecast={selectedForecast} />}
           {tab === "closing" && <ClosingTab meta={meta} expenseRows={rows} expenseTotals={allTotals} revenueRows={revenueRows} revenueMeta={revenueMeta} inputs={closingInputs} plannedPromotion={plannedTotal} plannedPromotionCount={plannedDetailCount} promotionRecheckCount={promotionRecheckCount} plannedYearEnd={plannedYearEndTotal} openPromotion={() => setTab("promotion")} loading={closingLoading} error={closingError} dragging={closingDragging} setDragging={setClosingDragging} dropFile={onRevenueDrop} chooseFile={() => revenueFileInputRef.current?.click()} changeAdditional={changeAdditionalReceipt} changeAmount={changeClosingAmount} changeTransferReturn={changeTransferReturn} removeTransferReturn={removeTransferReturn} changeDetailPlan={changeDetailSpendingPlan} clearDetailPlan={clearDetailSpendingPlan} resetDetailPlans={resetDetailSpendingPlans} setLegacyDecision={setLegacyDecision} changeMemo={(memo) => setClosingInputs((current) => current ? { ...current, memo } : current)} reset={resetClosing} />}</section>)}
@@ -1176,6 +1202,32 @@ export default function Home() {
       {resetConfirmOpen && <ResetDataModal close={() => setResetConfirmOpen(false)} clearExcel={resetLoadedData} clearAll={resetAllStoredInputs} />}
     </main>
   );
+}
+
+function FundClassificationSummary({ rows }: { rows: BudgetRow[] }) {
+  const summary = useMemo(() => {
+    const counts: Record<FundType, number> = { school: 0, purpose: 0, revenue: 0, conflict: 0 };
+    const conflictLabels: string[] = [];
+    const seen = new Set<string>();
+    rows.forEach((row) => {
+      counts[row.fundType] += 1;
+      if (row.fundType !== "conflict") return;
+      const label = [row.projectName, row.itemName, row.calculation].filter(Boolean).join(" › ");
+      if (label && !seen.has(label)) {
+        seen.add(label);
+        if (conflictLabels.length < 5) conflictLabels.push(label);
+      }
+    });
+    return { counts, conflictLabels };
+  }, [rows]);
+  const { counts, conflictLabels } = summary;
+  return <div className={`fund-diagnostic ${counts.conflict ? "has-conflict" : ""}`}>
+    <details>
+      <summary><span className="fund-diagnostic-title"><Info size={14} />재원 분류 결과</span><span className="fund-diagnostic-counts"><b>학교운영비 {counts.school.toLocaleString("ko-KR")}</b><b>목적사업비 {counts.purpose.toLocaleString("ko-KR")}</b><b>수익자부담 {counts.revenue.toLocaleString("ko-KR")}</b>{counts.conflict > 0 && <b className="conflict">확인 필요 {counts.conflict.toLocaleString("ko-KR")}</b>}</span><ChevronDown className="fund-diagnostic-chevron" size={15} /></summary>
+      <div className="fund-diagnostic-detail"><p>세부항목과 산출내역의 괄호 표기를 함께 확인합니다. 재원 표기가 없으면 학교운영비로 분류합니다.</p>{counts.conflict > 0 && <div className="fund-conflict-list"><strong>서로 다른 재원 표기가 함께 발견된 항목</strong>{conflictLabels.map((label) => <span key={label}>{label}</span>)}{counts.conflict > conflictLabels.length && <small>외 {(counts.conflict - conflictLabels.length).toLocaleString("ko-KR")}건</small>}</div>}</div>
+    </details>
+    {counts.conflict > 0 && <div className="fund-conflict-warning" role="alert"><AlertCircle size={15} /><span>재원 표기가 서로 다른 항목 <strong>{counts.conflict.toLocaleString("ko-KR")}건</strong>이 있습니다. 세부항목·산출내역을 확인해주세요.</span></div>}
+  </div>;
 }
 
 function FileRouteGuide({ detail }: { detail: string }) {
