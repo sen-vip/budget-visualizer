@@ -1505,3 +1505,70 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
   .school-hierarchy-mobile-grid b { font-size: 13px; font-weight: 600; }
   .school-hierarchy-mobile-head button { font-size: 12px; font-weight: 600; }
 }
+
+/* v0.6.27 — 내 사업 상세카드 정돈: 긴 KPI 라벨, 계획영역, 액션 정렬 */
+@media (min-width: 1051px) {
+  /* 상·하위 카드 모두 KPI가 실제 문구 길이에 맞는 폭을 갖도록 조정 */
+  .business-project-summary,
+  .business-item-summary {
+    grid-template-columns: minmax(210px,.92fr) minmax(420px,1.62fr) minmax(190px,.72fr) minmax(122px,auto);
+    gap: 16px;
+  }
+
+  .business-item-metrics {
+    grid-template-columns: minmax(112px,.86fr) minmax(158px,1.22fr) minmax(126px,1fr);
+    gap: 8px;
+  }
+
+  .business-item-metrics > span {
+    min-height: 61px;
+    justify-content: center;
+  }
+
+  /* 데스크톱에서는 긴 KPI 라벨을 줄이지 않고 한 줄로 유지 */
+  .business-item-metrics small {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
+
+  /* 사용 예정 → 예상 잔액을 하나의 계획 그룹처럼 읽히게 정리 */
+  .business-item-forecast {
+    padding: 4px;
+    gap: 0;
+    background: #f7f9fc;
+    border: 1px solid #edf1f6;
+    border-radius: 11px;
+  }
+
+  .business-item-forecast > span {
+    padding: 8px 9px;
+    background: transparent;
+    border-radius: 7px;
+  }
+
+  .business-item-forecast > span + span {
+    border-top: 1px solid #e6ebf2;
+  }
+
+  /* 우측 액션이 카드 중앙축에 정확히 놓이도록 정렬 */
+  .business-project-summary .business-item-expand,
+  .business-item-summary .business-item-expand {
+    min-height: 40px;
+    padding: 0 2px;
+    align-self: center;
+    justify-self: end;
+    line-height: 1.2;
+  }
+}
+
+/* 중첩 카드의 테두리 존재감만 한 톤 낮춰 계층은 유지하고 박스감은 완화 */
+.business-project-items {
+  background: #f6f8fb;
+  border-top-color: #e7ecf2;
+}
+
+.business-project-items .business-item-group.nested {
+  border-color: #e5eaf0;
+  box-shadow: none;
+}
