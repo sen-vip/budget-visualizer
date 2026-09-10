@@ -1574,3 +1574,94 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
 }
 
 /* v0.6.28 — 예산 상세 보기 방식 명칭 개선: 구조/계산 변경 없음 */
+
+
+/* v0.6.29 — 세부사업/세부항목 위계: 글자 크기는 유지하고 중첩 세부항목의 세로 공기만 줄임 */
+/* 세부사업으로 묶기에서만 적용되어, 독립적인 세부항목 보기의 카드 밀도는 그대로 유지한다. */
+.business-project-items {
+  padding: 8px 9px;
+  gap: 6px;
+}
+
+.business-project-items .business-item-group.nested {
+  border-color: #e8edf3;
+  border-radius: 10px;
+  box-shadow: none;
+}
+
+.business-project-items .business-item-group.nested .business-item-title h3 {
+  margin-top: 1px;
+  margin-bottom: 1px;
+}
+
+.business-project-items .business-item-group.nested .business-item-expand {
+  min-height: 40px;
+  align-self: center;
+  justify-self: end;
+}
+
+@media (min-width: 1051px) {
+  .business-project-items .business-item-group.nested .business-item-summary {
+    padding: 10px 14px;
+    gap: 14px;
+  }
+
+  .business-project-items .business-item-group.nested .business-item-metrics {
+    gap: 7px;
+  }
+
+  .business-project-items .business-item-group.nested .business-item-metrics > span {
+    min-height: 50px;
+    padding: 6px 9px;
+    gap: 2px;
+  }
+
+  .business-project-items .business-item-group.nested .business-item-forecast {
+    padding: 1px;
+    border-radius: 9px;
+  }
+
+  .business-project-items .business-item-group.nested .business-item-forecast > span {
+    padding: 4px 8px;
+    gap: 1px;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1050px) {
+  .business-project-items .business-item-group.nested .business-item-summary {
+    padding: 10px 12px;
+    gap: 9px;
+  }
+
+  .business-project-items .business-item-group.nested .business-item-metrics > span,
+  .business-project-items .business-item-group.nested .business-item-forecast > span {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+}
+
+@media (max-width: 720px) {
+  .business-project-items {
+    padding: 6px;
+    gap: 6px;
+  }
+
+  .business-project-items .business-item-group.nested {
+    border-radius: 9px;
+  }
+
+  .business-project-items .business-item-group.nested .business-item-summary {
+    padding: 12px 13px;
+    gap: 10px;
+  }
+
+  .business-project-items .business-item-group.nested .business-item-metrics > span,
+  .business-project-items .business-item-group.nested .business-item-forecast > span {
+    padding-top: 7px;
+    padding-bottom: 7px;
+  }
+
+  .business-project-items .business-item-group.nested .business-item-expand {
+    justify-self: start;
+  }
+}
