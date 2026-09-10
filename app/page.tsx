@@ -253,7 +253,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.24";
+const APP_VERSION = "v0.6.25";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1192,7 +1192,7 @@ export default function Home() {
           {mainView === "plan" && (businessMeta ? <BusinessPlanView rows={visibleBusinessRows} meta={businessMeta} totals={businessTotals} plans={businessPlans} updatePlan={updateBusinessPlan} /> : <BusinessUploadPrompt choose={() => businessFileInputRef.current?.click()} loading={businessLoading} error={businessError} dragging={businessDragging} setDragging={setBusinessDragging} dropFile={onBusinessDrop} />)}
           {mainView === "school" && (!meta ? <SchoolUploadPrompt choose={() => fileInputRef.current?.click()} loading={loading} error={error} dragging={schoolDragging} setDragging={setSchoolDragging} dropFile={onSchoolDrop} /> : <section className="school-area"><div className="school-toolbar"><div className="school-toolbar-main"><span className="school-toolbar-icon"><Building2 size={20} /></span><span className="school-toolbar-copy"><span className="section-kicker">학교 전체 분석</span><strong>{tab === "overview" ? "학교 전체 예산 흐름" : tab === "promotion" ? "업무추진비 계획과 잔액" : "연말 결산예측"}</strong><small>102-2 · {meta.rowCount.toLocaleString("ko-KR")}개 산출내역 · {dateLabel(meta.executionDate)} 기준</small></span></div>{tab !== "closing" && <label className="filter-field school-fund-filter">재원 보기<select value={fundFilter} onChange={(event) => setFundFilter(event.target.value as FundFilter)}><option value="all">전체 사업</option><option value="school">학교운영비</option><option value="purpose">목적사업비</option><option value="revenue">수익자부담</option></select></label>}</div>
           {tab !== "closing" && <FundClassificationSummary rows={rows} />}
-          {tab === "overview" && <OverviewTab rows={filteredRows} meta={meta} />}
+          {tab === "overview" && <OverviewTab rows={filteredRows} meta={meta} fundFilter={fundFilter} />}
           {tab === "promotion" && <PromotionTab meta={meta} groups={promotionGroups} totals={promotionTotals} plans={plans} forecast={promotionForecast} plannedTotal={visiblePlannedTotal} recheckCount={promotionRecheckCount} selectedId={selectedPromotionId} selected={selectedPromotion} select={loadSelectedPlan} panelOpen={planPanelOpen} closePanel={() => setPlanPanelOpen(false)} amount={planAmount} setAmount={changePlanAmount} month={planMonth} setMonth={setPlanMonth} memo={planMemo} setMemo={setPlanMemo} save={savePlan} remove={removePlan} currentAmount={currentPlanAmount} selectedForecast={selectedForecast} />}
           {tab === "closing" && <ClosingTab meta={meta} expenseRows={rows} expenseTotals={allTotals} revenueRows={revenueRows} revenueMeta={revenueMeta} inputs={closingInputs} plannedPromotion={plannedTotal} plannedPromotionCount={plannedDetailCount} promotionRecheckCount={promotionRecheckCount} plannedYearEnd={plannedYearEndTotal} openPromotion={() => setTab("promotion")} loading={closingLoading} error={closingError} dragging={closingDragging} setDragging={setClosingDragging} dropFile={onRevenueDrop} chooseFile={() => revenueFileInputRef.current?.click()} changeAdditional={changeAdditionalReceipt} changeAmount={changeClosingAmount} changeTransferReturn={changeTransferReturn} removeTransferReturn={removeTransferReturn} changeDetailPlan={changeDetailSpendingPlan} clearDetailPlan={clearDetailSpendingPlan} resetDetailPlans={resetDetailSpendingPlans} setLegacyDecision={setLegacyDecision} changeMemo={(memo) => setClosingInputs((current) => current ? { ...current, memo } : current)} reset={resetClosing} />}</section>)}
           <footer><span>학돌랩 · senvip</span><span><LockKeyhole size={14} />서버 전송 없음 · 입력값은 현재 브라우저에 저장</span></footer>
@@ -1218,15 +1218,22 @@ function FundClassificationSummary({ rows }: { rows: BudgetRow[] }) {
         if (conflictLabels.length < 5) conflictLabels.push(label);
       }
     });
-    return { counts, conflictLabels };
+    const hierarchyCounts = {
+      policy: new Set(rows.filter((row) => Boolean(row.policyName)).map((row) => schoolHierarchyId(row, "policy"))).size,
+      unit: new Set(rows.filter((row) => Boolean(row.unitName)).map((row) => schoolHierarchyId(row, "unit"))).size,
+      project: new Set(rows.filter((row) => Boolean(row.projectName)).map((row) => schoolHierarchyId(row, "project"))).size,
+      item: new Set(rows.filter((row) => Boolean(row.itemName)).map((row) => schoolHierarchyId(row, "item"))).size,
+      detail: rows.length,
+    };
+    return { counts, conflictLabels, hierarchyCounts };
   }, [rows]);
-  const { counts, conflictLabels } = summary;
+  const { counts, conflictLabels, hierarchyCounts } = summary;
   return <div className={`fund-diagnostic ${counts.conflict ? "has-conflict" : ""}`}>
     <details>
-      <summary><span className="fund-diagnostic-title"><Info size={14} />재원 분류 결과</span><span className="fund-diagnostic-counts"><b>학교운영비 {counts.school.toLocaleString("ko-KR")}</b><b>목적사업비 {counts.purpose.toLocaleString("ko-KR")}</b><b>수익자부담 {counts.revenue.toLocaleString("ko-KR")}</b>{counts.conflict > 0 && <b className="conflict">확인 필요 {counts.conflict.toLocaleString("ko-KR")}</b>}</span><ChevronDown className="fund-diagnostic-chevron" size={15} /></summary>
-      <div className="fund-diagnostic-detail"><p>세부항목과 산출내역의 괄호 표기를 함께 확인합니다. 재원 표기가 없으면 학교운영비로 분류합니다.</p>{counts.conflict > 0 && <div className="fund-conflict-list"><strong>서로 다른 재원 표기가 함께 발견된 항목</strong>{conflictLabels.map((label) => <span key={label}>{label}</span>)}{counts.conflict > conflictLabels.length && <small>외 {(counts.conflict - conflictLabels.length).toLocaleString("ko-KR")}건</small>}</div>}</div>
+      <summary><span className="fund-diagnostic-title"><Info size={14} />재원 분류 결과</span><span className="fund-diagnostic-counts"><b>학교운영비 · 산출내역 {counts.school.toLocaleString("ko-KR")}건</b><b>목적사업비 · 산출내역 {counts.purpose.toLocaleString("ko-KR")}건</b><b>수익자부담 · 산출내역 {counts.revenue.toLocaleString("ko-KR")}건</b>{counts.conflict > 0 && <b className="conflict">확인 필요 · 산출내역 {counts.conflict.toLocaleString("ko-KR")}건</b>}</span><ChevronDown className="fund-diagnostic-chevron" size={15} /></summary>
+      <div className="fund-diagnostic-detail"><p>재원 건수는 원본 <strong>산출내역 행 기준</strong>입니다. 세부항목 보기에서는 같은 세부항목이 하나로 묶여 표시됩니다.</p><div className="fund-structure"><strong>데이터 구조</strong><span>정책사업 {hierarchyCounts.policy.toLocaleString("ko-KR")}개 · 단위사업 {hierarchyCounts.unit.toLocaleString("ko-KR")}개 · 세부사업 {hierarchyCounts.project.toLocaleString("ko-KR")}개 · 세부항목 {hierarchyCounts.item.toLocaleString("ko-KR")}개 · 산출내역 {hierarchyCounts.detail.toLocaleString("ko-KR")}건</span></div><p>세부항목과 산출내역의 괄호 표기를 함께 확인하며, 재원 표기가 없으면 학교운영비로 분류합니다.</p>{counts.conflict > 0 && <div className="fund-conflict-list"><strong>서로 다른 재원 표기가 함께 발견된 항목</strong>{conflictLabels.map((label) => <span key={label}>{label}</span>)}{counts.conflict > conflictLabels.length && <small>외 {(counts.conflict - conflictLabels.length).toLocaleString("ko-KR")}건</small>}</div>}</div>
     </details>
-    {counts.conflict > 0 && <div className="fund-conflict-warning" role="alert"><AlertCircle size={15} /><span>재원 표기가 서로 다른 항목 <strong>{counts.conflict.toLocaleString("ko-KR")}건</strong>이 있습니다. 세부항목·산출내역을 확인해주세요.</span></div>}
+    {counts.conflict > 0 && <div className="fund-conflict-warning" role="alert"><AlertCircle size={15} /><span>재원 표기가 서로 다른 산출내역 <strong>{counts.conflict.toLocaleString("ko-KR")}건</strong>이 있습니다. 세부항목·산출내역을 확인해주세요.</span></div>}
   </div>;
 }
 
@@ -1658,7 +1665,7 @@ function BusinessPlanRow({ row, meta, plans, updatePlan }: { row: BusinessCardRo
   return <article className={forecast < 0 ? "over-plan" : ""}><div><span>{row.projectName} · {row.itemName}</span><strong>{row.calculation}</strong><small>{row.costName}</small></div><div className="plan-balance"><small>현재 사용 가능</small><strong>{formatWon(row.budgetBalance)}</strong></div><label><span>앞으로 사용할 예정</span><div className="won-input"><input inputMode="numeric" value={plan ? plan.toLocaleString("ko-KR") : ""} onChange={(event) => updatePlan(row, event.target.value)} placeholder="0" aria-label={`${row.calculation} 앞으로 사용할 예정 금액`} /><span>원</span></div></label><div className="plan-balance forecast"><small>예상 잔액</small><ForecastAmount value={forecast} showWarning /></div>{plan > 0 && <button className="icon-button" onClick={() => updatePlan(row, "")} aria-label={`${row.calculation} 계획 삭제`}><Trash2 size={17} /></button>}</article>;
 }
 
-function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
+function OverviewTab({ rows, meta, fundFilter }: { rows: BudgetRow[]; meta: FileMeta; fundFilter: FundFilter }) {
   const [policySort, setPolicySort] = useState<SchoolSort>("budget-desc");
   const [selectedPolicyId, setSelectedPolicyId] = useState<string | null>(null);
   const [level, setLevel] = useState<SchoolHierarchyLevel>("policy");
@@ -1771,7 +1778,7 @@ function OverviewTab({ rows, meta }: { rows: BudgetRow[]; meta: FileMeta }) {
 
     <section className={`school-hierarchy-section ${hierarchyFlash ? "focus-flash" : ""}`} id="school-hierarchy">
       <div className="section-heading split-heading"><div><h2>예산을 원하는 단위로 묶어보기</h2><p>{scope ? `${scope.label}의 ${hierarchyLevelName}을 보고 있습니다.` : "정책사업부터 세부항목까지 같은 기준으로 비교할 수 있습니다."}</p></div>{scope && <button className="text-button" onClick={() => { setScope(null); setLevel("policy"); setSearch(""); }}><X size={15} />전체로 돌아가기</button>}</div>
-      <div className="school-hierarchy-tabs" role="tablist" aria-label="학교 전체 분석 단위"><button disabled={!availableLevels.policy} className={level === "policy" ? "active" : ""} onClick={() => setHierarchyLevel("policy")}>정책사업</button><button disabled={!availableLevels.unit} className={level === "unit" ? "active" : ""} onClick={() => setHierarchyLevel("unit")}>단위사업</button><button disabled={!availableLevels.project} className={level === "project" ? "active" : ""} onClick={() => setHierarchyLevel("project")}>세부사업</button><button disabled={!availableLevels.item} className={level === "item" ? "active" : ""} onClick={() => setHierarchyLevel("item")}>세부항목</button></div>
+      <div className="school-hierarchy-view-head"><div className="school-hierarchy-tabs" role="tablist" aria-label="학교 전체 분석 단위"><button disabled={!availableLevels.policy} className={level === "policy" ? "active" : ""} onClick={() => setHierarchyLevel("policy")}>정책사업</button><button disabled={!availableLevels.unit} className={level === "unit" ? "active" : ""} onClick={() => setHierarchyLevel("unit")}>단위사업</button><button disabled={!availableLevels.project} className={level === "project" ? "active" : ""} onClick={() => setHierarchyLevel("project")}>세부사업</button><button disabled={!availableLevels.item} className={level === "item" ? "active" : ""} onClick={() => setHierarchyLevel("item")}>세부항목</button></div><span className="school-hierarchy-view-count">{fundFilter === "all" ? "전체 사업" : fundFilter === "school" ? "학교운영비" : fundFilter === "purpose" ? "목적사업비" : "수익자부담"} · <strong>산출내역 {rows.length.toLocaleString("ko-KR")}건 → {hierarchyLevelName} {hierarchyGroups.length.toLocaleString("ko-KR")}개</strong></span></div>
       <div className="school-hierarchy-toolbar"><label className="school-search"><SearchCheck size={16} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="사업명 검색" aria-label="학교 전체 사업명 검색" /></label><label className="school-sort-field">정렬<select value={schoolSort} onChange={(event) => setSchoolSort(event.target.value as SchoolSort)}><option value="budget-desc">예산현액 많은 순</option><option value="budget-asc">예산현액 적은 순</option><option value="obligation-desc">원인행위액 많은 순</option><option value="paid-desc">지출액 많은 순</option><option value="pending-desc">지급 대기 많은 순</option><option value="uncommitted-desc">미원인행위 잔액 많은 순</option><option value="name-asc">이름 가나다순</option></select></label></div>
       <SchoolHierarchyTable groups={hierarchyGroups} onDrill={drillDown} />
       {!hierarchyGroups.length && <EmptyState text="해당 조건의 사업이 없습니다." />}
