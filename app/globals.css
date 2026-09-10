@@ -575,14 +575,14 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
 .school-flow-summary i, .school-flow-legend i { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 99px; }
 .school-flow-summary b { color: var(--ink); font-size: 12px; }
 .school-flow-bar { height: 20px; display: flex; overflow: hidden; background: #edf1f5; border-radius: 999px; }
-.school-flow-bar > span, .policy-flow-track > i { display: block; min-width: 0; height: 100%; }
+.school-flow-bar > span { display: block; min-width: 0; height: 100%; }
 .school-overview-v6 .flow-paid { background: var(--school-paid); }
 .school-overview-v6 .flow-pending { background: var(--school-pending); }
 .school-overview-v6 .flow-uncommitted { background: var(--school-uncommitted); }
-.school-flow-bar > span, .policy-flow-track > i { transition: background-color .16s ease, width .18s ease; }
-.school-flow-bar:hover .flow-paid, .policy-flow-row:hover .flow-paid { background: var(--status-paid-hover); }
-.school-flow-bar:hover .flow-pending, .policy-flow-row:hover .flow-pending { background: var(--status-pending-hover); }
-.school-flow-bar:hover .flow-uncommitted, .policy-flow-row:hover .flow-uncommitted { background: var(--status-uncommitted-hover); }
+.school-flow-bar > span { transition: background-color .16s ease, width .18s ease; }
+.school-flow-bar:hover .flow-paid { background: var(--status-paid-hover); }
+.school-flow-bar:hover .flow-pending { background: var(--status-pending-hover); }
+.school-flow-bar:hover .flow-uncommitted { background: var(--status-uncommitted-hover); }
 .school-flow-legend { margin-top: 14px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .school-flow-legend > div { padding: 0; display: grid; grid-template-columns: auto 1fr auto; gap: 2px 8px; align-items: center; background: transparent; border-radius: 0; }
 .school-flow-legend span { color: var(--muted); font-size: 11px; }
@@ -590,19 +590,29 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
 .school-flow-legend small { grid-column: 3; grid-row: 1 / span 2; align-self: center; color: #7b8594; font-size: 11px; }
 .school-sort-field { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .school-sort-field select { height: 38px; padding: 0 31px 0 11px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--ink); font-size: 12px; }
-.policy-flow-legend { margin: 2px 0 14px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; color: var(--muted); font-size: 11px; }
+.policy-flow-legend { margin: 2px 0 14px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; color: var(--muted); font-size: 12px; }
 .policy-flow-legend span { display: inline-flex; align-items: center; gap: 6px; }
-.policy-flow-legend i { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 99px; }
-.policy-flow-legend small { margin-left: auto; color: #7d8898; font-size: 10px; }
+.policy-flow-legend i { width: 9px; height: 9px; flex: 0 0 auto; border-radius: 99px; }
+.policy-flow-legend .policy-budget-key { background: #dfe5ec; }
+.policy-flow-legend .policy-spend-key { background: var(--school-paid); }
+.policy-flow-legend small { margin-left: auto; color: #7d8898; font-size: 11px; }
 .policy-flow-list { display: flex; flex-direction: column; gap: 4px; }
-.policy-flow-row { width: 100%; min-height: 56px; padding: 8px 10px; display: grid; grid-template-columns: minmax(190px,.9fr) minmax(300px,1.5fr) 150px 20px; gap: 13px; align-items: center; border: 0; border-radius: 9px; background: transparent; color: var(--ink); text-align: left; cursor: pointer; }
+.policy-flow-row { width: 100%; min-height: 72px; padding: 9px 10px; display: grid; grid-template-columns: minmax(190px,.82fr) minmax(360px,1.7fr) 84px 20px; gap: 14px; align-items: center; border: 0; border-radius: 9px; background: transparent; color: var(--ink); text-align: left; cursor: pointer; }
 .policy-flow-row:hover, .policy-flow-row.selected { background: #f6f8fb; }
-.policy-flow-name { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
-.policy-flow-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
-.policy-flow-name small { color: var(--muted); font-size: 10px; }
-.policy-flow-scale { min-width: 0; height: 12px; display: flex; align-items: center; }
-.policy-flow-track { height: 12px; display: flex; overflow: hidden; border-radius: 99px; background: #eef1f5; transition: width .18s ease; }
-.policy-flow-row > b { text-align: right; font-size: 13px; white-space: nowrap; }
+.policy-flow-name { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.policy-flow-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.policy-flow-name small { color: var(--muted); font-size: 11px; }
+.policy-flow-visual { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.policy-flow-scale { min-width: 0; height: 13px; display: flex; align-items: center; }
+.policy-flow-track { position: relative; height: 13px; overflow: hidden; border-radius: 99px; background: #dfe5ec; transition: width .18s ease; }
+.policy-flow-spend { position: absolute; inset: 0 auto 0 0; display: block; height: 100%; min-width: 0; border-radius: 99px; background: var(--school-paid); transition: width .18s ease, background-color .16s ease; }
+.policy-flow-row:hover .policy-flow-spend { background: var(--status-paid-hover); }
+.policy-flow-amounts { min-width: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; color: #7b8594; }
+.policy-flow-amounts small { font-size: 11px; white-space: nowrap; }
+.policy-flow-amounts b { color: #536071; font-size: 11px; font-weight: 600; }
+.policy-flow-rate { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; white-space: nowrap; }
+.policy-flow-rate small { color: var(--muted); font-size: 10px; }
+.policy-flow-rate b { color: #1e5bb8; font-size: 15px; font-variant-numeric: tabular-nums; }
 .policy-flow-row > svg { color: #8b96a6; transition: transform .18s ease; }
 .policy-detail-panel { margin-top: 11px; padding: 16px; display: grid; grid-template-columns: minmax(190px,.7fr) minmax(420px,1.6fr) auto; gap: 18px; align-items: center; border: 1px solid #dfe6ef; border-radius: 12px; background: #f8fafc; }
 .policy-detail-panel > div:first-child { display: flex; flex-direction: column; gap: 4px; }
@@ -666,7 +676,7 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
   .school-kpi-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0; border-radius: 16px; }
   .school-kpi-card:nth-child(2n) { border-right: 0; }
   .school-kpi-card:nth-child(-n+2) { border-bottom: 1px solid #edf1f5; }
-  .policy-flow-row { grid-template-columns: minmax(160px,.85fr) minmax(200px,1.2fr) 125px 18px; }
+  .policy-flow-row { grid-template-columns: minmax(150px,.72fr) minmax(260px,1.4fr) 78px 18px; gap: 10px; }
   .policy-detail-panel { grid-template-columns: 1fr; gap: 12px; }
   .policy-detail-panel dl { grid-template-columns: repeat(4,minmax(0,1fr)); }
   .policy-detail-panel .button { justify-self: start; }
@@ -692,12 +702,17 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
   .policy-flow-legend small { width: 100%; margin-left: 0; }
   .school-sort-field { width: 100%; justify-content: space-between; }
   .school-sort-field select { flex: 1; min-width: 0; }
-  .policy-flow-row { min-height: 72px; padding: 8px 5px; grid-template-columns: minmax(0,1fr) auto 18px; grid-template-rows: auto 11px; gap: 6px 8px; }
+  .policy-flow-row { min-height: 98px; padding: 9px 5px; grid-template-columns: minmax(0,1fr) auto 18px; grid-template-rows: auto auto; gap: 7px 8px; }
   .policy-flow-name { grid-column: 1; grid-row: 1; }
-  .policy-flow-row > b { grid-column: 2; grid-row: 1; font-size: 11px; }
+  .policy-flow-rate { grid-column: 2; grid-row: 1; align-self: center; }
+  .policy-flow-rate small { display: none; }
+  .policy-flow-rate b { font-size: 13px; }
   .policy-flow-row > svg { grid-column: 3; grid-row: 1; }
-  .policy-flow-scale { grid-column: 1 / -1; grid-row: 2; }
+  .policy-flow-visual { grid-column: 1 / -1; grid-row: 2; gap: 5px; }
+  .policy-flow-scale { width: 100%; }
   .policy-flow-track { max-width: 100%; }
+  .policy-flow-amounts { gap: 3px 10px; }
+  .policy-flow-amounts small, .policy-flow-amounts b { font-size: 11px; }
   .policy-detail-panel { padding: 13px; }
   .policy-detail-panel dl { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .policy-detail-panel .button { width: 100%; justify-content: center; }
@@ -1665,3 +1680,6 @@ footer span:last-child { display: inline-flex; align-items: center; gap: 5px; }
     justify-self: start;
   }
 }
+
+
+/* v0.6.30 — 정책사업별 예산 규모(회색) + 실제 지출(파랑) 하이브리드 막대 */

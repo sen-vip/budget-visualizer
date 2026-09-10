@@ -253,7 +253,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.29";
+const APP_VERSION = "v0.6.30";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1768,8 +1768,8 @@ function OverviewTab({ rows, meta, fundFilter }: { rows: BudgetRow[]; meta: File
     </section>
 
     {availableLevels.policy && <section className="policy-flow-section">
-      <div className="section-heading split-heading"><div><h2>정책사업별 예산 현황</h2><p>어디에 예산이 많이 배정됐고, 현재 어느 단계까지 진행됐는지 보여드려요.</p></div><label className="school-sort-field">정렬<select value={policySort} onChange={(event) => setPolicySort(event.target.value as SchoolSort)}><option value="budget-desc">예산현액 많은 순</option><option value="budget-asc">예산현액 적은 순</option><option value="paid-desc">지급 완료 많은 순</option><option value="pending-desc">지급 대기 많은 순</option><option value="uncommitted-desc">사용 결정 전 금액 많은 순</option><option value="name-asc">정책사업명 가나다순</option></select></label></div>
-      <div className="policy-flow-legend" aria-label="정책사업 예산 현황 범례"><span><i className="flow-paid" />지급 완료</span><span><i className="flow-pending" />지급 대기</span><span><i className="flow-uncommitted" />아직 사용 결정 전</span><small>막대 길이는 전체 예산 규모를 나타냅니다.</small></div>
+      <div className="section-heading split-heading"><div><h2>정책사업별 예산 현황</h2><p>어디에 예산이 많이 배정됐고, 그중 실제로 얼마나 지출됐는지 보여드려요.</p></div><label className="school-sort-field">정렬<select value={policySort} onChange={(event) => setPolicySort(event.target.value as SchoolSort)}><option value="budget-desc">예산현액 많은 순</option><option value="budget-asc">예산현액 적은 순</option><option value="paid-desc">지급 완료 많은 순</option><option value="pending-desc">지급 대기 많은 순</option><option value="uncommitted-desc">사용 결정 전 금액 많은 순</option><option value="name-asc">정책사업명 가나다순</option></select></label></div>
+      <div className="policy-flow-legend" aria-label="정책사업 예산 현황 범례"><span><i className="policy-budget-key" />예산현액</span><span><i className="policy-spend-key" />지출금액</span><small>막대 전체 길이는 예산 규모, 파란색은 실제 지출액입니다.</small></div>
       <div className="policy-flow-list">{policyGroups.map((group) => <PolicyFlowRow key={group.id} group={group} maxBudget={maxPolicyBudget} selected={selectedPolicyId === group.id} onSelect={() => setSelectedPolicyId((current) => current === group.id ? null : group.id)} />)}</div>
       {selectedPolicy && <div className="policy-detail-panel"><div><strong>{selectedPolicy.label}</strong><span>전체 예산 {formatReadableWon(selectedPolicy.budget)}</span></div><dl><div><dt>사용 결정</dt><dd>{formatReadableWon(selectedPolicy.obligation)}</dd></div><div><dt>지급 완료</dt><dd>{formatReadableWon(selectedPolicy.paid)}</dd></div><div><dt>지급 대기</dt><dd>{formatReadableWon(selectedPolicy.pending)}</dd></div><div><dt>아직 사용 결정 전</dt><dd>{formatReadableWon(selectedPolicy.uncommitted)}</dd></div></dl><button className="button secondary compact" onClick={() => openPolicyDetail(selectedPolicy)}>이 정책사업 상세보기<ChevronRight size={15} /></button></div>}
     </section>}
@@ -1799,12 +1799,10 @@ function SchoolFlowBar({ budget, paid, pending, uncommitted }: { budget: number;
 }
 
 function PolicyFlowRow({ group, maxBudget, selected, onSelect }: { group: SchoolAnalysisGroup; maxBudget: number; selected: boolean; onSelect: () => void }) {
-  const denominator = Math.max(Math.abs(group.budget), 1);
-  const paidWidth = Math.max(0, Math.min(100, (group.paid / denominator) * 100));
-  const pendingWidth = Math.max(0, Math.min(100, (group.pending / denominator) * 100));
-  const uncommittedWidth = Math.max(0, Math.min(100, (group.uncommitted / denominator) * 100));
+  const denominator = Math.max(group.budget, 1);
   const budgetWidth = Math.max(2, Math.min(100, (Math.max(group.budget, 0) / Math.max(maxBudget, 1)) * 100));
-  return <button className={`policy-flow-row ${selected ? "selected" : ""}`} onClick={onSelect} aria-expanded={selected}><span className="policy-flow-name"><strong>{group.label}</strong><small>전체 예산</small></span><span className="policy-flow-scale"><span className="policy-flow-track" style={{ width: `${budgetWidth}%` }}><i className="flow-paid" style={{ width: `${paidWidth}%` }} /><i className="flow-pending" style={{ width: `${pendingWidth}%` }} /><i className="flow-uncommitted" style={{ width: `${uncommittedWidth}%` }} /></span></span><b>{formatCompactWon(group.budget)}</b><ChevronDown className={selected ? "rotated" : ""} size={16} /></button>;
+  const spendWithinBudget = Math.max(0, Math.min(100, (Math.max(group.paid, 0) / denominator) * 100));
+  return <button className={`policy-flow-row ${selected ? "selected" : ""}`} onClick={onSelect} aria-expanded={selected} aria-label={`${group.label}, 예산현액 ${formatReadableWon(group.budget)}, 지출금액 ${formatReadableWon(group.paid)}, 집행률 ${formatPercent(group.spendingRate)}`}><span className="policy-flow-name"><strong>{group.label}</strong><small>예산 규모와 실제 지출</small></span><span className="policy-flow-visual"><span className="policy-flow-scale"><span className="policy-flow-track" style={{ width: `${budgetWidth}%` }}><i className="policy-flow-spend" style={{ width: `${spendWithinBudget}%` }} /></span></span><span className="policy-flow-amounts"><small>예산현액 <b>{formatCompactWon(group.budget)}</b></small><small>지출금액 <b>{formatCompactWon(group.paid)}</b></small></span></span><span className="policy-flow-rate"><small>집행률</small><b>{formatPercent(group.spendingRate)}</b></span><ChevronDown className={selected ? "rotated" : ""} size={16} /></button>;
 }
 
 function SchoolCheckList({ title, description, groups, valueKey, onOpen }: { title: string; description: string; groups: SchoolAnalysisGroup[]; valueKey: "pending" | "uncommitted"; onOpen: (group: SchoolAnalysisGroup) => void }) {
