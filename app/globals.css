@@ -2988,3 +2988,424 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
     justify-content: space-between;
   }
 }
+
+
+/* v0.6.40 · 예산을 읽어주는 화면: 현재 잔액 + 사용 결정률 중심 */
+.balance-reading-lead {
+  padding-bottom: 24px;
+}
+.school-balance-hero {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: minmax(300px,.9fr) minmax(0,1.7fr);
+  gap: 14px;
+  align-items: stretch;
+}
+.school-balance-primary {
+  min-width: 0;
+  padding: 25px 26px 23px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: #f5f7ff;
+  border: 1px solid #dce4fb;
+  border-radius: 16px;
+}
+.school-balance-primary > span {
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 750;
+}
+.school-balance-primary > strong {
+  margin-top: 7px;
+  color: #14213a;
+  font-size: clamp(31px,3.1vw,44px);
+  line-height: 1.1;
+  letter-spacing: -.04em;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.school-balance-primary > small {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.school-balance-primary > em {
+  margin-top: 3px;
+  color: #7b8798;
+  font-size: 11px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.school-balance-primary.negative {
+  background: #fff6f6;
+  border-color: #efcccc;
+}
+.school-balance-primary.negative > strong { color: var(--red); }
+.school-balance-support {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0,1.35fr) repeat(2,minmax(0,.82fr));
+  border: 1px solid #e1e5ec;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+}
+.school-balance-support > article {
+  min-width: 0;
+  padding: 20px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-left: 1px solid #e7eaf0;
+}
+.school-balance-support > article:first-child { border-left: 0; }
+.school-balance-support article > span,
+.school-use-rate > div:first-child span {
+  color: #687487;
+  font-size: 11px;
+  font-weight: 650;
+}
+.school-balance-support article > strong {
+  margin-top: 7px;
+  color: #273248;
+  font-size: 21px;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.school-balance-support article > small {
+  margin-top: 7px;
+  color: #8490a0;
+  font-size: 10px;
+  line-height: 1.4;
+}
+.school-use-rate > div:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.school-use-rate > div:first-child strong {
+  color: var(--blue-dark);
+  font-size: 24px;
+  font-variant-numeric: tabular-nums;
+}
+.school-use-progress {
+  height: 9px;
+  margin-top: 12px;
+  overflow: hidden;
+  background: #e7eaf0;
+  border-radius: 999px;
+}
+.school-use-progress i {
+  display: block;
+  height: 100%;
+  background: var(--blue);
+  border-radius: inherit;
+}
+.school-flow-secondary {
+  padding-top: 21px;
+  padding-bottom: 21px;
+}
+
+/* 정책사업: 예산 규모가 아니라 현재 잔액과 사용 결정률을 먼저 읽는다. */
+.budget-reading-section .section-heading { margin-bottom: 12px; }
+.budget-reading-list { gap: 5px; }
+.policy-flow-row.budget-reading-row {
+  min-height: 86px;
+  padding: 12px 10px;
+  grid-template-columns: minmax(185px,.8fr) minmax(390px,1.7fr) minmax(115px,.52fr) 18px;
+  gap: 16px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+}
+.policy-flow-row.budget-reading-row:hover,
+.policy-flow-row.budget-reading-row.selected {
+  background: #fafbfe;
+  border-color: #e2e7f0;
+}
+.policy-flow-row.budget-reading-row .policy-flow-name { gap: 3px; }
+.policy-flow-row.budget-reading-row .policy-flow-name strong {
+  color: #172033;
+  font-size: 14px;
+  font-weight: 700;
+}
+.policy-flow-row.budget-reading-row .policy-flow-name small {
+  color: #929baa;
+  font-size: 10px;
+}
+.policy-flow-row.budget-reading-row .policy-flow-visual { gap: 7px; }
+.budget-reading-rate-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  color: #647083;
+  font-size: 11px;
+}
+.budget-reading-rate-head b {
+  color: var(--blue-dark);
+  font-size: 12px;
+  font-weight: 750;
+}
+.budget-reading-rate-head small {
+  color: #8994a3;
+  font-size: 10px;
+}
+.policy-flow-track.full {
+  width: 100% !important;
+  height: 9px;
+  background: #e6eaf0;
+}
+.policy-flow-row.budget-reading-row .policy-flow-spend {
+  background: var(--blue);
+}
+.policy-flow-row.budget-reading-row:hover .policy-flow-spend {
+  background: var(--blue-dark);
+}
+.policy-flow-row.budget-reading-row .policy-flow-amounts {
+  gap: 4px 16px;
+  color: #8893a2;
+}
+.policy-flow-row.budget-reading-row .policy-flow-amounts small,
+.policy-flow-row.budget-reading-row .policy-flow-amounts b {
+  font-size: 10px;
+}
+.policy-flow-row.budget-reading-row .policy-flow-amounts b {
+  color: #59667a;
+  font-weight: 600;
+}
+.policy-balance-value {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.policy-balance-value small {
+  color: #727e90;
+  font-size: 10px;
+}
+.policy-balance-value strong {
+  color: #172033;
+  font-size: 16px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.policy-balance-value em {
+  color: #929baa;
+  font-size: 9px;
+  font-style: normal;
+  white-space: nowrap;
+}
+.policy-balance-value.negative strong,
+.policy-balance-value.negative em { color: var(--red); }
+.balance-first-detail .policy-detail-identity b {
+  color: var(--blue-dark);
+  font-size: 19px;
+}
+.balance-first-detail .policy-detail-identity b.negative-value { color: var(--red); }
+
+/* 전체현황 상세: 엑셀형 열 나열 대신 잔액 읽기 리스트 */
+.school-reading-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.school-reading-row {
+  min-width: 0;
+  min-height: 92px;
+  padding: 14px 14px;
+  display: grid;
+  grid-template-columns: minmax(210px,.8fr) minmax(390px,1.7fr) minmax(150px,.62fr) minmax(98px,auto);
+  gap: 17px;
+  align-items: center;
+  background: #fff;
+  border: 1px solid #e2e6ed;
+  border-radius: 13px;
+  transition: border-color .16s ease, background-color .16s ease;
+}
+.school-reading-row:hover {
+  background: #fbfcff;
+  border-color: #d7def0;
+}
+.school-reading-name {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.school-reading-name strong {
+  overflow: hidden;
+  color: #172033;
+  font-size: 14px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.school-reading-name small {
+  overflow: hidden;
+  color: #8a95a4;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.school-reading-progress {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.school-reading-rate {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  color: #667286;
+  font-size: 11px;
+}
+.school-reading-rate b {
+  color: var(--blue-dark);
+  font-size: 12px;
+  font-weight: 750;
+}
+.school-reading-rate small {
+  color: #8b96a5;
+  font-size: 10px;
+}
+.school-reading-track {
+  height: 9px;
+  overflow: hidden;
+  background: #e6eaf0;
+  border-radius: 999px;
+}
+.school-reading-track i {
+  display: block;
+  height: 100%;
+  background: var(--blue);
+  border-radius: inherit;
+}
+.school-reading-basis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 14px;
+  color: #8a94a3;
+  font-size: 10px;
+}
+.school-reading-basis b {
+  color: #5a6679;
+  font-weight: 600;
+}
+.school-reading-balance {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.school-reading-balance small {
+  color: #687588;
+  font-size: 10px;
+  font-weight: 600;
+}
+.school-reading-balance strong {
+  color: #172033;
+  font-size: 16px;
+  font-weight: 760;
+  white-space: nowrap;
+}
+.school-reading-balance em {
+  color: #929baa;
+  font-size: 9px;
+  font-style: normal;
+  white-space: nowrap;
+}
+.school-reading-row.negative .school-reading-balance strong,
+.school-reading-row.negative .school-reading-balance em { color: var(--red); }
+.school-reading-drill {
+  justify-self: end;
+  white-space: nowrap;
+}
+.school-reading-end { width: 1px; }
+
+@media (max-width: 1100px) {
+  .school-balance-hero { grid-template-columns: 1fr; }
+  .school-reading-row {
+    grid-template-columns: minmax(190px,.8fr) minmax(300px,1.45fr) minmax(140px,.62fr);
+  }
+  .school-reading-drill,
+  .school-reading-end {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+}
+
+@media (max-width: 720px) {
+  .school-balance-hero { margin-top: 17px; gap: 10px; }
+  .school-balance-primary { padding: 20px 17px 18px; }
+  .school-balance-primary > strong { font-size: 31px; }
+  .school-balance-support {
+    grid-template-columns: 1fr 1fr;
+    border-radius: 13px;
+  }
+  .school-balance-support > article {
+    padding: 15px 13px;
+  }
+  .school-balance-support > article:first-child {
+    grid-column: 1 / -1;
+    border-bottom: 1px solid #e7eaf0;
+  }
+  .school-balance-support > article:nth-child(2) { border-left: 0; }
+  .school-use-rate > div:first-child strong { font-size: 21px; }
+
+  .policy-flow-row.budget-reading-row {
+    min-height: 0;
+    padding: 12px 5px;
+    grid-template-columns: minmax(0,1fr) auto 18px;
+    grid-template-rows: auto auto auto;
+    gap: 8px;
+  }
+  .policy-flow-row.budget-reading-row .policy-flow-name { grid-column: 1; grid-row: 1; }
+  .policy-balance-value { grid-column: 2; grid-row: 1; }
+  .policy-flow-row.budget-reading-row > svg { grid-column: 3; grid-row: 1; }
+  .policy-flow-row.budget-reading-row .policy-flow-visual { grid-column: 1 / -1; grid-row: 2 / span 2; }
+  .policy-balance-value strong { font-size: 14px; }
+
+  .school-reading-list { gap: 8px; }
+  .school-reading-row,
+  .school-reading-row:hover {
+    min-height: 0;
+    padding: 14px 13px;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .school-reading-name strong { font-size: 13px; }
+  .school-reading-progress {
+    padding: 9px 0;
+    border-top: 1px solid #edf0f4;
+    border-bottom: 1px solid #edf0f4;
+  }
+  .school-reading-balance {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 10px;
+  }
+  .school-reading-balance small { grid-column: 1; }
+  .school-reading-balance strong { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-size: 15px; }
+  .school-reading-balance em { grid-column: 1; }
+  .school-reading-drill {
+    grid-column: auto;
+    justify-self: stretch;
+    justify-content: center;
+    min-height: 38px;
+  }
+}
