@@ -1,30 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <linearGradient id="bg" x1="5" y1="3" x2="59" y2="62" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#F3F4FF"/>
-      <stop offset="1" stop-color="#C8D2FF"/>
-    </linearGradient>
-    <linearGradient id="sun" x1="13" y1="10" x2="35" y2="34" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFD55B"/>
-      <stop offset="1" stop-color="#FF9D43"/>
-    </linearGradient>
-    <filter id="shadow" x="-25%" y="-25%" width="150%" height="170%">
-      <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" flood-color="#7484C8" flood-opacity="0.18"/>
-    </filter>
-  </defs>
-  <!-- Full-bleed background: Safari/iOS applies its own mask where needed. -->
-  <rect width="64" height="64" fill="url(#bg)"/>
-  <g stroke="#FFB44A" stroke-width="3" stroke-linecap="round">
-    <path d="M22 7v5"/>
-    <path d="M9.8 12.8l3.6 3.6"/>
-    <path d="M5 25h5"/>
-    <path d="M34.2 12.8l-3.6 3.6"/>
-  </g>
-  <circle cx="22" cy="25" r="11" fill="url(#sun)"/>
-  <g filter="url(#shadow)" fill="#FCFDFF">
-    <path d="M13 47.5c0-4.5 3.6-8.1 8.1-8.1.9 0 1.7.1 2.5.4 1.7-5.5 6.9-9.5 12.9-9.5 7.3 0 13.2 5.6 13.7 12.8 3.9.5 6.8 3.8 6.8 7.8 0 4.4-3.6 8-8 8H21c-4.4 0-8-3.6-8-8v-3.4z"/>
-    <circle cx="25" cy="46" r="7.8"/>
-    <circle cx="39" cy="43.5" r="10"/>
-  </g>
-</svg>
+import type { Metadata } from "next";
+import "./globals.css";
 
+
+export const metadata: Metadata = {
+  title: "학교회계 예산현황판",
+  description: "사업관리카드(현액·예산)로 내 사업 잔액을 확인하고, 102-2·201로 학교 전체 집행과 결산예측까지 살펴보는 학교회계 예산현황판",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="ko">
+      <body>{children}</body>
+    </html>
+  );
+}
