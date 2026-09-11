@@ -257,7 +257,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.45";
+const APP_VERSION = "v0.6.46";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1585,7 +1585,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
     </section>
 
     <section ref={businessVisualRef} className="business-visual-section" aria-labelledby="business-visual-title">
-      <div className="business-visual-head"><div className="section-heading"><span className="section-kicker">잔액 분석</span><h2 id="business-visual-title">어디에 예산이 많이 남아 있을까요?</h2><p>집행계획까지 반영한 잔액을 큰 순서로 보여드립니다.</p><span className="business-top-badge">{costFilter !== BUSINESS_COST_FILTER_ALL ? `${selectedCostLabel} · ` : ""}세부사업 기준 · Top {Math.min(chartProjects.length, 10)}</span></div></div>
+      <div className="business-visual-head"><div className="section-heading"><span className="section-kicker">잔액 분석</span><h2 id="business-visual-title">어디에 많이 남아 있을까요?</h2><p>집행계획까지 반영한 잔액을 큰 순서로 보여드립니다.</p><span className="business-top-badge">{costFilter !== BUSINESS_COST_FILTER_ALL ? `${selectedCostLabel} · ` : ""}세부사업 기준 · Top {Math.min(chartProjects.length, 10)}</span></div></div>
       <div className="business-visual-content">
         {chartProjects.length > 0 ? <div className="business-chart" role="list">{chartProjects.map((project, index) => {
           const barPct = Math.max(3, (project.forecast / chartMaxForecast) * 100);
@@ -2252,7 +2252,7 @@ function ResetDataModal({ close, clearExcel, clearAll }: { close: () => void; cl
 function HelpModal({ close }: { close: () => void }) {
   return <div className="modal-backdrop" onMouseDown={close}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onMouseDown={(event) => event.stopPropagation()}><button className="icon-button modal-close" aria-label="도움말 닫기" onClick={close}><X size={20} /></button><span className="eyebrow">도움말</span><h2 id="help-title">예산현황판 사용 방법</h2><div className="help-steps">
     <div><b>1</b><span><strong>사업관리카드 내려받기</strong><small>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드에서 (현액) 또는 (예산) 파일을 내려받습니다.</small></span></div>
-    <div><b>2</b><span><strong>잔액 분석</strong><small>현재 잔액을 가장 먼저 보여주고, 전체 예산·사용 결정액은 근거 정보로 함께 표시합니다. 집행계획이 있으면 계획 반영 후 잔액을 추가로 계산하며, ‘어디에 예산이 많이 남아 있을까요?’ Top10으로 다른 사업도 이어서 탐색할 수 있습니다.</small></span></div>
+    <div><b>2</b><span><strong>잔액 분석</strong><small>현재 잔액을 가장 먼저 보여주고, 전체 예산·사용 결정액은 근거 정보로 함께 표시합니다. 집행계획이 있으면 계획 반영 후 잔액을 추가로 계산하며, ‘어디에 많이 남아 있을까요?’ Top10으로 다른 사업도 이어서 탐색할 수 있습니다.</small></span></div>
     <div><b>3</b><span><strong>비목과 보고 싶은 단위로 좁혀보기</strong><small>비목 필터에서 일반수용비나 업무추진비 전체처럼 필요한 비목만 골라 볼 수 있습니다. 이어서 ‘세부사업으로 묶기’, ‘세부항목으로 묶기’, ‘산출내역 그대로’ 중 원하는 보기를 선택하세요.</small></span></div>
     <div><b>4</b><span><strong>앞으로 쓸 금액 입력</strong><small>산출내역별 집행예정액을 입력하면 예상 잔액이 바로 계산됩니다. 입력값은 현재 브라우저에만 저장됩니다.</small></span></div>
     <div><b>5</b><span><strong>102-2 내려받아 학교 전체 분석</strong><small>에듀파인 &gt; 학교회계 &gt; 예산결산 &gt; 결산현황 &gt; 집행실적에서 <b>엑셀저장(실시간)</b>을 누르고, 자료코드 <b>102-2</b>를 선택해 내려받습니다.</small></span></div>

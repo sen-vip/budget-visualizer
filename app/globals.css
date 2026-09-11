@@ -4252,3 +4252,113 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
   .school-reading-drill { grid-column: 1; grid-row: 4; justify-self: stretch; }
   .school-reading-end { display: none; }
 }
+
+
+/* v0.6.46 · 타이포/간격 다듬기, 한 행의 연결감 강화 */
+@media (min-width: 1101px) {
+  .business-chart-row {
+    min-height: 78px;
+    padding: 13px 14px;
+    grid-template-columns: 28px minmax(210px, .9fr) minmax(165px, .66fr) minmax(320px, 560px);
+    gap: 14px;
+    align-items: center;
+  }
+  .business-chart-name {
+    font-size: 15px;
+    font-weight: 760;
+    line-height: 1.45;
+  }
+  .business-chart-value { gap: 1px; }
+  .business-chart-value strong { font-size: 19px; }
+  .business-chart-visual {
+    width: min(100%, 560px);
+    max-width: 560px;
+    gap: 6px;
+  }
+  .business-chart-track { max-width: 560px; }
+  .business-chart-meta {
+    gap: 3px 12px;
+    font-size: 11px;
+  }
+
+  .policy-flow-row.budget-reading-row {
+    min-height: 102px;
+    padding: 16px 18px;
+    grid-template-columns: minmax(220px, .9fr) minmax(180px, .66fr) minmax(360px, 620px) 18px;
+    gap: 18px;
+  }
+  .policy-flow-row.budget-reading-row .policy-flow-name strong {
+    font-size: 16px;
+    line-height: 1.45;
+    font-weight: 760;
+  }
+  .policy-balance-value strong { font-size: 19px; }
+  .policy-flow-row.budget-reading-row .policy-flow-visual {
+    width: min(100%, 620px);
+    max-width: 620px;
+    gap: 6px;
+  }
+  .policy-flow-track.full { max-width: 620px; }
+  .budget-reading-rate-head {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+  }
+  .policy-flow-row.budget-reading-row .policy-flow-amounts { gap: 4px 12px; }
+
+  .school-reading-row {
+    min-height: 102px;
+    padding: 16px 18px;
+    grid-template-columns: minmax(220px, .9fr) minmax(185px, .68fr) minmax(360px, 620px) auto;
+    gap: 18px;
+  }
+  .school-reading-name strong {
+    font-size: 16px;
+    line-height: 1.45;
+    font-weight: 760;
+  }
+  .school-reading-balance strong { font-size: 19px; }
+  .school-reading-progress {
+    width: min(100%, 620px);
+    max-width: 620px;
+    gap: 6px;
+  }
+  .school-reading-track { max-width: 620px; }
+  .school-reading-rate {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+  }
+  .school-reading-basis { gap: 4px 12px; }
+}
+
+@media (min-width: 721px) and (max-width: 1100px) {
+  .business-chart-row {
+    grid-template-columns: 28px minmax(180px, .92fr) minmax(155px, .72fr) minmax(260px, 1.1fr);
+    gap: 12px;
+  }
+  .business-chart-name { font-size: 14.5px; font-weight: 740; }
+  .business-chart-value strong { font-size: 18px; }
+  .policy-flow-row.budget-reading-row {
+    grid-template-columns: minmax(190px,.92fr) minmax(165px,.7fr) minmax(260px,1.25fr) 18px;
+    gap: 14px;
+  }
+  .policy-flow-row.budget-reading-row .policy-flow-name strong,
+  .school-reading-name strong { font-size: 15px; }
+  .policy-balance-value strong,
+  .school-reading-balance strong { font-size: 18px; }
+  .budget-reading-rate-head,
+  .school-reading-rate { justify-content: flex-start; flex-wrap: wrap; gap: 7px 14px; }
+  .school-reading-row {
+    grid-template-columns: minmax(190px,.92fr) minmax(170px,.72fr) minmax(260px,1.2fr) auto;
+    gap: 14px;
+  }
+}
+
+@media (max-width: 720px) {
+  .business-chart-name,
+  .policy-flow-row.budget-reading-row .policy-flow-name strong,
+  .school-reading-name strong {
+    font-size: 15px;
+  }
+}
