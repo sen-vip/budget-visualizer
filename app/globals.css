@@ -1957,3 +1957,59 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
   .school-kpi-card:nth-child(odd),
   .school-kpi-card:nth-child(-n+2) { border-color: #e7eaf0; }
 }
+
+
+/* v0.6.33 — 회계 숫자 정렬 원칙: 라벨은 좌측, 금액은 우측 */
+/* 금액 카드는 회계표를 읽는 시선 흐름에 맞춰 숫자의 끝자리를 오른쪽에 정렬합니다. */
+.business-item-metrics strong,
+.business-detail-metrics strong,
+.business-item-forecast strong,
+.business-plan-group-metrics strong,
+.business-summary-card > strong,
+.business-summary-card > em,
+.plan-summary-grid strong,
+.plan-compact-metrics strong,
+.school-kpi-card > strong,
+.school-kpi-card > em,
+.business-kpis strong,
+.stat-card > strong,
+.progress-step-values strong,
+.spending-overview article strong,
+.promotion-detail-balance > strong,
+.business-hero > div:first-child > strong,
+.selected-balance strong,
+.forecast-box strong,
+.closing-flow-row > strong,
+.policy-detail-panel dd,
+.business-chart-detail dd {
+  width: 100%;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 3칸 금액 카드 안에서는 제목은 계속 왼쪽에 두고 숫자만 오른쪽으로 보냅니다. */
+.business-item-metrics > span,
+.business-detail-metrics > span,
+.business-item-forecast > span,
+.business-plan-group-metrics > span,
+.plan-summary-grid article,
+.school-kpi-card,
+.stat-card {
+  text-align: left;
+}
+
+/* 모바일에서도 숫자 정렬 원칙은 유지합니다. */
+@media (max-width: 720px) {
+  .business-item-metrics strong,
+  .business-detail-metrics strong,
+  .business-item-forecast strong,
+  .business-plan-group-metrics strong,
+  .business-summary-card > strong,
+  .business-summary-card > em,
+  .plan-summary-grid strong,
+  .school-kpi-card > strong,
+  .school-kpi-card > em,
+  .stat-card > strong {
+    text-align: right;
+  }
+}
