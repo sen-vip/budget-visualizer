@@ -255,7 +255,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.35";
+const APP_VERSION = "v0.6.36";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1541,7 +1541,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
 
   return <div className="page-content business-page">
     <section className="business-overview-summary" aria-labelledby="business-summary-title">
-      <div className="business-summary-head"><div className="section-heading"><span className="section-kicker">내 사업 한눈에 보기</span><h1 id="business-summary-title">계획까지 반영한 예산 흐름</h1><p>{hasActiveScope ? `${selectedDetailProject ? `선택한 세부사업 ‘${selectedDetailProject}’` : `현재 검색·필터 결과 ${filteredRows.length}건`}을 기준으로 다시 계산했어요. 선택 범위 전체 예산은 ${formatReadableWon(filteredTotals.currentBudget)}입니다.` : "내 예산에서 사용 결정액과 앞으로의 계획을 빼고, 실제로 얼마나 남는지 먼저 보여드려요."}</p></div>{hasActiveScope && <button className="button ghost compact" onClick={() => { setSelectedDetailProject(""); setFilter("all"); setSearch(""); setShown(30); }}>선택·검색 초기화</button>}</div>
+      <div className="business-summary-head"><div className="section-heading"><span className="section-kicker">내 사업 분석</span><h1 id="business-summary-title">계획까지 반영한 예산 흐름</h1><p>{hasActiveScope ? `${selectedDetailProject ? `선택한 세부사업 ‘${selectedDetailProject}’` : `현재 검색·필터 결과 ${filteredRows.length}건`}을 기준으로 다시 계산했어요. 선택 범위 전체 예산은 ${formatReadableWon(filteredTotals.currentBudget)}입니다.` : "내 예산에서 사용 결정액과 앞으로의 계획을 빼고, 실제로 얼마나 남는지 먼저 보여드려요."}</p></div>{hasActiveScope && <button className="button ghost compact" onClick={() => { setSelectedDetailProject(""); setFilter("all"); setSearch(""); setShown(30); }}>선택·검색 초기화</button>}</div>
       <div className="business-summary-grid">
         <article className="business-summary-card budget"><div className="business-summary-icon"><WalletCards size={19} /></div><span>내 예산</span><small>예산현액</small><strong>{formatKpiWon(filteredTotals.currentBudget)}</strong><em>{formatWon(filteredTotals.currentBudget)}</em></article>
         <article className="business-summary-card committed"><div className="business-summary-icon"><ReceiptText size={19} /></div><span>이미 사용하기로 한 금액</span><small>원인행위액</small><strong>{formatKpiWon(filteredTotals.obligation)}</strong><em>{formatWon(filteredTotals.obligation)}</em></article>
@@ -1551,7 +1551,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
     </section>
 
     <section ref={businessVisualRef} className="business-visual-section" aria-labelledby="business-visual-title">
-      <div className="business-visual-head"><div className="section-heading"><span className="section-kicker">한눈에 보기</span><h2 id="business-visual-title">돈이 많이 남는 사업</h2><p>앞으로 사용할 계획까지 반영한 예상 잔액입니다.</p><span className="business-top-badge">세부사업 기준 · Top {Math.min(chartProjects.length, 10)}</span></div></div>
+      <div className="business-visual-head"><div className="section-heading"><span className="section-kicker">잔액 분석</span><h2 id="business-visual-title">예상 잔액 상위 사업</h2><p>집행계획까지 반영한 예상 잔액 기준입니다.</p><span className="business-top-badge">세부사업 기준 · Top {Math.min(chartProjects.length, 10)}</span></div></div>
       <div className="business-visual-content">
         {chartProjects.length > 0 ? <div className="business-chart" role="list">{chartProjects.map((project, index) => {
           const barPct = Math.max(3, (project.forecast / chartMaxForecast) * 100);
@@ -1854,7 +1854,7 @@ function OverviewTab({ rows, meta, fundFilter }: { rows: BudgetRow[]; meta: File
 
   return <section className="page-content school-overview-v6">
     <section className="school-overview-lead">
-      <div className="school-overview-lead-head"><div className="school-overview-lead-copy"><span className="section-kicker">학교 전체 한눈에 보기</span><h1>학교 전체 예산,<br />지금 어디에 있을까?</h1><p>102-2를 기준으로 전체 예산을 지급 완료·지급 대기·아직 사용 결정 전으로 나누어 보여드려요.</p></div><div className="school-data-basis"><CalendarDays size={15} /><span><strong>{meta.year}회계연도 · 데이터 기준 {dateLabel(meta.executionDate)}</strong><small>102-2 · {meta.rowCount.toLocaleString("ko-KR")}개 산출내역</small></span></div></div>
+      <div className="school-overview-lead-head"><div className="school-overview-lead-copy"><span className="section-kicker">학교 전체 분석</span><h1>학교 전체 예산 흐름</h1><p>102-2를 기준으로 지급 완료 · 지급 대기 · 원인행위 전 상태를 차분하게 보여드려요.</p></div><div className="school-data-basis"><CalendarDays size={15} /><span><strong>{meta.year}회계연도 · 데이터 기준 {dateLabel(meta.executionDate)}</strong><small>102-2 · {meta.rowCount.toLocaleString("ko-KR")}개 산출내역</small></span></div></div>
       <div className="school-kpi-grid">
         <SchoolKpiCard title="전체 예산" term="예산현액" value={totals.budget} tone="blue" />
         <SchoolKpiCard title="사용 결정" term="원인행위액" value={totals.obligation} tone="slate" />
@@ -1864,14 +1864,14 @@ function OverviewTab({ rows, meta, fundFilter }: { rows: BudgetRow[]; meta: File
     </section>
 
     <section className="school-flow-section">
-      <div className="section-heading"><span className="section-kicker">예산 흐름</span><h2>전체 예산이 지금 어디에 있을까요?</h2><p>지급 완료 · 지급 대기 · 원인행위 전 상태로 나누어 보여줍니다.</p></div>
+      <div className="section-heading"><span className="section-kicker">예산 흐름</span><h2>상태별 예산 흐름</h2><p>전체 예산을 지급 완료 · 지급 대기 · 원인행위 전으로 나누어 봅니다.</p></div>
       <SchoolFlowBar budget={totals.budget} paid={totals.paid} pending={pending} uncommitted={uncommitted} />
       {totals.carryover > 0 && <p className="carryover-note">102-2의 다음연도 이월액 {formatReadableWon(totals.carryover)}도 별도 집계되어 있습니다.</p>}
     </section>
 
     {availableLevels.policy && <section className="policy-flow-section">
-      <div className="section-heading split-heading"><div><h2>정책사업별 예산 현황</h2><p>어디에 예산이 많이 배정됐고, 그중 실제로 얼마나 지출됐는지 보여드려요.</p></div><label className="school-sort-field">정렬<select value={policySort} onChange={(event) => setPolicySort(event.target.value as SchoolSort)}><option value="budget-desc">예산현액 많은 순</option><option value="budget-asc">예산현액 적은 순</option><option value="paid-desc">지급 완료 많은 순</option><option value="pending-desc">지급 대기 많은 순</option><option value="uncommitted-desc">사용 결정 전 금액 많은 순</option><option value="name-asc">정책사업명 가나다순</option></select></label></div>
-      <div className="policy-flow-legend" aria-label="정책사업 예산 현황 범례"><span><i className="policy-budget-key" />예산현액</span><span><i className="policy-spend-key" />지출금액</span><small>막대 전체 길이는 예산 규모, 파란색은 실제 지출액입니다.</small></div>
+      <div className="section-heading split-heading"><div><h2>정책사업별 예산 흐름</h2><p>정책사업별 예산 규모와 실제 지출액을 함께 비교합니다.</p></div><label className="school-sort-field">정렬<select value={policySort} onChange={(event) => setPolicySort(event.target.value as SchoolSort)}><option value="budget-desc">예산현액 많은 순</option><option value="budget-asc">예산현액 적은 순</option><option value="paid-desc">지급 완료 많은 순</option><option value="pending-desc">지급 대기 많은 순</option><option value="uncommitted-desc">사용 결정 전 금액 많은 순</option><option value="name-asc">정책사업명 가나다순</option></select></label></div>
+      <div className="policy-flow-legend" aria-label="정책사업 예산 흐름 범례"><span><i className="policy-budget-key" />예산현액</span><span><i className="policy-spend-key" />지출금액</span><small>회색 막대는 예산 규모, 강조 막대는 실제 지출액입니다.</small></div>
       <div className="policy-flow-list">{policyGroups.map((group) => <PolicyFlowRow key={group.id} group={group} maxBudget={maxPolicyBudget} selected={selectedPolicyId === group.id} onSelect={() => setSelectedPolicyId((current) => current === group.id ? null : group.id)} />)}</div>
       {selectedPolicy && <div className="policy-detail-panel"><div><strong>{selectedPolicy.label}</strong><span>전체 예산 {formatReadableWon(selectedPolicy.budget)}</span></div><dl><div><dt>사용 결정</dt><dd>{formatReadableWon(selectedPolicy.obligation)}</dd></div><div><dt>지급 완료</dt><dd>{formatReadableWon(selectedPolicy.paid)}</dd></div><div><dt>지급 대기</dt><dd>{formatReadableWon(selectedPolicy.pending)}</dd></div><div><dt>아직 사용 결정 전</dt><dd>{formatReadableWon(selectedPolicy.uncommitted)}</dd></div></dl><button className="button secondary compact" onClick={() => openPolicyDetail(selectedPolicy)}>이 정책사업 상세보기<ChevronRight size={15} /></button></div>}
     </section>}
@@ -2188,7 +2188,7 @@ function ResetDataModal({ close, clearExcel, clearAll }: { close: () => void; cl
 function HelpModal({ close }: { close: () => void }) {
   return <div className="modal-backdrop" onMouseDown={close}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onMouseDown={(event) => event.stopPropagation()}><button className="icon-button modal-close" aria-label="도움말 닫기" onClick={close}><X size={20} /></button><span className="eyebrow">도움말</span><h2 id="help-title">예산현황판 사용 방법</h2><div className="help-steps">
     <div><b>1</b><span><strong>사업관리카드 내려받기</strong><small>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드에서 (현액) 또는 (예산) 파일을 내려받습니다.</small></span></div>
-    <div><b>2</b><span><strong>한눈에 보기</strong><small>내 예산·원인행위액·앞으로 사용할 예정액·예상 잔액을 먼저 보여줍니다. ‘돈이 많이 남는 사업’ Top10은 전체 사업 기준으로 유지되어 다른 사업을 계속 탐색할 수 있습니다.</small></span></div>
+    <div><b>2</b><span><strong>잔액 분석</strong><small>내 예산·원인행위액·앞으로 사용할 예정액·예상 잔액을 먼저 보여줍니다. ‘예상 잔액 상위 사업’ Top10은 전체 사업 기준으로 유지되어 다른 사업을 계속 탐색할 수 있습니다.</small></span></div>
     <div><b>3</b><span><strong>보고 싶은 단위로 묶어보기</strong><small>예산 상세에서 ‘세부사업으로 묶기’, ‘세부항목으로 묶기’, ‘산출내역 그대로’ 순으로 원하는 보기를 선택할 수 있습니다. Top10에서 ‘이 사업 상세 보기’를 누르면 선택한 사업만 모아보고, ‘다른 사업 선택’ 또는 ‘전체 보기’로 다시 범위를 바꿀 수 있습니다.</small></span></div>
     <div><b>4</b><span><strong>앞으로 쓸 금액 입력</strong><small>산출내역별 집행예정액을 입력하면 예상 잔액이 바로 계산됩니다. 입력값은 현재 브라우저에만 저장됩니다.</small></span></div>
     <div><b>5</b><span><strong>102-2 내려받아 학교 전체 분석</strong><small>에듀파인 &gt; 학교회계 &gt; 예산결산 &gt; 결산현황 &gt; 집행실적에서 <b>엑셀저장(실시간)</b>을 누르고, 자료코드 <b>102-2</b>를 선택해 내려받습니다.</small></span></div>

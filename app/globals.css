@@ -3,30 +3,30 @@
 :root {
   --ink: #172033;
   --muted: #677184;
-  --soft: #f4f7fb;
+  --soft: #f5f7fb;
   --line: #dfe5ed;
   --card: #ffffff;
-  --blue: #376fd0;
-  --blue-dark: #2455ad;
-  --blue-soft: #edf4ff;
-  --teal: #2b9b8d;
-  --teal-soft: #e9f7f4;
+  --blue: #3159d8;
+  --blue-dark: #2446b5;
+  --blue-soft: #eef2ff;
+  --teal: #21855a;
+  --teal-soft: #eaf8f1;
   --amber: #c48317;
   --amber-soft: #fff6e6;
   --coral: #d36456;
   --coral-soft: #fff0ed;
-  --violet: #7765c8;
-  --violet-soft: #f2efff;
+  --violet: #7d91d8;
+  --violet-soft: #eef2ff;
   --red: #c84d53;
   --red-soft: #fff0f1;
 
   /* 102-2 학교 전체 분석 상태 색상 */
-  --status-paid: #4f78b8;
-  --status-paid-hover: #456daa;
-  --status-pending: #8fa6c7;
-  --status-pending-hover: #7e99be;
-  --status-uncommitted: #d9e1ea;
-  --status-uncommitted-hover: #cbd5e1;
+  --status-paid: #3159d8;
+  --status-paid-hover: #2446b5;
+  --status-pending: #90a7e4;
+  --status-pending-hover: #7f99dc;
+  --status-uncommitted: #dce4f0;
+  --status-uncommitted-hover: #cfd9e8;
 }
 
 * { box-sizing: border-box; }
@@ -2189,4 +2189,168 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
     border-top: 1px solid #e6e9ef !important;
   }
   .business-chart-track { height: 7px; }
+}
+
+
+/* v0.6.36 · 콕검 팔레트 통일 + 탭 간 시각 시스템 정돈 */
+.section-heading p,
+.school-overview-lead-copy p,
+.business-summary-head .section-heading p,
+.business-visual-head .section-heading p,
+.school-check-section .section-heading p,
+.school-hierarchy-section .section-heading p {
+  word-break: keep-all;
+}
+
+.business-summary-head .section-heading p,
+.business-visual-head .section-heading p,
+.school-flow-section .section-heading p,
+.policy-flow-section .section-heading p,
+.school-check-section .section-heading p,
+.school-hierarchy-section .section-heading p {
+  max-width: 38rem;
+}
+
+.business-visual-section,
+.school-flow-section,
+.policy-flow-section,
+.school-check-section,
+.school-hierarchy-section {
+  padding: 24px 26px 22px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.business-visual-head,
+.school-flow-section .section-heading,
+.policy-flow-section .section-heading,
+.school-check-section .section-heading,
+.school-hierarchy-section .section-heading {
+  margin-bottom: 18px;
+}
+
+.business-visual-head .section-kicker,
+.school-flow-section .section-kicker,
+.policy-flow-section .section-kicker,
+.school-check-section .section-kicker,
+.school-hierarchy-section .section-kicker,
+.school-overview-lead-copy .section-kicker {
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .01em;
+}
+
+.business-visual-head h2,
+.school-flow-section .section-heading h2,
+.policy-flow-section .section-heading h2,
+.school-check-section .section-heading h2,
+.school-hierarchy-section .section-heading h2 {
+  margin-bottom: 8px;
+}
+
+.business-top-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 6px 10px;
+  color: var(--blue-dark);
+  background: var(--blue-soft);
+  border: 1px solid #dbe3fb;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* 학교 전체 흐름은 콕검 블루 계열로 안정화 */
+.bar-paid,
+.legend-dot.paid {
+  background: var(--status-paid);
+}
+.bar-pending,
+.legend-dot.pending {
+  background: var(--status-pending);
+}
+.bar-available,
+.legend-dot.available {
+  background: var(--status-uncommitted);
+}
+
+.policy-flow-track {
+  background: #e2e7ef;
+}
+.policy-flow-spend {
+  background: var(--status-paid);
+}
+.policy-flow-row:hover .policy-flow-spend {
+  background: var(--status-paid-hover);
+}
+.policy-budget-key {
+  background: #e2e7ef;
+}
+.policy-spend-key {
+  background: var(--status-paid);
+}
+.policy-flow-rate b {
+  color: var(--blue-dark);
+}
+
+/* Top10은 콕검 그린으로 유지하되 전체 톤과 충돌하지 않게 절제 */
+.business-chart-track {
+  background: #e7eaf0;
+}
+.business-chart-track i.forecast {
+  background: var(--teal);
+}
+.business-chart-meta .planned,
+.business-chart-meta .planned b {
+  color: #6f7a8b;
+}
+
+/* 카드/버튼/정렬 컨트롤도 한 체계로 통일 */
+.school-sort-field select,
+.school-search input,
+.filter-field select,
+.spending-search input,
+.won-input,
+.form-field select,
+.form-field textarea {
+  border-color: #dce3ec;
+  border-radius: 10px;
+  background: #fff;
+}
+.school-sort-field select:focus,
+.school-search input:focus,
+.filter-field select:focus,
+.spending-search input:focus,
+.won-input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  outline: 2px solid rgba(49,89,216,.12);
+  border-color: var(--blue);
+}
+
+.button.secondary,
+.business-chart-list-button,
+.business-back-to-top-button {
+  background: var(--blue-soft);
+}
+
+@media (max-width: 720px) {
+  .business-visual-section,
+  .school-flow-section,
+  .policy-flow-section,
+  .school-check-section,
+  .school-hierarchy-section {
+    padding: 20px 14px 18px;
+  }
+  .business-visual-head .section-heading p,
+  .school-flow-section .section-heading p,
+  .policy-flow-section .section-heading p,
+  .school-check-section .section-heading p,
+  .school-hierarchy-section .section-heading p {
+    max-width: none;
+  }
 }
