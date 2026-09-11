@@ -4370,7 +4370,7 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
   --radius-card: 12px;
   --radius-control: 10px;
   --surface-soft: #f8faff;
-  --surface-balance: #eaf8f1;
+  --surface-balance: #e6eaf0;
 }
 
 /* 큰 면적의 그라데이션/강한 그림자를 제거하고 밝은 surface로 통일 */
@@ -4479,12 +4479,12 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
 .school-reading-track {
   height: 11px;
   background: var(--surface-balance);
-  border: 1px solid #dcece4;
+  border: 1px solid #dfe5ed;
 }
 .policy-flow-row.budget-reading-row .policy-flow-spend,
 .school-reading-track i { background: var(--blue); }
 .budget-reading-rate-head small,
-.school-reading-rate small { color: #56806b; font-weight: 650; }
+.school-reading-rate small { color: #7d8998; font-weight: 650; }
 .policy-flow-row.budget-reading-row .policy-flow-amounts,
 .school-reading-basis { color: #788598; }
 
@@ -4506,7 +4506,7 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
 }
 .business-chart-track.composition i.committed { background: var(--blue); }
 .business-chart-track.composition i.planned { background: #e5b45b; }
-.business-chart-track.composition i.remaining { background: var(--teal); }
+.business-chart-track.composition i.remaining { background: #dfe5ed; }
 .business-chart-meta .planned-label,
 .business-chart-meta .planned-label b { color: #8a6b39; }
 .business-chart-row.selected { background: #f8faff; }
