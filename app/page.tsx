@@ -36,6 +36,8 @@ type MainView = "mine" | "plan" | "school";
 type BusinessFilter = "all" | "available" | "complete";
 type BusinessSort = "name-asc" | "name-desc" | "project-asc" | "project-desc" | "item-asc" | "item-desc" | "amount-desc" | "amount-asc";
 type BusinessViewMode = "project" | "item" | "detail";
+const BUSINESS_COST_FILTER_ALL = "__all_costs__";
+const BUSINESS_COST_FILTER_PROMOTION = "__all_promotion_costs__";
 type FundType = "school" | "purpose" | "revenue" | "conflict";
 type FundFilter = "all" | Exclude<FundType, "conflict">;
 type AttentionKind = "all" | "overrun" | "unspent" | "low" | "large" | "nearly" | "pending";
@@ -255,7 +257,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.37";
+const APP_VERSION = "v0.6.38";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1367,6 +1369,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
   const [filter, setFilter] = useState<BusinessFilter>("all");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<BusinessSort>("amount-desc");
+  const [costFilter, setCostFilter] = useState(BUSINESS_COST_FILTER_ALL);
   const [shown, setShown] = useState(30);
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -1376,13 +1379,33 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
   const selectedChartDetailRef = useRef<HTMLDivElement>(null);
   const businessVisualRef = useRef<HTMLElement>(null);
 
-  const filteredRows = useMemo(() => rows.filter((row) => {
+  const costNames = useMemo(() => [...new Set(rows.map((row) => row.costName.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko")), [rows]);
+  const preferredGeneralCostNames = useMemo(() => costNames.filter((name) => normalize(name).includes(normalize("일반수용비"))), [costNames]);
+  const otherCostNames = useMemo(() => costNames.filter((name) => !preferredGeneralCostNames.includes(name)), [costNames, preferredGeneralCostNames]);
+  const hasPromotionCosts = useMemo(() => costNames.some((name) => normalize(name).includes(normalize("업무추진비"))), [costNames]);
+  const selectedCostLabel = costFilter === BUSINESS_COST_FILTER_ALL ? "전체 비목" : costFilter === BUSINESS_COST_FILTER_PROMOTION ? "업무추진비 전체" : costFilter;
+  const costScopedRows = useMemo(() => rows.filter((row) => {
+    if (costFilter === BUSINESS_COST_FILTER_ALL) return true;
+    if (costFilter === BUSINESS_COST_FILTER_PROMOTION) return normalize(row.costName).includes(normalize("업무추진비"));
+    return normalize(row.costName) === normalize(costFilter);
+  }), [rows, costFilter]);
+
+  useEffect(() => {
+    if (costFilter === BUSINESS_COST_FILTER_ALL) return;
+    if (costFilter === BUSINESS_COST_FILTER_PROMOTION) {
+      if (!hasPromotionCosts) setCostFilter(BUSINESS_COST_FILTER_ALL);
+      return;
+    }
+    if (!costNames.some((name) => normalize(name) === normalize(costFilter))) setCostFilter(BUSINESS_COST_FILTER_ALL);
+  }, [costFilter, costNames, hasPromotionCosts]);
+
+  const filteredRows = useMemo(() => costScopedRows.filter((row) => {
     if (selectedDetailProject && normalize(row.projectName) !== normalize(selectedDetailProject)) return false;
     if (filter === "available" && row.budgetBalance <= 0) return false;
     if (filter === "complete" && row.budgetBalance !== 0) return false;
     const needle = normalize(search);
     return !needle || normalize(`${row.projectName}${row.itemName}${row.costName}${row.calculation}`).includes(needle);
-  }).sort((a, b) => compareBusiness(a, b, sort)), [rows, selectedDetailProject, filter, search, sort]);
+  }).sort((a, b) => compareBusiness(a, b, sort)), [costScopedRows, selectedDetailProject, filter, search, sort]);
 
   const filteredItems = useMemo(() => {
     const grouped = new Map<string, BusinessItemGroup>();
@@ -1432,7 +1455,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
 
   const chartProjects = useMemo(() => {
     const grouped = new Map<string, BusinessProjectGroup>();
-    rows.forEach((row) => {
+    costScopedRows.forEach((row) => {
       const id = normalize(row.projectName) || "project";
       const current = grouped.get(id) ?? { id, projectName: row.projectName || "사업명 없음", currentBudget: 0, obligation: 0, paid: 0, budgetBalance: 0, paymentBalance: 0, rows: [], items: [] };
       current.currentBudget += row.currentBudget;
@@ -1447,10 +1470,10 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
       const planned = project.rows.reduce((sum, row) => sum + (plans[businessPlanKey(meta, row)] ?? 0), 0);
       return { ...project, planned, forecast: project.budgetBalance - planned };
     }).filter((project) => project.forecast > 0).sort((a, b) => b.forecast - a.forecast).slice(0, 10);
-  }, [rows, plans, meta]);
+  }, [costScopedRows, plans, meta]);
   const chartMaxForecast = useMemo(() => Math.max(...chartProjects.map((project) => project.forecast), 1), [chartProjects]);
   const selectedChart = chartProjects.find((project) => project.id === selectedChartProject) ?? null;
-  const hasActiveScope = Boolean(selectedDetailProject) || filter !== "all" || Boolean(normalize(search));
+  const hasActiveScope = Boolean(selectedDetailProject) || filter !== "all" || Boolean(normalize(search)) || costFilter !== BUSINESS_COST_FILTER_ALL;
 
   useEffect(() => {
     if (!selectedChartProject) {
@@ -1541,7 +1564,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
 
   return <div className="page-content business-page">
     <section className="business-overview-summary" aria-labelledby="business-summary-title">
-      <div className="business-summary-head"><div className="section-heading"><span className="section-kicker">내 사업 분석</span><h1 id="business-summary-title">계획까지 반영한 예산 흐름</h1><p>{hasActiveScope ? `${selectedDetailProject ? `선택한 세부사업 ‘${selectedDetailProject}’` : `현재 검색·필터 결과 ${filteredRows.length}건`}을 기준으로 다시 계산했어요. 선택 범위 전체 예산은 ${formatReadableWon(filteredTotals.currentBudget)}입니다.` : "내 예산에서 사용 결정액과 앞으로의 계획을 빼고, 실제로 얼마나 남는지 먼저 보여드려요."}</p></div>{hasActiveScope && <button className="button ghost compact" onClick={() => { setSelectedDetailProject(""); setFilter("all"); setSearch(""); setShown(30); }}>선택·검색 초기화</button>}</div>
+      <div className="business-summary-head"><div className="section-heading"><span className="section-kicker">내 사업 분석</span><h1 id="business-summary-title">계획까지 반영한 예산 흐름</h1><p>{hasActiveScope ? `${costFilter !== BUSINESS_COST_FILTER_ALL ? `비목 ‘${selectedCostLabel}’ · ` : ""}${selectedDetailProject ? `세부사업 ‘${selectedDetailProject}’` : `현재 검색·필터 결과 ${filteredRows.length}건`} 기준으로 다시 계산했어요. 선택 범위 전체 예산은 ${formatReadableWon(filteredTotals.currentBudget)}입니다.` : "내 예산에서 사용 결정액과 앞으로의 계획을 빼고, 실제로 얼마나 남는지 먼저 보여드려요."}</p></div>{hasActiveScope && <button className="button ghost compact" onClick={() => { setSelectedDetailProject(""); setFilter("all"); setCostFilter(BUSINESS_COST_FILTER_ALL); setSearch(""); setShown(30); }}>선택·검색 초기화</button>}</div>
       <div className="business-hero-metrics">
         <article className={`business-hero-balance ${forecastTotal < 0 ? "negative" : ""}`}>
           <div className="business-hero-balance-label"><span className="business-summary-icon"><CircleDollarSign size={20} /></span><span><small>계획 반영 후 남는 금액</small><b>예상 잔액</b></span></div>
@@ -1557,7 +1580,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
     </section>
 
     <section ref={businessVisualRef} className="business-visual-section" aria-labelledby="business-visual-title">
-      <div className="business-visual-head"><div className="section-heading"><span className="section-kicker">잔액 분석</span><h2 id="business-visual-title">예상 잔액 상위 사업</h2><p>집행계획까지 반영한 예상 잔액 기준입니다.</p><span className="business-top-badge">세부사업 기준 · Top {Math.min(chartProjects.length, 10)}</span></div></div>
+      <div className="business-visual-head"><div className="section-heading"><span className="section-kicker">잔액 분석</span><h2 id="business-visual-title">예상 잔액 상위 사업</h2><p>집행계획까지 반영한 예상 잔액 기준입니다.</p><span className="business-top-badge">{costFilter !== BUSINESS_COST_FILTER_ALL ? `${selectedCostLabel} · ` : ""}세부사업 기준 · Top {Math.min(chartProjects.length, 10)}</span></div></div>
       <div className="business-visual-content">
         {chartProjects.length > 0 ? <div className="business-chart" role="list">{chartProjects.map((project, index) => {
           const barPct = Math.max(3, (project.forecast / chartMaxForecast) * 100);
@@ -1579,8 +1602,9 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
 
     <section className="business-detail-section" id="business-detail-start"><div className="split-heading business-list-head"><div className="section-heading"><span className="section-kicker">예산 상세</span><h2>보고 싶은 단위로 묶어보세요</h2><p>{viewMode === "project" ? "여러 세부항목을 세부사업 단위로 크게 묶어 봅니다." : viewMode === "item" ? "같은 세부항목의 산출내역을 합쳐 봅니다." : "실제 산출내역을 한 줄씩 그대로 확인합니다."}</p></div><div className="business-list-head-actions">{selectedDetailProject && <button className="business-back-to-top-button" onClick={returnToProjectNavigator}><ArrowUp size={15} />다른 사업 선택</button>}<button className="button secondary compact" onClick={goPlan}><ListChecks size={16} />집행 계획 모아보기</button></div></div>
       {selectedDetailProject && <div className="business-active-project-scope" aria-label="선택한 세부사업 필터"><span>선택한 사업</span><strong>{selectedDetailProject}</strong><button onClick={clearDetailProjectScope} aria-label={`${selectedDetailProject} 선택 해제`}><X size={14} />전체 보기</button></div>}
+      {costFilter !== BUSINESS_COST_FILTER_ALL && <div className="business-active-project-scope business-active-cost-scope" aria-label="선택한 비목 필터"><span>선택 비목</span><strong>{selectedCostLabel}</strong><button onClick={() => { setCostFilter(BUSINESS_COST_FILTER_ALL); setShown(30); }} aria-label={`${selectedCostLabel} 비목 필터 해제`}><X size={14} />비목 해제</button></div>}
       <div className="business-view-row"><div className="business-view-toggle" role="group" aria-label="예산 상세 묶어 보기 기준"><button className={viewMode === "project" ? "active" : ""} onClick={() => changeViewMode("project")}>세부사업으로 묶기</button><button className={viewMode === "item" ? "active" : ""} onClick={() => changeViewMode("item")}>세부항목으로 묶기</button><button className={viewMode === "detail" ? "active" : ""} onClick={() => changeViewMode("detail")}>산출내역 그대로</button></div><span className="business-view-count">{viewMode === "project" ? `세부사업 ${filteredProjects.length}개 · 산출내역 ${filteredRows.length}건` : viewMode === "item" ? `세부항목 ${filteredItems.length}개 · 산출내역 ${filteredRows.length}건` : `산출내역 ${filteredRows.length}건`}</span></div>
-      <div className="business-controls"><div className="filter-tabs" role="group" aria-label="예산 상세 필터">{(["all", "available", "complete"] as BusinessFilter[]).map((value) => <button key={value} className={filter === value ? "active" : ""} onClick={() => { setFilter(value); setShown(30); }}>{value === "all" ? "전체" : value === "available" ? "잔액 있음" : "집행 완료"}</button>)}</div><div className="business-control-tools"><label className="business-sort"><span>정렬</span><select value={sort} onChange={(event) => { setSort(event.target.value as BusinessSort); setShown(30); }}><option value="name-asc">이름 가나다순</option><option value="name-desc">이름 역순</option><option value="project-asc">세부사업 가나다순</option><option value="project-desc">세부사업 역순</option><option value="item-asc">세부항목 가나다순</option><option value="item-desc">세부항목 역순</option><option value="amount-desc">사용 가능액 많은 순</option><option value="amount-asc">사용 가능액 적은 순</option></select></label><label className="business-search"><span className="sr-only">예산 상세 검색</span><input value={search} onChange={(event) => { setSearch(event.target.value); setShown(30); }} placeholder={viewMode === "project" ? "세부사업·세부항목 검색" : viewMode === "item" ? "사업·세부항목 검색" : "사업·산출내역 검색"} /></label></div></div>
+      <div className="business-controls"><div className="filter-tabs" role="group" aria-label="예산 상세 필터">{(["all", "available", "complete"] as BusinessFilter[]).map((value) => <button key={value} className={filter === value ? "active" : ""} onClick={() => { setFilter(value); setShown(30); }}>{value === "all" ? "전체" : value === "available" ? "잔액 있음" : "집행 완료"}</button>)}</div><div className="business-control-tools"><label className="business-sort business-cost-filter"><span>비목</span><select value={costFilter} onChange={(event) => { setCostFilter(event.target.value); setSelectedChartProject(""); setShown(30); }}><option value={BUSINESS_COST_FILTER_ALL}>전체 비목</option>{preferredGeneralCostNames.map((name) => <option key={`preferred-${name}`} value={name}>{name}</option>)}{hasPromotionCosts && <option value={BUSINESS_COST_FILTER_PROMOTION}>업무추진비 전체</option>}{otherCostNames.length > 0 && <optgroup label="전체 비목">{otherCostNames.map((name) => <option key={name} value={name}>{name}</option>)}</optgroup>}</select></label><label className="business-sort"><span>정렬</span><select value={sort} onChange={(event) => { setSort(event.target.value as BusinessSort); setShown(30); }}><option value="name-asc">이름 가나다순</option><option value="name-desc">이름 역순</option><option value="project-asc">세부사업 가나다순</option><option value="project-desc">세부사업 역순</option><option value="item-asc">세부항목 가나다순</option><option value="item-desc">세부항목 역순</option><option value="amount-desc">사용 가능액 많은 순</option><option value="amount-asc">사용 가능액 적은 순</option></select></label><label className="business-search"><span className="sr-only">예산 상세 검색</span><input value={search} onChange={(event) => { setSearch(event.target.value); setShown(30); }} placeholder={viewMode === "project" ? "세부사업·세부항목 검색" : viewMode === "item" ? "사업·세부항목 검색" : "사업·산출내역 검색"} /></label></div></div>
       {viewMode === "project" ? <div className="business-project-list">{filteredProjects.map((project) => {
         const expanded = expandedProjects.has(project.id);
         const planned = project.rows.reduce((total, row) => total + (plans[businessPlanKey(meta, row)] ?? 0), 0);
@@ -2195,7 +2219,7 @@ function HelpModal({ close }: { close: () => void }) {
   return <div className="modal-backdrop" onMouseDown={close}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onMouseDown={(event) => event.stopPropagation()}><button className="icon-button modal-close" aria-label="도움말 닫기" onClick={close}><X size={20} /></button><span className="eyebrow">도움말</span><h2 id="help-title">예산현황판 사용 방법</h2><div className="help-steps">
     <div><b>1</b><span><strong>사업관리카드 내려받기</strong><small>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드에서 (현액) 또는 (예산) 파일을 내려받습니다.</small></span></div>
     <div><b>2</b><span><strong>잔액 분석</strong><small>내 예산·원인행위액·앞으로 사용할 예정액·예상 잔액을 먼저 보여줍니다. ‘예상 잔액 상위 사업’ Top10은 전체 사업 기준으로 유지되어 다른 사업을 계속 탐색할 수 있습니다.</small></span></div>
-    <div><b>3</b><span><strong>보고 싶은 단위로 묶어보기</strong><small>예산 상세에서 ‘세부사업으로 묶기’, ‘세부항목으로 묶기’, ‘산출내역 그대로’ 순으로 원하는 보기를 선택할 수 있습니다. Top10에서 ‘이 사업 상세 보기’를 누르면 선택한 사업만 모아보고, ‘다른 사업 선택’ 또는 ‘전체 보기’로 다시 범위를 바꿀 수 있습니다.</small></span></div>
+    <div><b>3</b><span><strong>비목과 보고 싶은 단위로 좁혀보기</strong><small>비목 필터에서 일반수용비나 업무추진비 전체처럼 필요한 비목만 골라 볼 수 있습니다. 이어서 ‘세부사업으로 묶기’, ‘세부항목으로 묶기’, ‘산출내역 그대로’ 중 원하는 보기를 선택하세요.</small></span></div>
     <div><b>4</b><span><strong>앞으로 쓸 금액 입력</strong><small>산출내역별 집행예정액을 입력하면 예상 잔액이 바로 계산됩니다. 입력값은 현재 브라우저에만 저장됩니다.</small></span></div>
     <div><b>5</b><span><strong>102-2 내려받아 학교 전체 분석</strong><small>에듀파인 &gt; 학교회계 &gt; 예산결산 &gt; 결산현황 &gt; 집행실적에서 <b>엑셀저장(실시간)</b>을 누르고, 자료코드 <b>102-2</b>를 선택해 내려받습니다.</small></span></div>
     <div><b>6</b><span><strong>학교 전체 예산 흐름</strong><small><b>사용하기로 한 금액</b>은 원인행위액, <b>실제 지급한 금액</b>은 지출액입니다. <b>지급 대기</b>는 원인행위액에서 지출액을 뺀 금액이며, <b>아직 원인행위되지 않은 금액</b>은 예산현액에서 원인행위액을 뺀 금액입니다.</small></span></div>

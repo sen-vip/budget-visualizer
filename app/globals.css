@@ -2634,3 +2634,31 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
   .policy-detail-panel dl > div:nth-child(4) { border-top: 1px solid #e7eaf0; }
   .policy-detail-panel > .button { width: 100%; justify-self: stretch; }
 }
+
+
+/* v0.6.38 · 원가통계비목 분석 필터 */
+.business-cost-filter select {
+  min-width: 156px;
+  max-width: 220px;
+}
+.business-active-cost-scope {
+  margin-top: -5px;
+  color: #3e4b5f;
+  background: #fafbfc;
+  border-color: #e2e6ec;
+}
+.business-active-cost-scope > span { color: #737e8d; }
+.business-active-cost-scope > button {
+  color: var(--blue-dark);
+  border-color: #dce3ec;
+}
+.business-control-tools .business-cost-filter:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(49,89,216,.08);
+}
+@media (max-width: 720px) {
+  .business-cost-filter select {
+    min-width: 0;
+    max-width: none;
+  }
+}
