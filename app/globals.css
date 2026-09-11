@@ -3409,3 +3409,408 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
     min-height: 38px;
   }
 }
+
+/* v0.6.41 · 업무추진비 — 관내여비 콕검형 밀도/표면 통일 */
+.promotion-page {
+  padding-top: 20px;
+}
+
+.promotion-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  background: #e7eaf0;
+  border: 1px solid #e7eaf0;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(32,43,69,.035);
+}
+.promotion-summary-metric {
+  min-width: 0;
+  min-height: 92px;
+  padding: 16px 19px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: #fff;
+}
+.promotion-summary-metric > span {
+  color: #7b8698;
+  font-size: 11px;
+  font-weight: 700;
+}
+.promotion-summary-metric > strong {
+  margin-top: 4px;
+  color: #172033;
+  font-size: clamp(21px, 1.8vw, 26px);
+  line-height: 1.2;
+  letter-spacing: -.035em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.promotion-summary-metric > small {
+  margin-top: 5px;
+  overflow: hidden;
+  color: #8791a4;
+  font-size: 10.5px;
+  line-height: 1.4;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.promotion-summary-metric.primary {
+  background: #f7f9ff;
+}
+.promotion-summary-metric.primary > span,
+.promotion-summary-metric.primary > strong {
+  color: var(--blue);
+}
+.promotion-summary-metric.planned > small {
+  color: var(--teal);
+  font-weight: 650;
+}
+.promotion-summary-metric.negative {
+  background: #fff8f8;
+}
+.promotion-summary-metric.negative > span,
+.promotion-summary-metric.negative > strong,
+.promotion-summary-metric.negative > small {
+  color: var(--red);
+}
+
+/* 평소에는 전폭. 계획 입력 패널이 실제로 있을 때만 2열. */
+.promotion-layout {
+  margin-top: 16px;
+  display: block;
+}
+.promotion-layout.has-panel {
+  display: grid;
+  grid-template-columns: minmax(660px, 1.55fr) minmax(300px, .55fr);
+  gap: 18px;
+  align-items: start;
+}
+
+/* 표/그래프/안내를 따로 붙인 카드가 아니라 한 개의 작업 surface로 묶는다. */
+.promotion-list-section {
+  padding: 21px 22px 22px;
+  background: #fff;
+  border: 1px solid #e7eaf0;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(32,43,69,.025);
+}
+.promotion-list-section > .section-heading {
+  margin-bottom: 14px;
+}
+.promotion-list-section > .section-heading h2 {
+  margin-top: 2px;
+  font-size: 20px;
+  letter-spacing: -.025em;
+}
+.promotion-list-section > .section-heading p {
+  margin-top: 5px;
+  color: #7a8597;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.promotion-controls {
+  gap: 5px;
+}
+.promotion-controls .sort-chip {
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: 11px;
+}
+.chart-toggle {
+  color: #667085;
+  background: transparent;
+  border-color: transparent;
+}
+.chart-toggle:hover,
+.chart-toggle.active {
+  color: var(--blue);
+  background: var(--blue-soft);
+  border-color: transparent;
+}
+.filter-chip {
+  color: #667085;
+  background: transparent;
+  border-color: transparent;
+}
+.filter-chip:hover,
+.filter-chip.active {
+  color: var(--red);
+  background: var(--red-soft);
+  border-color: transparent;
+}
+
+.promotion-chart-panel {
+  margin: 0 0 12px;
+  padding: 15px 2px 14px;
+  background: transparent;
+  border: 0;
+  border-top: 1px solid #edf0f4;
+  border-bottom: 1px solid #edf0f4;
+  border-radius: 0;
+}
+.promotion-chart-heading {
+  margin-bottom: 10px;
+  align-items: center;
+}
+.promotion-chart-heading h3 {
+  margin-top: 2px;
+  font-size: 15px;
+}
+.promotion-chart-heading p {
+  color: #8791a4;
+  font-size: 10.5px;
+}
+.diverging-scroll {
+  max-height: 330px;
+}
+.diverging-row {
+  min-height: 42px;
+  padding-block: 3px;
+}
+.diverging-track {
+  height: 14px;
+}
+.diverging-track i {
+  height: 8px;
+  top: 3px;
+}
+.diverging-track .zero-line {
+  height: 18px;
+  top: -2px;
+}
+
+.promotion-basis-note.compact {
+  min-height: 0;
+  margin: 0 2px 11px;
+  padding: 0;
+  align-items: center;
+  gap: 6px;
+  color: #7b8698;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+.promotion-basis-note.compact svg {
+  margin: 0;
+  color: #8791a4;
+}
+.promotion-basis-note.compact strong {
+  color: #667085;
+  font-weight: 700;
+}
+
+.promotion-table-wrap {
+  max-height: 650px;
+  border-color: #e7eaf0;
+  border-radius: 14px;
+}
+.promotion-table th {
+  height: 40px;
+  padding-inline: 12px;
+  color: #8791a4;
+  background: #fafbfc;
+  font-size: 11px;
+}
+.promotion-table td {
+  min-height: 0;
+  padding: 11px 12px;
+  font-size: 12px;
+}
+.promotion-table .row-title strong {
+  font-size: 13px;
+}
+.promotion-table .row-title small {
+  font-size: 10.5px;
+}
+.promotion-table .status-badge {
+  padding: 4px 7px;
+  font-size: 10px;
+}
+.promotion-table .plan-action {
+  min-height: 30px;
+  padding-inline: 9px;
+  border-color: transparent;
+  color: var(--blue);
+  background: var(--blue-soft);
+  font-size: 10.5px;
+}
+.promotion-table .plan-action:hover,
+.promotion-table .plan-action.has-plan {
+  color: var(--blue-dark);
+  background: #e5ebff;
+  border-color: transparent;
+}
+
+/* 펼침 산출내역은 카드 높이를 낮추고 한 흐름으로 읽히게 한다. */
+.promotion-detail-row > td {
+  background: #fafbfc;
+}
+.calculation-detail {
+  padding: 12px 14px 14px;
+}
+.calculation-detail-head {
+  margin-bottom: 9px;
+}
+.calculation-detail-head strong {
+  font-size: 13px;
+}
+.calculation-detail-head span {
+  font-size: 10.5px;
+}
+.promotion-detail-grid {
+  gap: 7px;
+}
+.promotion-detail-card {
+  min-height: 0;
+  padding: 10px 12px;
+  grid-template-columns: minmax(190px,1.3fr) minmax(190px,1fr) minmax(155px,.78fr) auto;
+  gap: 11px;
+  border-color: #e7eaf0;
+  border-radius: 10px;
+  box-shadow: none;
+}
+.promotion-detail-card-head strong {
+  font-size: 12.5px;
+}
+.promotion-detail-card-head > div > span,
+.promotion-detail-metrics,
+.promotion-detail-balance > span,
+.promotion-detail-plan {
+  font-size: 10.5px;
+}
+.promotion-detail-metrics {
+  gap: 2px;
+}
+.promotion-detail-balance {
+  gap: 2px;
+  text-align: right;
+}
+.promotion-detail-balance > span {
+  justify-content: flex-end;
+}
+.promotion-detail-balance > strong {
+  font-size: 14px;
+  text-align: right;
+}
+.promotion-detail-plan {
+  gap: 3px;
+  text-align: right;
+}
+.promotion-detail-plan b,
+.promotion-detail-plan strong {
+  font-size: 12px;
+}
+.detail-plan-action {
+  min-height: 30px;
+  padding-inline: 9px;
+  border-color: transparent;
+  color: var(--blue);
+  background: var(--blue-soft);
+  font-size: 10.5px;
+}
+
+.plan-panel {
+  padding: 20px;
+  border-color: #e7eaf0;
+  border-radius: 18px;
+  box-shadow: 0 10px 28px rgba(32,43,69,.045);
+}
+.plan-panel-head h2 {
+  font-size: 18px;
+}
+.selected-balance {
+  margin: 15px 0;
+  padding: 12px 13px;
+  border-radius: 12px;
+}
+.selected-balance strong {
+  font-size: 17px;
+  text-align: right;
+}
+
+/* 경고도 큰 별도 카드가 아니라 한 줄 콕검 callout으로. */
+.overrun-alert {
+  min-height: 56px;
+  margin-top: 11px;
+  padding: 9px 12px;
+  grid-template-columns: 30px 1fr auto auto;
+  gap: 9px;
+  border-radius: 12px;
+}
+.overrun-alert-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+}
+.overrun-alert strong {
+  font-size: 12.5px;
+}
+.overrun-alert small,
+.overrun-alert b {
+  font-size: 10.5px;
+}
+.promotion-recheck-alert {
+  margin-top: 10px;
+  margin-bottom: 0;
+  padding: 10px 12px;
+  font-size: 11.5px;
+}
+
+@media (max-width: 980px) {
+  .promotion-layout.has-panel {
+    grid-template-columns: 1fr;
+  }
+  .promotion-summary-strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .promotion-page { padding-top: 14px; }
+  .promotion-summary-strip {
+    grid-template-columns: 1fr;
+    gap: 1px;
+    border-radius: 15px;
+  }
+  .promotion-summary-metric {
+    min-height: 72px;
+    padding: 12px 14px;
+  }
+  .promotion-summary-metric > strong { font-size: 20px; }
+  .promotion-list-section {
+    padding: 17px 13px 15px;
+    border-radius: 16px;
+  }
+  .promotion-list-section > .section-heading {
+    gap: 10px;
+  }
+  .promotion-controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .promotion-chart-panel { padding-inline: 0; }
+  .promotion-chart-heading {
+    align-items: flex-start;
+  }
+  .promotion-detail-card {
+    padding: 11px;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .promotion-detail-balance,
+  .promotion-detail-plan {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    text-align: right;
+  }
+  .promotion-detail-balance > span { justify-content: flex-start; }
+}
