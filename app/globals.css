@@ -4540,3 +4540,51 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
   .school-reading-balance strong,
   .business-chart-value strong { font-size: 17px; }
 }
+
+
+/* v0.6.49 · 잔액분석 Top10 읽는 순서 복귀 (제목 → 그래프 → 잔액) */
+@media (min-width: 721px) {
+  .business-chart-row {
+    grid-template-columns: 28px minmax(190px, .82fr) minmax(300px, 1.35fr) minmax(150px, .52fr);
+    gap: 14px;
+  }
+  .business-chart-rank { grid-column: 1; grid-row: 1; }
+  .business-chart-name {
+    grid-column: 2;
+    grid-row: 1;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  .business-chart-visual {
+    grid-column: 3;
+    grid-row: 1;
+    min-width: 0;
+    width: 100%;
+    max-width: 560px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .business-chart-track { max-width: 560px; }
+  .business-chart-meta {
+    justify-content: flex-start;
+    gap: 4px 12px;
+  }
+  .business-chart-value {
+    grid-column: 4;
+    grid-row: 1;
+    justify-self: end;
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    gap: 2px;
+  }
+  .business-chart-value small {
+    display: inline;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .business-chart-value strong { font-size: 20px; }
+}
