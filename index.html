@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#eef1ff" />
+  <meta name="application-name" content="머리날씨" />
+  <meta name="apple-mobile-web-app-title" content="머리날씨" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>머리날씨</title>
+  <!-- Safari 탭 · 북마크 · 즐겨찾기 · 제안 · 홈 화면 아이콘 -->
+  <!-- Vercel 루트에서 Safari가 직접 찾도록 사이트 루트 상대경로 사용 -->
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="shortcut icon" href="/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/icon-16.png" />
+  <link rel="icon" type="image/svg+xml" sizes="any" href="/favicon.svg" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">편두통 기록 · v0.7</p>
+        <h1>머리날씨 <span aria-hidden="true">🌤️</span></h1>
+      </div>
+      <div class="top-actions">
+        <button class="account-btn" id="accountBtn" aria-label="로그인 및 동기화" aria-busy="true" disabled><span>☁️</span><b id="accountBtnLabel">연결 확인 중…</b></button>
+        <button class="icon-btn" id="helpBtn" aria-label="도움말">?</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="view active" id="todayView" aria-labelledby="todayTitle">
+        <div class="hero-card">
+          <div class="record-date-row">
+            <div>
+              <p class="record-context" id="recordContext">오늘 기록</p>
+              <p class="today-date" id="todayDate"></p>
+            </div>
+            <div class="record-date-actions">
+              <button class="secondary tiny" id="recordYesterday">어제 기록하기</button>
+              <button class="secondary tiny" id="backToToday" hidden>오늘로 돌아가기</button>
+            </div>
+          </div>
+          <h2 id="todayTitle">오늘 머리 날씨는 어때요?</h2>
+          <p class="subcopy" id="todaySubcopy">길게 쓰지 않아도 괜찮아요. 오늘 상태만 남겨두세요.</p>
+
+          <div class="weather-grid" id="weatherGrid">
+            <button class="weather-btn" data-weather="sunny"><span>☀️</span><b>맑음</b><small>괜찮아요</small></button>
+            <button class="weather-btn" data-weather="partly"><span>🌤️</span><b>조금 흐림</b><small>살짝 불편해요</small></button>
+            <button class="weather-btn" data-weather="cloudy"><span>☁️</span><b>흐림</b><small>편두통이 느껴져요</small></button>
+            <button class="weather-btn" data-weather="rain"><span>🌧️</span><b>비</b><small>많이 아파요</small></button>
+            <button class="weather-btn" data-weather="storm"><span>⛈️</span><b>폭풍</b><small>아주 힘들어요</small></button>
+          </div>
+          <p class="save-status" id="saveStatus" aria-live="polite"></p>
+        </div>
+
+        <section class="card">
+          <button class="section-toggle" id="detailToggle" aria-expanded="false">
+            <span>조금 더 기록할래요?</span><span id="detailChevron">⌄</span>
+          </button>
+          <div class="details-panel" id="detailsPanel" hidden>
+            <div class="field-group">
+              <p class="field-label">언제부터 불편했나요?</p>
+              <div class="chip-row" data-group="time">
+                <button class="chip" data-value="아침">아침</button><button class="chip" data-value="오후">오후</button><button class="chip" data-value="저녁">저녁</button><button class="chip" data-value="밤">밤</button>
+              </div>
+            </div>
+            <div class="field-group">
+              <p class="field-label">어디가 아파요?</p>
+              <div class="chip-row" data-group="side">
+                <button class="chip" data-value="왼쪽">왼쪽</button><button class="chip" data-value="오른쪽">오른쪽</button><button class="chip" data-value="양쪽">양쪽</button><button class="chip" data-value="기타">기타</button>
+              </div>
+            </div>
+            <div class="field-group">
+              <p class="field-label">함께 있었던 것</p>
+              <div class="chip-row multi" data-group="symptoms">
+                <button class="chip" data-value="빛이 불편함">빛</button><button class="chip" data-value="소리가 불편함">소리</button><button class="chip" data-value="메스꺼움">메스꺼움</button><button class="chip" data-value="목·어깨 뻐근함">목·어깨</button>
+              </div>
+            </div>
+            <div class="field-group">
+              <p class="field-label">특이사항</p>
+              <div class="chip-row multi" data-group="triggers">
+                <button class="chip" data-value="잠 부족">잠 부족</button><button class="chip" data-value="스트레스">스트레스</button><button class="chip" data-value="오래 화면 봄">화면 오래 봄</button><button class="chip" data-value="날씨 변화">날씨 변화</button>
+              </div>
+            </div>
+            <label class="field-group">
+              <span class="field-label">메모</span>
+              <textarea id="memoInput" rows="3" placeholder="필요한 것만 짧게 적어도 돼요."></textarea>
+            </label>
+          </div>
+          <div class="record-save-area">
+            <button class="primary record-save-btn" id="saveRecordBtn" disabled>오늘 기록 저장</button>
+            <p class="record-save-note" id="recordSaveNote" aria-live="polite">선택한 내용은 저장 버튼을 눌러야 기록돼요.</p>
+          </div>
+        </section>
+        <section class="card medication-today medication-hub" id="medTodayCard">
+          <div class="medication-hub-head">
+            <p class="eyebrow" id="medTodayEyebrow">오늘의 약</p>
+            <h3>복약 기록</h3>
+            <p class="muted compact">매일 먹는 약과 머리 아플 때 먹는 약을 따로 기록해요.</p>
+          </div>
+          <div id="medTodayContent"></div>
+        </section>
+
+        <section class="card summary-card">
+          <div class="section-row summary-head">
+            <div>
+              <p class="eyebrow">최근 기록</p>
+              <h3>최근 30일 머리날씨</h3>
+            </div>
+            <button class="secondary small" id="openReportFromToday">병원에서 보기</button>
+          </div>
+          <div id="thirtyDaySummary" class="stat-grid"></div>
+          <div id="topSymptoms" class="summary-note"></div>
+        </section>
+      </section>
+
+      <section class="view" id="calendarView" aria-labelledby="calendarTitle">
+        <div class="section-heading">
+          <div><p class="eyebrow">한눈에 보기</p><h2 id="calendarTitle">머리날씨 달력</h2></div>
+        </div>
+        <section class="card calendar-card">
+          <div class="calendar-nav">
+            <button class="icon-btn" id="prevMonth" aria-label="이전 달">‹</button>
+            <div class="calendar-nav-center">
+              <strong id="monthLabel"></strong>
+              <button class="secondary tiny" id="currentMonth" type="button" hidden>이번 달</button>
+            </div>
+            <button class="icon-btn" id="nextMonth" aria-label="다음 달">›</button>
+          </div>
+          <div class="weekdays"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+          <p class="calendar-hint">날짜를 누르면 지난 머리날씨를 기록하거나 수정할 수 있어요.</p>
+        </section>
+        <section class="card" id="monthSummary"></section>
+      </section>
+
+      <section class="view" id="medView" aria-labelledby="medTitle">
+        <div class="section-heading section-row">
+          <div><p class="eyebrow">병원 · 처방 기록</p><h2 id="medTitle">병원 기록</h2></div>
+          <button class="secondary small" id="openReportFromMed">병원에서 보기</button>
+        </div>
+
+        <section class="card" id="activeMedicationCard">
+          <div class="section-row active-medication-heading"><div><p class="eyebrow">현재 처방</p><h3>복용 중인 약</h3></div></div>
+          <div class="empty-state">아직 복용 중인 처방이 없어요.<br/>아래에서 새 진료 기록을 추가해보세요.</div>
+        </section>
+
+        <section class="card medication-form-card" id="medFormCard">
+          <button class="med-form-toggle" id="toggleMedicationForm" type="button" aria-expanded="false" aria-controls="medFormBody">
+            <span><small>진료 · 처방</small><strong id="medFormTitle">새 진료 기록 추가</strong></span>
+            <span class="med-form-toggle-icon" aria-hidden="true">＋</span>
+          </button>
+          <p class="form-status med-form-card-status" id="medFormStatus" aria-live="polite"></p>
+          <div id="medFormBody" hidden>
+            <p class="muted compact med-form-intro">한 번의 진료에서 받은 약을 여러 개 함께 등록할 수 있어요.</p>
+            <div class="form-grid visit-form-grid">
+              <label><span>진료일</span><input type="date" id="visitDate" /><small class="field-error" id="visitDateError"></small></label>
+              <label><span>병원명</span><input type="text" id="hospitalName" placeholder="예: ○○신경과" /></label>
+              <label><span>다음 진료일</span><input type="date" id="nextVisitDate" /></label>
+              <label class="wide"><span>진료 메모</span><input type="text" id="prescriptionMemo" placeholder="예: 예방약 변경, 용량 조정" /></label>
+            </div>
+
+            <div class="prescription-builder-head">
+              <div><p class="eyebrow">처방약</p><h4>약 종류를 나눠서 기록해요</h4></div>
+              <button class="secondary small" id="addMedicationRow" type="button">약 추가 +</button>
+            </div>
+            <label class="no-prescription-option">
+              <input type="checkbox" id="noPrescription" />
+              <span><strong>처방약 없음</strong><small>진료 내용만 기록할게요.</small></span>
+            </label>
+            <p class="field-error" id="prescriptionChoiceError" aria-live="polite"></p>
+            <div id="medicationFormList" class="med-form-list"></div>
+
+            <div class="form-actions med-form-actions">
+              <button class="primary" id="startMedication">진료 기록 저장</button>
+              <button class="secondary" id="cancelMedicationEdit" hidden>수정 취소</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="section-row"><h3>지난 진료 기록</h3><span class="muted" id="visitCount"></span></div>
+          <div id="visitHistory" class="history-list"></div>
+        </section>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="주요 메뉴">
+      <button class="nav-btn active" data-view="todayView"><span>🌤️</span><b id="recordNavLabel">오늘</b></button>
+      <button class="nav-btn" data-view="calendarView"><span>📅</span><b>달력</b></button>
+      <button class="nav-btn" data-view="medView"><span>🏥</span><b>병원 기록</b></button>
+    </nav>
+  </div>
+
+  <dialog id="authDialog" class="auth-dialog">
+    <div class="dialog-inner">
+      <div class="section-row auth-top">
+        <div><p class="eyebrow">선택 로그인</p><h3>기록 연동</h3></div>
+        <button class="icon-btn" id="closeAuth" aria-label="닫기">×</button>
+      </div>
+
+      <div id="authSignedOut">
+        <p class="muted">이메일만 입력하면 로그인 링크를 보내드려요. 로그인하지 않아도 지금처럼 이 기기에서 계속 사용할 수 있어요.</p>
+        <label class="auth-email"><span>이메일</span><input type="email" id="authEmail" autocomplete="email" placeholder="name@example.com" /></label>
+        <button class="primary auth-primary" id="sendLoginLink">로그인 링크 받기</button>
+        <p class="auth-status" id="authStatus" aria-live="polite"></p>
+        <div class="privacy-note"><strong>☁️ 로그인하면</strong><br/>머리날씨·병원·복용 기록을 다른 기기에서도 불러올 수 있어요. 이 기기와 계정에 기록이 모두 있으면 합칠지 선택하며, 합칠 때 같은 날짜·같은 기록은 이 기기의 내용이 우선돼요.</div>
+      </div>
+
+      <div id="authLinkSent" class="auth-result" hidden>
+        <div class="auth-result-icon" aria-hidden="true">✉️</div>
+        <p class="eyebrow">로그인 링크 전송 완료</p>
+        <h3>메일함을 확인해 주세요</h3>
+        <p class="auth-result-copy"><strong id="sentEmail"></strong>으로 로그인 링크를 보냈어요.<br/>메일에서 링크를 누르면 머리날씨로 돌아와 기록이 연동돼요.</p>
+        <div class="auth-result-note">메일이 안 보이면 스팸함을 확인해 주세요. iPhone에서는 로그인 링크가 홈 화면 앱이 아닌 Safari로 열릴 수 있어요.</div>
+        <button class="secondary auth-primary" id="changeLoginEmail">다른 이메일로 보내기</button>
+      </div>
+
+      <div id="authSuccess" class="auth-result auth-success" hidden>
+        <div class="auth-result-icon success" aria-hidden="true">☁️✓</div>
+        <p class="eyebrow">기록 연동 완료</p>
+        <h3>로그인됐어요!</h3>
+        <p class="auth-result-copy"><strong id="successEmail"></strong> 계정으로 연결됐어요.<br/>이제 같은 이메일로 로그인하면 다른 기기에서도 기록을 불러올 수 있어요.</p>
+        <div class="auth-result-note success-note" id="successSyncText">기록 동기화도 확인했어요 ✓</div>
+        <button class="primary auth-primary" id="finishLogin">머리날씨 시작하기</button>
+      </div>
+
+      <div id="authSignedIn" hidden>
+        <div class="account-card">
+          <span class="account-cloud">☁️</span>
+          <div><strong id="signedInEmail"></strong><p id="syncStatus">동기화 상태 확인 중…</p></div>
+        </div>
+        <button class="primary auth-primary" id="syncNowBtn">지금 동기화</button>
+        <button class="secondary auth-primary" id="signOutBtn">로그아웃</button>
+        <p class="microcopy">로그아웃해도 이 기기의 기록은 남아 있어요. 공용 기기라면 브라우저 데이터를 별도로 삭제해 주세요.</p>
+      </div>
+
+      <div id="authPwaNotice" class="auth-result" hidden>
+        <div class="auth-result-icon" aria-hidden="true">📱</div>
+        <p class="eyebrow">홈 화면 사용 중</p>
+        <h3>기록은 이 기기에 저장돼요</h3>
+        <p class="auth-result-copy">iPhone 홈 화면에서 연 머리날씨는 Safari와 로그인 저장공간이 달라질 수 있어요.<br/>홈 화면에서는 빠른 기록용으로 사용하고, <strong>계정 연동은 Safari에서</strong> 이용하는 것을 권장해요.</p>
+        <a class="primary auth-primary auth-link-button" id="openSafariLink" href="/" target="_blank" rel="noopener">Safari에서 머리날씨 열기</a>
+        <button class="secondary auth-primary" id="copySafariUrl" type="button">주소 복사하기</button>
+        <p class="auth-status pwa-safari-status" id="pwaSafariStatus" aria-live="polite"></p>
+        <div class="auth-result-note">홈 화면에서 남긴 기록은 이 홈 화면 앱의 기기 저장소에 계속 남아요.</div>
+      </div>
+
+      <div id="authNotConfigured" hidden>
+        <div class="privacy-note"><strong>로그인 연결 설정이 필요해요.</strong><br/>README의 Supabase 설정 안내에 따라 프로젝트 URL과 Publishable Key를 입력하면 활성화돼요.</div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="reportDialog" class="report-dialog">
+    <div class="dialog-inner report-inner">
+      <div class="section-row report-top">
+        <div><p class="eyebrow">진료실에서 한눈에</p><h3>최근 30일 편두통 기록</h3></div>
+        <button class="icon-btn" id="closeReport" aria-label="닫기">×</button>
+      </div>
+      <p class="report-period" id="reportPeriod"></p>
+      <div id="reportContent"></div>
+      <p class="report-disclaimer">개인 기록을 요약한 화면이며 진단이나 치료 판단을 대신하지 않습니다.</p>
+    </div>
+  </dialog>
+
+  <dialog id="helpDialog">
+    <div class="dialog-inner">
+      <div class="section-row"><h3>머리날씨 도움말</h3><button class="icon-btn" id="closeHelp">×</button></div>
+      <p>날씨·상세 증상·메모는 <strong>머리날씨 기록 저장</strong>을 눌러야 기록돼요. 복약 여부와 복용 후 불편함도 각 약 카드의 <strong>복약 기록 저장</strong>으로 완료해 주세요.</p>
+      <p><strong>v0.7</strong><br/>병원 기록 화면과 달력 탐색을 정돈하고, 진료 기록 입력과 복약 요약을 더 쉽게 확인할 수 있게 개선했어요.</p>
+      <p><strong>홈 화면 사용 팁</strong><br/>홈 화면의 머리날씨는 빠른 기록용으로 사용하고, 이메일 로그인·계정 동기화는 Safari에서 이용하는 것을 권장해요. 홈 화면 기록은 해당 홈 화면 앱의 기기 저장소에 남아요.</p>
+      <p><strong>개인정보 안내</strong><br/>로그인하지 않으면 기록은 이 브라우저에만 저장돼요. 로그인하면 기록이 설정된 Supabase 계정 저장소에도 동기화돼요.</p>
+      <p class="muted">이 앱은 개인 기록용이며 진단이나 치료를 대신하지 않습니다.</p>
+    </div>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
