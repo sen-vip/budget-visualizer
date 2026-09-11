@@ -211,6 +211,8 @@ type BusinessCardMeta = {
   year: string;
   rowCount: number;
   hasManager: boolean;
+  sourceLabel: string;
+  hasPaymentDetail: boolean;
 };
 
 type BusinessItemGroup = {
@@ -253,7 +255,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.33";
+const APP_VERSION = "v0.6.34";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -399,53 +401,20 @@ function readBusinessPlans() {
 async function parseBusinessCard(file: File): Promise<{ rows: BusinessCardRow[]; meta: BusinessCardMeta }> {
   const XLSX = await import("xlsx");
   const workbook = XLSX.read(await file.arrayBuffer(), { type: "array", cellDates: false });
-  const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+  const firstSheetName = workbook.SheetNames[0];
+  const firstSheet = workbook.Sheets[firstSheetName];
   if (!firstSheet) throw new Error("엑셀 시트를 찾을 수 없습니다.");
   const matrix = XLSX.utils.sheet_to_json<unknown[]>(firstSheet, { header: 1, raw: true, defval: null }) as unknown[][];
-  const headerRowIndex = matrix.findIndex((row) => {
-    const headers = row.map(normalize);
-    return headers.includes("세부사업") && headers.includes("세부항목") && headers.includes("산출내역") && headers.some((header) => header.startsWith("예산현액"));
-  });
-  if (headerRowIndex < 0) throw new Error("사업관리카드(현액)의 열 제목을 찾지 못했습니다.");
-
-  const headers = matrix[headerRowIndex].map(normalize);
-  const exact = (name: string) => headers.findIndex((header) => header === normalize(name));
-  const starts = (...names: string[]) => headers.findIndex((header) => names.some((name) => header.startsWith(normalize(name))));
-  const columns = {
-    projectName: exact("세부사업"), itemName: exact("세부항목"), costName: exact("원가통계비목"), calculation: exact("산출내역"),
-    originalBudget: starts("예산액"), adjustment: starts("증감액"), currentBudget: starts("예산현액"), requestAmount: starts("지출품의액"),
-    obligation: starts("원인행위액", "원인행위금액"), budgetBalance: starts("예산잔액"), resolution: starts("지출결의액"), paid: starts("지급액"),
-    paymentBalance: starts("지출잔액"), settlementFund: starts("정산재원"), generalFund: starts("일반재원"), managers: exact("세부항목담당자"),
-  };
-  const required = [columns.projectName, columns.itemName, columns.costName, columns.calculation, columns.currentBudget, columns.obligation, columns.budgetBalance, columns.paid, columns.paymentBalance];
-  if (required.some((index) => index < 0)) throw new Error("필수 열이 부족합니다. 사업관리카드(현액) 파일인지 확인해주세요.");
-
+  const year = file.name.match(/20\d{2}/)?.[0] ?? String(new Date().getFullYear());
   const cell = (row: unknown[], index: number) => index >= 0 ? row[index] : null;
-  const detailMap = new Map<string, BusinessCardRow>();
-  matrix.slice(headerRowIndex + 1).forEach((rawRow) => {
-    const calculation = String(cell(rawRow, columns.calculation) ?? "").trim();
-    const projectName = String(cell(rawRow, columns.projectName) ?? "").trim();
-    const itemName = String(cell(rawRow, columns.itemName) ?? "").trim();
-    const costName = String(cell(rawRow, columns.costName) ?? "").trim();
-    const summaryText = normalize(`${projectName}${itemName}${costName}`);
-    if (!calculation || summaryText.includes("소계") || summaryText.includes("합계")) return;
-    const managers = String(cell(rawRow, columns.managers) ?? "").split(/[,;/·\n]+/).map((name) => name.trim()).filter(Boolean);
-    const id = [normalize(projectName), normalize(itemName), normalize(costName), normalize(calculation)].join("|");
-    const currentBudget = numberValue(cell(rawRow, columns.currentBudget));
-    const obligation = numberValue(cell(rawRow, columns.obligation));
-    const paid = numberValue(cell(rawRow, columns.paid));
-    const existing = detailMap.get(id);
-    const row: BusinessCardRow = {
-      id, projectName, itemName, costName, calculation,
-      originalBudget: numberValue(cell(rawRow, columns.originalBudget)), adjustment: numberValue(cell(rawRow, columns.adjustment)), currentBudget,
-      requestAmount: numberValue(cell(rawRow, columns.requestAmount)), obligation,
-      budgetBalance: columns.budgetBalance >= 0 ? numberValue(cell(rawRow, columns.budgetBalance)) : currentBudget - obligation,
-      resolution: numberValue(cell(rawRow, columns.resolution)), paid,
-      paymentBalance: columns.paymentBalance >= 0 ? numberValue(cell(rawRow, columns.paymentBalance)) : currentBudget - paid,
-      settlementFund: numberValue(cell(rawRow, columns.settlementFund)), generalFund: numberValue(cell(rawRow, columns.generalFund)), managers,
-    };
-    if (!existing) detailMap.set(id, row);
-    else detailMap.set(id, {
+
+  const mergeRow = (detailMap: Map<string, BusinessCardRow>, row: BusinessCardRow) => {
+    const existing = detailMap.get(row.id);
+    if (!existing) {
+      detailMap.set(row.id, row);
+      return;
+    }
+    detailMap.set(row.id, {
       ...existing,
       originalBudget: existing.originalBudget + row.originalBudget,
       adjustment: existing.adjustment + row.adjustment,
@@ -460,11 +429,144 @@ async function parseBusinessCard(file: File): Promise<{ rows: BusinessCardRow[];
       generalFund: existing.generalFund + row.generalFund,
       managers: [...new Set([...existing.managers, ...row.managers])],
     });
+  };
+
+  // 기존 사업관리카드(현액): 세부사업·세부항목·원가통계비목이 각각 독립 열인 형식
+  const wideHeaderRowIndex = matrix.findIndex((row) => {
+    const headers = row.map(normalize);
+    return headers.includes("세부사업") && headers.includes("세부항목") && headers.includes("산출내역") && headers.some((header) => header.startsWith("예산현액"));
   });
+
+  if (wideHeaderRowIndex >= 0) {
+    const headers = matrix[wideHeaderRowIndex].map(normalize);
+    const exact = (name: string) => headers.findIndex((header) => header === normalize(name));
+    const starts = (...names: string[]) => headers.findIndex((header) => names.some((name) => header.startsWith(normalize(name))));
+    const columns = {
+      projectName: exact("세부사업"), itemName: exact("세부항목"), costName: exact("원가통계비목"), calculation: exact("산출내역"),
+      originalBudget: starts("예산액"), adjustment: starts("증감액"), currentBudget: starts("예산현액"), requestAmount: starts("지출품의액", "지출품의금액"),
+      obligation: starts("원인행위액", "원인행위금액"), budgetBalance: starts("예산잔액"), resolution: starts("지출결의액", "지출결의금액"), paid: starts("지급액"),
+      paymentBalance: starts("지출잔액"), settlementFund: starts("정산재원"), generalFund: starts("일반재원"), managers: exact("세부항목담당자"),
+    };
+    const required = [columns.projectName, columns.itemName, columns.costName, columns.calculation, columns.currentBudget, columns.obligation, columns.budgetBalance, columns.paid];
+    if (required.some((index) => index < 0)) throw new Error("필수 열이 부족합니다. 사업관리카드 파일인지 확인해주세요.");
+
+    const detailMap = new Map<string, BusinessCardRow>();
+    matrix.slice(wideHeaderRowIndex + 1).forEach((rawRow) => {
+      const calculation = String(cell(rawRow, columns.calculation) ?? "").trim();
+      const projectName = String(cell(rawRow, columns.projectName) ?? "").trim();
+      const itemName = String(cell(rawRow, columns.itemName) ?? "").trim();
+      const costName = String(cell(rawRow, columns.costName) ?? "").trim();
+      const summaryText = normalize(`${projectName}${itemName}${costName}`);
+      if (!calculation || summaryText.includes("소계") || summaryText.includes("합계")) return;
+      const managers = String(cell(rawRow, columns.managers) ?? "").split(/[,;/·\n]+/).map((name) => name.trim()).filter(Boolean);
+      const id = [normalize(projectName), normalize(itemName), normalize(costName), normalize(calculation)].join("|");
+      const currentBudget = numberValue(cell(rawRow, columns.currentBudget));
+      const obligation = numberValue(cell(rawRow, columns.obligation));
+      const paid = numberValue(cell(rawRow, columns.paid));
+      const row: BusinessCardRow = {
+        id, projectName, itemName, costName, calculation,
+        originalBudget: numberValue(cell(rawRow, columns.originalBudget)), adjustment: numberValue(cell(rawRow, columns.adjustment)), currentBudget,
+        requestAmount: numberValue(cell(rawRow, columns.requestAmount)), obligation,
+        budgetBalance: columns.budgetBalance >= 0 ? numberValue(cell(rawRow, columns.budgetBalance)) : currentBudget - obligation,
+        resolution: numberValue(cell(rawRow, columns.resolution)), paid,
+        paymentBalance: columns.paymentBalance >= 0 ? numberValue(cell(rawRow, columns.paymentBalance)) : currentBudget - paid,
+        settlementFund: numberValue(cell(rawRow, columns.settlementFund)), generalFund: numberValue(cell(rawRow, columns.generalFund)), managers,
+      };
+      mergeRow(detailMap, row);
+    });
+    const rows = [...detailMap.values()];
+    if (!rows.length) throw new Error("실제 산출내역 행을 찾지 못했습니다. 사업관리카드 파일인지 확인해주세요.");
+    return { rows, meta: { fileName: file.name, year, rowCount: rows.length, hasManager: columns.managers >= 0, sourceLabel: "사업관리카드(현액)", hasPaymentDetail: true } };
+  }
+
+  // 사업관리카드(예산)·세출예산집행현황목록: 한 열의 들여쓰기로 세부사업/세부항목/원가통계비목을 표현하는 형식
+  const compactHeaderRowIndex = matrix.findIndex((row) => {
+    const headers = row.map(normalize);
+    return headers.some((header) => header.includes("세부사업/세부항목/원가통계비목")) && headers.includes("산출내역") && headers.some((header) => header.startsWith("예산현액"));
+  });
+  if (compactHeaderRowIndex < 0) throw new Error("지원하는 사업관리카드 열 제목을 찾지 못했습니다. 사업관리카드(현액/예산) 또는 세출예산집행현황목록인지 확인해주세요.");
+
+  const primaryHeaders = matrix[compactHeaderRowIndex].map(normalize);
+  const secondaryHeaders = (matrix[compactHeaderRowIndex + 1] ?? []).map(normalize);
+  const secondaryHeaderNames = ["지출품의액", "지출품의금액", "원인행위액", "원인행위금액", "집행률", "지출결의액", "지출결의금액", "지급액"];
+  const hasSecondaryHeader = secondaryHeaders.some((header) => secondaryHeaderNames.some((name) => header.startsWith(normalize(name))));
+  const headers = primaryHeaders.map((header, index) => hasSecondaryHeader && secondaryHeaders[index] ? secondaryHeaders[index] : header);
+  const exact = (name: string) => headers.findIndex((header) => header === normalize(name));
+  const starts = (...names: string[]) => headers.findIndex((header) => names.some((name) => header.startsWith(normalize(name))));
+  const includes = (name: string) => headers.findIndex((header) => header.includes(normalize(name)));
+  const columns = {
+    hierarchy: includes("세부사업/세부항목/원가통계비목"), calculation: exact("산출내역"), currentBudget: starts("예산현액"),
+    requestAmount: starts("지출품의액", "지출품의금액"), obligation: starts("원인행위액", "원인행위금액"), budgetBalance: starts("예산잔액"),
+    resolution: starts("지출결의액", "지출결의금액"), paid: starts("지급액"), settlementFund: starts("정산재원"),
+  };
+  const required = [columns.hierarchy, columns.calculation, columns.currentBudget, columns.obligation, columns.budgetBalance];
+  if (required.some((index) => index < 0)) throw new Error("필수 열이 부족합니다. 사업관리카드(예산) 또는 세출예산집행현황목록인지 확인해주세요.");
+
+  const titleText = normalize(`${firstSheetName} ${matrix.slice(0, compactHeaderRowIndex + 1).flat().join(" ")}`);
+  const executionList = titleText.includes("세출예산집행현황목록");
+  const sourceLabel = executionList ? "세출예산집행현황목록" : "사업관리카드(예산)";
+  const hasPaymentDetail = columns.paid >= 0;
+  const dataStartIndex = compactHeaderRowIndex + (hasSecondaryHeader ? 2 : 1);
+  const leadingIndent = (value: unknown) => {
+    const text = String(value ?? "").replace(/\u00a0/g, " ");
+    const prefix = text.match(/^[ \t]*/)?.[0] ?? "";
+    return prefix.replace(/\t/g, "    ").length;
+  };
+
+  const hierarchyIndents: number[] = [];
+  matrix.slice(dataStartIndex).forEach((rawRow) => {
+    const hierarchyText = String(cell(rawRow, columns.hierarchy) ?? "").replace(/\u00a0/g, " ");
+    const label = hierarchyText.trim();
+    const calculation = String(cell(rawRow, columns.calculation) ?? "").trim();
+    if (!label || calculation || normalize(label).includes("합계")) return;
+    hierarchyIndents.push(leadingIndent(hierarchyText));
+  });
+  const sortedIndents = [...new Set(hierarchyIndents)].sort((a, b) => a - b);
+  const projectIndent = sortedIndents[0] ?? 0;
+  const itemIndent = sortedIndents[1] ?? projectIndent + 1;
+
+  let currentProject = "";
+  let currentItem = "";
+  const detailMap = new Map<string, BusinessCardRow>();
+  matrix.slice(dataStartIndex).forEach((rawRow) => {
+    const hierarchyText = String(cell(rawRow, columns.hierarchy) ?? "").replace(/\u00a0/g, " ");
+    const label = hierarchyText.trim();
+    const calculation = String(cell(rawRow, columns.calculation) ?? "").trim();
+    if (!label && !calculation) return;
+    if (normalize(label).includes("합계")) return;
+
+    if (!calculation) {
+      const indent = leadingIndent(hierarchyText);
+      if (indent <= projectIndent) {
+        currentProject = label;
+        currentItem = "";
+      } else if (indent <= itemIndent) {
+        currentItem = label;
+      }
+      return;
+    }
+
+    if (!currentProject || !currentItem || !label) return;
+    const costName = label;
+    const id = [normalize(currentProject), normalize(currentItem), normalize(costName), normalize(calculation)].join("|");
+    const currentBudget = numberValue(cell(rawRow, columns.currentBudget));
+    const obligation = numberValue(cell(rawRow, columns.obligation));
+    const paid = hasPaymentDetail ? numberValue(cell(rawRow, columns.paid)) : 0;
+    const row: BusinessCardRow = {
+      id, projectName: currentProject, itemName: currentItem, costName, calculation,
+      originalBudget: 0, adjustment: 0, currentBudget,
+      requestAmount: numberValue(cell(rawRow, columns.requestAmount)), obligation,
+      budgetBalance: numberValue(cell(rawRow, columns.budgetBalance)),
+      resolution: numberValue(cell(rawRow, columns.resolution)), paid,
+      paymentBalance: hasPaymentDetail ? currentBudget - paid : 0,
+      settlementFund: numberValue(cell(rawRow, columns.settlementFund)), generalFund: 0, managers: [],
+    };
+    mergeRow(detailMap, row);
+  });
+
   const rows = [...detailMap.values()];
-  if (!rows.length) throw new Error("실제 산출내역 행을 찾지 못했습니다. 합계표가 아닌 사업관리카드(현액)인지 확인해주세요.");
-  const year = file.name.match(/20\d{2}/)?.[0] ?? String(new Date().getFullYear());
-  return { rows, meta: { fileName: file.name, year, rowCount: rows.length, hasManager: columns.managers >= 0 } };
+  if (!rows.length) throw new Error(`실제 산출내역 행을 찾지 못했습니다. ${sourceLabel} 원본 파일인지 확인해주세요.`);
+  return { rows, meta: { fileName: file.name, year, rowCount: rows.length, hasManager: false, sourceLabel, hasPaymentDetail } };
 }
 
 async function parseWorkbook(file: File): Promise<{ rows: BudgetRow[]; meta: FileMeta }> {
@@ -1149,7 +1251,7 @@ export default function Home() {
 
   return (
     <main className="app-shell">
-      <input ref={businessFileInputRef} className="sr-only" type="file" accept=".xlsx,.xls" onChange={(event) => handleBusinessFile(event.target.files?.[0])} aria-label="사업관리카드 현액 엑셀 파일 선택" />
+      <input ref={businessFileInputRef} className="sr-only" type="file" accept=".xlsx,.xls" onChange={(event) => handleBusinessFile(event.target.files?.[0])} aria-label="사업관리카드 엑셀 파일 선택" />
       <input ref={fileInputRef} className="sr-only" type="file" accept=".xlsx,.xls" onChange={onFileChange} aria-label="102-2 엑셀 파일 선택" />
       <input ref={revenueFileInputRef} className="sr-only" type="file" accept=".xlsx,.xls" onChange={(event) => handleRevenueFile(event.target.files?.[0])} aria-label="201 세입실적 엑셀 파일 선택" />
       <header className="topbar">
@@ -1160,10 +1262,10 @@ export default function Home() {
       {!businessMeta && !meta ? (
         <section className="upload-page launch-home">
           <div className="landing-hero-panel">
-            <div className="upload-intro"><span className="eyebrow">내 사업 예산 보기</span><h1>내 사업 예산,<br />지금 얼마나 남았을까?</h1><p>사업관리카드(현액) 하나만 불러오면 현재 집행현황과 앞으로 사용할 수 있는 예산을 바로 정리해드려요.</p><div className="landing-flow" aria-label="예산현황판 이용 순서"><span><b>1</b>현액 업로드</span><i>→</i><span><b>2</b>자동 분석</span><i>→</i><span><b>3</b>잔액 확인</span></div><BusinessFileRouteGuide compact /></div>
+            <div className="upload-intro"><span className="eyebrow">내 사업 예산 보기</span><h1>내 사업 예산,<br />지금 얼마나 남았을까?</h1><p>사업관리카드(현액 또는 예산) 하나만 불러오면 현재 집행현황과 앞으로 사용할 수 있는 예산을 바로 정리해드려요.</p><div className="landing-flow" aria-label="예산현황판 이용 순서"><span><b>1</b>사업관리카드 업로드</span><i>→</i><span><b>2</b>자동 분석</span><i>→</i><span><b>3</b>잔액 확인</span></div><BusinessFileRouteGuide compact /></div>
             <div className={`drop-zone ${businessDragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setBusinessDragging(true); }} onDragLeave={() => setBusinessDragging(false)} onDrop={onBusinessDrop}>
-              <span className="drop-kicker">가장 먼저</span><div className="drop-icon"><UploadCloud size={28} /></div><h2>사업관리카드(현액) 불러오기</h2><p>파일을 끌어놓거나 아래 버튼으로 선택하세요.</p>
-              <button className="button primary landing-upload-button" onClick={() => businessFileInputRef.current?.click()} disabled={businessLoading}><FileSpreadsheet size={18} />{businessLoading ? "분석 중..." : "파일 선택"}</button><span className="file-hint">.xlsx · .xls · 담당자 열이 없는 파일도 지원</span><span className="browser-security-note"><LockKeyhole size={13} />파일은 이 브라우저에서만 분석됩니다.</span>
+              <span className="drop-kicker">가장 먼저</span><div className="drop-icon"><UploadCloud size={28} /></div><h2>사업관리카드 불러오기</h2><p>파일을 끌어놓거나 아래 버튼으로 선택하세요.</p>
+              <button className="button primary landing-upload-button" onClick={() => businessFileInputRef.current?.click()} disabled={businessLoading}><FileSpreadsheet size={18} />{businessLoading ? "분석 중..." : "파일 선택"}</button><span className="file-hint">.xlsx · .xls · 현액/예산/집행현황 자동 판별</span><span className="browser-security-note"><LockKeyhole size={13} />파일은 이 브라우저에서만 분석됩니다.</span>
               {businessError && <div className="error-message" role="alert"><AlertCircle size={17} />{businessError}</div>}
             </div>
           </div>
@@ -1172,7 +1274,7 @@ export default function Home() {
       ) : (
         <div className="workspace">
           <section className="context-row">
-            <div className="school-context"><span className="school-name">{mainView === "school" && meta ? meta.schoolName : `${businessMeta?.year ?? meta?.year ?? new Date().getFullYear()}년 예산`}</span><details className="data-info"><summary>자료 정보</summary><div>{businessMeta && <span><b>사업관리카드</b>{businessMeta.fileName}</span>}{meta && <span><b>102-2</b>{meta.fileName}</span>}</div></details></div>
+            <div className="school-context"><span className="school-name">{mainView === "school" && meta ? meta.schoolName : `${businessMeta?.year ?? meta?.year ?? new Date().getFullYear()}년 예산`}</span><details className="data-info"><summary>자료 정보</summary><div>{businessMeta && <span><b>{businessMeta.sourceLabel}</b>{businessMeta.fileName}</span>}{meta && <span><b>102-2</b>{meta.fileName}</span>}</div></details></div>
             {mainView !== "school" && businessMeta?.hasManager && businessManagers.length > 0 && <label className="filter-field"><UserRound size={15} />담당자<select value={businessManager} onChange={(event) => setBusinessManager(event.target.value)}><option value="all">전체 담당 사업</option>{businessManagers.map((manager) => <option key={manager} value={manager}>{manager}</option>)}</select></label>}
           </section>
           <nav className="tabs main-tabs" aria-label="학교회계 예산현황판 주 메뉴">
@@ -1242,11 +1344,11 @@ function FileRouteGuide({ detail }: { detail: string }) {
 }
 
 function BusinessFileRouteGuide({ compact = false }: { compact?: boolean }) {
-  return <div className={`file-route-guide ${compact ? "landing-route-guide" : ""}`}><span><Info size={16} />{compact ? "어디서 받나요?" : "에듀파인 다운로드 경로"}</span><strong>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드 &gt; 사업관리카드(현액)</strong></div>;
+  return <div className={`file-route-guide ${compact ? "landing-route-guide" : ""}`}><span><Info size={16} />{compact ? "어디서 받나요?" : "에듀파인 다운로드 경로"}</span><strong>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드 &gt; 사업관리카드(현액) 또는 사업관리카드(예산)</strong><small>세출예산집행현황목록도 불러올 수 있습니다. 이 자료는 지급액 열이 없어 원인행위 기준까지만 표시합니다.</small></div>;
 }
 
 function BusinessUploadPrompt({ choose, loading, error, dragging, setDragging, dropFile }: { choose: () => void; loading: boolean; error: string; dragging: boolean; setDragging: (value: boolean) => void; dropFile: (event: DragEvent<HTMLDivElement>) => void }) {
-  return <section className="centered-upload page-content"><div className="prompt-icon"><BriefcaseBusiness size={28} /></div><span className="section-kicker">내 사업 시작하기</span><h1>사업관리카드(현액)를 불러와주세요</h1><p>내가 지금 새로 사용할 수 있는 금액과 세부항목별 잔액을 먼저 보여드려요.</p><div className={`business-prompt-drop-zone ${dragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={dropFile}><UploadCloud size={26} /><strong>{dragging ? "여기에 놓으세요" : "사업관리카드(현액)를 끌어놓으세요"}</strong><span>또는</span><button className="button primary" onClick={choose} disabled={loading}><FileSpreadsheet size={18} />{loading ? "분석 중..." : "파일 선택"}</button><small>.xlsx · .xls · 담당자 열이 없는 파일도 지원</small></div><BusinessFileRouteGuide />{error && <div className="error-message" role="alert"><AlertCircle size={17} />{error}</div>}</section>;
+  return <section className="centered-upload page-content"><div className="prompt-icon"><BriefcaseBusiness size={28} /></div><span className="section-kicker">내 사업 시작하기</span><h1>사업관리카드를 불러와주세요</h1><p>현액·예산 형식을 자동으로 구분해 지금 새로 사용할 수 있는 금액과 세부항목별 잔액을 보여드려요.</p><div className={`business-prompt-drop-zone ${dragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={dropFile}><UploadCloud size={26} /><strong>{dragging ? "여기에 놓으세요" : "사업관리카드를 끌어놓으세요"}</strong><span>또는</span><button className="button primary" onClick={choose} disabled={loading}><FileSpreadsheet size={18} />{loading ? "분석 중..." : "파일 선택"}</button><small>.xlsx · .xls · 현액/예산 자동 판별</small></div><BusinessFileRouteGuide />{error && <div className="error-message" role="alert"><AlertCircle size={17} />{error}</div>}</section>;
 }
 
 function SchoolUploadPrompt({ choose, loading, error, dragging, setDragging, dropFile }: { choose: () => void; loading: boolean; error: string; dragging: boolean; setDragging: (value: boolean) => void; dropFile: (event: DragEvent<HTMLDivElement>) => void }) {
@@ -1467,7 +1569,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
       </div>
     </section>
 
-    <details className="business-progress business-progress-details"><summary><span><b>집행 단계도 확인하기</b><small>원인행위와 지급 완료를 전체 예산 기준으로 비교합니다.</small></span><ChevronDown size={18} /></summary><div className="business-progress-grid"><ProgressStep title="이미 사용하기로 한 금액" label="원인행위 기준" rate={obligationRate} primaryLabel="원인행위액" primaryValue={filteredTotals.obligation} remainderLabel="현재 사용 가능" remainderValue={filteredTotals.budgetBalance} tone="blue" /><ProgressStep title="지급 완료" label="지급 기준" rate={paymentRate} primaryLabel="지급액" primaryValue={filteredTotals.paid} remainderLabel="지급 전 금액 포함 잔액" remainderValue={filteredTotals.paymentBalance} tone="violet" /></div></details>
+    <details className="business-progress business-progress-details"><summary><span><b>집행 단계도 확인하기</b><small>{meta.hasPaymentDetail ? "원인행위와 지급 완료를 전체 예산 기준으로 비교합니다." : "이 자료에는 지급액 열이 없어 원인행위 기준까지만 표시합니다."}</small></span><ChevronDown size={18} /></summary><div className="business-progress-grid"><ProgressStep title="이미 사용하기로 한 금액" label="원인행위 기준" rate={obligationRate} primaryLabel="원인행위액" primaryValue={filteredTotals.obligation} remainderLabel="현재 사용 가능" remainderValue={filteredTotals.budgetBalance} tone="blue" />{meta.hasPaymentDetail && <ProgressStep title="지급 완료" label="지급 기준" rate={paymentRate} primaryLabel="지급액" primaryValue={filteredTotals.paid} remainderLabel="지급 전 금액 포함 잔액" remainderValue={filteredTotals.paymentBalance} tone="violet" />}</div></details>
 
     <section className="business-detail-section" id="business-detail-start"><div className="split-heading business-list-head"><div className="section-heading"><span className="section-kicker">예산 상세</span><h2>보고 싶은 단위로 묶어보세요</h2><p>{viewMode === "project" ? "여러 세부항목을 세부사업 단위로 크게 묶어 봅니다." : viewMode === "item" ? "같은 세부항목의 산출내역을 합쳐 봅니다." : "실제 산출내역을 한 줄씩 그대로 확인합니다."}</p></div><div className="business-list-head-actions">{selectedDetailProject && <button className="business-back-to-top-button" onClick={returnToProjectNavigator}><ArrowUp size={15} />다른 사업 선택</button>}<button className="button secondary compact" onClick={goPlan}><ListChecks size={16} />집행 계획 모아보기</button></div></div>
       {selectedDetailProject && <div className="business-active-project-scope" aria-label="선택한 세부사업 필터"><span>선택한 사업</span><strong>{selectedDetailProject}</strong><button onClick={clearDetailProjectScope} aria-label={`${selectedDetailProject} 선택 해제`}><X size={14} />전체 보기</button></div>}
@@ -2085,7 +2187,7 @@ function ResetDataModal({ close, clearExcel, clearAll }: { close: () => void; cl
 
 function HelpModal({ close }: { close: () => void }) {
   return <div className="modal-backdrop" onMouseDown={close}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onMouseDown={(event) => event.stopPropagation()}><button className="icon-button modal-close" aria-label="도움말 닫기" onClick={close}><X size={20} /></button><span className="eyebrow">도움말</span><h2 id="help-title">예산현황판 사용 방법</h2><div className="help-steps">
-    <div><b>1</b><span><strong>사업관리카드(현액) 내려받기</strong><small>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드 &gt; 사업관리카드(현액)에서 파일을 내려받습니다.</small></span></div>
+    <div><b>1</b><span><strong>사업관리카드 내려받기</strong><small>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드에서 (현액) 또는 (예산) 파일을 내려받습니다.</small></span></div>
     <div><b>2</b><span><strong>한눈에 보기</strong><small>내 예산·원인행위액·앞으로 사용할 예정액·예상 잔액을 먼저 보여줍니다. ‘돈이 많이 남는 사업’ Top10은 전체 사업 기준으로 유지되어 다른 사업을 계속 탐색할 수 있습니다.</small></span></div>
     <div><b>3</b><span><strong>보고 싶은 단위로 묶어보기</strong><small>예산 상세에서 ‘세부사업으로 묶기’, ‘세부항목으로 묶기’, ‘산출내역 그대로’ 순으로 원하는 보기를 선택할 수 있습니다. Top10에서 ‘이 사업 상세 보기’를 누르면 선택한 사업만 모아보고, ‘다른 사업 선택’ 또는 ‘전체 보기’로 다시 범위를 바꿀 수 있습니다.</small></span></div>
     <div><b>4</b><span><strong>앞으로 쓸 금액 입력</strong><small>산출내역별 집행예정액을 입력하면 예상 잔액이 바로 계산됩니다. 입력값은 현재 브라우저에만 저장됩니다.</small></span></div>
