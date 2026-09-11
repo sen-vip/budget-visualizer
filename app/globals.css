@@ -4362,3 +4362,181 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
     font-size: 15px;
   }
 }
+
+
+/* v0.6.47 · 잔액 중심 시각화 + 콕검 디자인 시스템 정리 */
+:root {
+  --radius-section: 16px;
+  --radius-card: 12px;
+  --radius-control: 10px;
+  --surface-soft: #f8faff;
+  --surface-balance: #eaf8f1;
+}
+
+/* 큰 면적의 그라데이션/강한 그림자를 제거하고 밝은 surface로 통일 */
+.landing-hero-panel,
+.school-upload-prompt,
+.business-overview-summary {
+  background: #fbfcff;
+  box-shadow: none;
+}
+.landing-hero-panel::after,
+.school-upload-prompt::after,
+.school-overview-lead::after { display: none; }
+.drop-icon,
+.school-upload-prompt .prompt-icon.school,
+.business-prompt-drop-zone .prompt-icon,
+.school-prompt-drop-zone .prompt-icon { background: var(--blue); box-shadow: none; }
+
+/* 정상 KPI는 큰 색 면 대신 숫자로 위계를 만든다. */
+.promotion-stats .stat-card {
+  min-height: 118px;
+  padding: 20px 22px;
+  border-radius: var(--radius-section);
+  box-shadow: none;
+}
+.promotion-stats .stat-card.primary-stat {
+  color: var(--ink);
+  background: #f7f9ff;
+  border-color: #dce4f5;
+  box-shadow: none;
+}
+.promotion-stats .stat-card.primary-stat.negative {
+  color: var(--red);
+  background: #fff7f7;
+  border-color: #efd3d5;
+  box-shadow: none;
+}
+.promotion-stats .primary-stat .stat-label,
+.promotion-stats .primary-stat .stat-detail { color: #6f7c90; }
+.promotion-stats .primary-stat strong { color: var(--blue-dark); }
+.promotion-stats .primary-stat.negative strong { color: var(--red); }
+
+/* 결산의 총계도 그라데이션 대신 밝은 강조 surface */
+.closing-flow-row.total,
+.closing-flow-row.total:hover,
+.closing-flow-row.total.active {
+  color: var(--ink);
+  background: #f5f7ff;
+  border-color: #dce4f5;
+}
+.closing-flow-row.total .flow-operator { color: var(--blue); background: var(--blue-soft); }
+.closing-flow-row.total small { color: #738095; }
+.closing-flow-row.total > strong { color: var(--blue-dark); }
+.closing-flow-row.total .flow-chevron { color: #7d8ba0; }
+.closing-flow-row.total.negative { color: var(--red); background: #fff5f5; }
+.closing-flow-row.total.negative > strong { color: var(--red); }
+
+/* 카드/컨트롤 라운드와 그림자 일관성 */
+.business-visual-section,
+.school-flow-section,
+.policy-flow-section,
+.school-check-section,
+.school-hierarchy-section,
+.closing-section,
+.plan-panel { border-radius: var(--radius-section); }
+.school-reading-row,
+.business-chart-row,
+.policy-detail-panel,
+.promotion-detail-card,
+.selected-balance,
+.forecast-box { border-radius: var(--radius-card); }
+.button,
+.icon-button,
+.context-chip,
+.sort-chip,
+.filter-field select,
+.form-field select,
+.form-field textarea,
+.won-input,
+.business-sort,
+.business-search input,
+.school-sort-field select,
+.spending-search input { border-radius: var(--radius-control); }
+
+/* 업무상 읽어야 하는 보조 텍스트는 지나치게 작지 않게 */
+.business-chart-value small,
+.business-chart-meta,
+.policy-flow-row.budget-reading-row .policy-flow-name small,
+.policy-balance-value small,
+.policy-balance-value em,
+.policy-flow-row.budget-reading-row .policy-flow-amounts small,
+.policy-flow-row.budget-reading-row .policy-flow-amounts b,
+.budget-reading-rate-head,
+.budget-reading-rate-head small,
+.school-reading-name small,
+.school-reading-balance small,
+.school-reading-balance em,
+.school-reading-rate,
+.school-reading-rate small,
+.school-reading-basis,
+.plan-panel .selected-balance > span small,
+.plan-panel .form-field small,
+.local-note { font-size: 12px; }
+
+/* 정책사업/묶어보기: 파랑=사용 결정, 옅은 그린=남은 예산 */
+.policy-flow-track.full,
+.school-reading-track {
+  height: 11px;
+  background: var(--surface-balance);
+  border: 1px solid #dcece4;
+}
+.policy-flow-row.budget-reading-row .policy-flow-spend,
+.school-reading-track i { background: var(--blue); }
+.budget-reading-rate-head small,
+.school-reading-rate small { color: #56806b; font-weight: 650; }
+.policy-flow-row.budget-reading-row .policy-flow-amounts,
+.school-reading-basis { color: #788598; }
+
+/* 잔액분석 Top10: 단순 순위 막대 대신 예산 구성 막대 */
+.business-chart-track.composition {
+  height: 11px;
+  display: flex;
+  overflow: hidden;
+  background: #edf1f5;
+  border: 1px solid #e0e5ec;
+  border-radius: 999px;
+}
+.business-chart-track.composition i {
+  position: static;
+  display: block;
+  min-width: 0;
+  height: 100%;
+  border-radius: 0;
+}
+.business-chart-track.composition i.committed { background: var(--blue); }
+.business-chart-track.composition i.planned { background: #e5b45b; }
+.business-chart-track.composition i.remaining { background: var(--teal); }
+.business-chart-meta .planned-label,
+.business-chart-meta .planned-label b { color: #8a6b39; }
+.business-chart-row.selected { background: #f8faff; }
+.business-chart-name { color: #172033; }
+.business-chart-value small { color: #7b8798; }
+.business-chart-value strong { color: #14213a; }
+
+/* 사이드 패널: 입력과 action footer 사이 숨통 확보 */
+.plan-panel .form-field textarea { min-height: 90px; }
+.plan-panel .plan-actions {
+  margin-top: 20px;
+  padding-top: 2px;
+  gap: 10px;
+}
+.plan-panel .local-note { margin-top: 12px; }
+
+/* 메인 화면의 타이포 위계 강화 */
+.policy-flow-row.budget-reading-row .policy-flow-name strong,
+.school-reading-name strong,
+.business-chart-name { font-size: 16px; font-weight: 760; }
+.policy-balance-value strong,
+.school-reading-balance strong,
+.business-chart-value strong { font-size: 20px; }
+
+@media (max-width: 720px) {
+  .promotion-stats .stat-card { min-height: 104px; padding: 17px; }
+  .policy-flow-row.budget-reading-row .policy-flow-name strong,
+  .school-reading-name strong,
+  .business-chart-name { font-size: 15px; }
+  .policy-balance-value strong,
+  .school-reading-balance strong,
+  .business-chart-value strong { font-size: 17px; }
+}
