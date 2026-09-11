@@ -3852,3 +3852,119 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
   }
   .promotion-detail-plan { padding-top: 1px; }
 }
+
+/* v0.6.44 · 상단축 정렬 + 집행계획 비목 필터 + 정책사업 컴팩트 균형 복원 */
+.topbar {
+  padding-inline: 0;
+}
+.topbar-inner {
+  width: min(1540px, calc(100% - clamp(28px, 5vw, 80px)));
+  min-height: 64px;
+  margin: 0 auto;
+  padding: 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.topbar-landing .topbar-inner {
+  width: min(1180px, calc(100% - 40px));
+}
+.topbar .brand-block {
+  gap: 11px;
+}
+.topbar .brand-block > div:last-child {
+  margin-left: 0 !important;
+}
+.upload-page.launch-home {
+  padding-top: 20px;
+}
+
+/* 집행계획에서도 비목·정렬·검색이 한 줄에서 같은 높이로 읽힌다. */
+.business-control-tools .business-cost-filter {
+  flex: 0 1 auto;
+}
+.business-control-tools .business-cost-filter select {
+  min-width: 138px;
+  max-width: 190px;
+}
+
+/* 정책사업 현황: v0.6.42의 안정적인 좌/우 균형 + 제목 옆 현재 잔액 */
+@media (min-width: 1101px) {
+  .policy-flow-row.budget-reading-row {
+    min-height: 82px;
+    padding: 10px 12px;
+    grid-template-columns: minmax(310px,.9fr) minmax(500px,1.7fr) 18px;
+    grid-template-rows: auto;
+    gap: 18px;
+    align-items: center;
+  }
+  .policy-reading-head {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    align-items: baseline;
+    align-content: center;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+  .policy-flow-row.budget-reading-row .policy-flow-name {
+    flex: 0 1 auto;
+    min-width: 120px;
+  }
+  .policy-balance-value {
+    flex: 0 0 auto;
+    gap: 3px 5px;
+  }
+  .policy-balance-value small {
+    font-size: 9px;
+  }
+  .policy-balance-value strong {
+    font-size: 15px;
+  }
+  .policy-balance-value em {
+    font-size: 9px;
+  }
+  .policy-flow-row.budget-reading-row .policy-flow-visual {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    max-width: 100%;
+    gap: 6px;
+  }
+  .policy-flow-row.budget-reading-row > svg {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: center;
+  }
+  .budget-reading-rate-head {
+    margin-bottom: 0;
+  }
+  .policy-flow-row.budget-reading-row .policy-flow-amounts {
+    gap: 3px 12px;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1100px) {
+  .policy-flow-row.budget-reading-row {
+    grid-template-columns: minmax(0,1fr) 18px;
+    grid-template-rows: auto auto;
+  }
+  .policy-reading-head { grid-column: 1; grid-row: 1; }
+  .policy-flow-row.budget-reading-row > svg { grid-column: 2; grid-row: 1; }
+  .policy-flow-row.budget-reading-row .policy-flow-visual { grid-column: 1 / -1; grid-row: 2; }
+}
+
+@media (max-width: 720px) {
+  .topbar-inner,
+  .topbar-landing .topbar-inner {
+    width: calc(100% - 28px);
+    flex-wrap: wrap;
+  }
+  .topbar-inner .top-actions {
+    width: 100%;
+  }
+  .upload-page.launch-home {
+    padding-top: 14px;
+  }
+}

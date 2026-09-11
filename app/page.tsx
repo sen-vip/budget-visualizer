@@ -257,7 +257,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.43";
+const APP_VERSION = "v0.6.44";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1258,9 +1258,11 @@ export default function Home() {
       <input ref={businessFileInputRef} className="sr-only" type="file" accept=".xlsx,.xls" onChange={(event) => handleBusinessFile(event.target.files?.[0])} aria-label="사업관리카드 엑셀 파일 선택" />
       <input ref={fileInputRef} className="sr-only" type="file" accept=".xlsx,.xls" onChange={onFileChange} aria-label="102-2 엑셀 파일 선택" />
       <input ref={revenueFileInputRef} className="sr-only" type="file" accept=".xlsx,.xls" onChange={(event) => handleRevenueFile(event.target.files?.[0])} aria-label="201 세입실적 엑셀 파일 선택" />
-      <header className="topbar">
-        <div className="brand-block"><div className="brand-mark"><BarChart3 size={19} /></div><div><div className="brand-title-line"><strong>학교회계 예산현황판</strong><em className="version-badge">{APP_VERSION}</em></div><span>학돌랩</span></div></div>
-        <div className="top-actions"><details className="privacy-popover"><summary><LockKeyhole size={15} />서버 전송 없음</summary><div><strong>파일은 이 브라우저에서만 분석됩니다.</strong><p>불러온 엑셀 파일은 서버로 전송하거나 저장하지 않습니다.</p><p>직접 입력한 집행계획·결산예측 값은 재접속을 위해 현재 브라우저 저장공간에 보관될 수 있습니다.</p></div></details>{(businessMeta || meta) && <><button className="button compact data-change-button" onClick={() => (mainView === "school" ? fileInputRef : businessFileInputRef).current?.click()}><RefreshCw size={16} />자료 변경</button><button className="button compact data-reset-button" onClick={() => setResetConfirmOpen(true)}><Trash2 size={15} />자료 비우기</button></>}<button className="button ghost compact help-button" onClick={() => setHelpOpen(true)}><HelpCircle size={17} />도움말</button></div>
+      <header className={`topbar ${businessMeta || meta ? "topbar-workspace" : "topbar-landing"}`}>
+        <div className="topbar-inner">
+          <div className="brand-block"><div className="brand-mark"><BarChart3 size={19} /></div><div><div className="brand-title-line"><strong>학교회계 예산현황판</strong><em className="version-badge">{APP_VERSION}</em></div><span>학돌랩</span></div></div>
+          <div className="top-actions"><details className="privacy-popover"><summary><LockKeyhole size={15} />서버 전송 없음</summary><div><strong>파일은 이 브라우저에서만 분석됩니다.</strong><p>불러온 엑셀 파일은 서버로 전송하거나 저장하지 않습니다.</p><p>직접 입력한 집행계획·결산예측 값은 재접속을 위해 현재 브라우저 저장공간에 보관될 수 있습니다.</p></div></details>{(businessMeta || meta) && <><button className="button compact data-change-button" onClick={() => (mainView === "school" ? fileInputRef : businessFileInputRef).current?.click()}><RefreshCw size={16} />자료 변경</button><button className="button compact data-reset-button" onClick={() => setResetConfirmOpen(true)}><Trash2 size={15} />자료 비우기</button></>}<button className="button ghost compact help-button" onClick={() => setHelpOpen(true)}><HelpCircle size={17} />도움말</button></div>
+        </div>
       </header>
 
       {!businessMeta && !meta ? (
@@ -1651,17 +1653,37 @@ function BusinessPlanView({ rows, meta, totals, plans, updatePlan }: {
   const [filter, setFilter] = useState<"all" | "planned" | "empty">("all");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<BusinessSort>("amount-desc");
+  const [costFilter, setCostFilter] = useState(BUSINESS_COST_FILTER_ALL);
   const [shown, setShown] = useState(30);
   const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [summaryCondensed, setSummaryCondensed] = useState(false);
   const summaryRef = useRef<HTMLElement | null>(null);
-  const plannedTotal = rows.reduce((total, row) => total + (plans[businessPlanKey(meta, row)] ?? 0), 0);
-  const forecastTotal = totals.budgetBalance - plannedTotal;
+  const costNames = useMemo(() => [...new Set(rows.map((row) => row.costName.trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko")), [rows]);
+  const preferredGeneralCostNames = useMemo(() => costNames.filter((name) => normalize(name).includes(normalize("일반수용비"))), [costNames]);
+  const otherCostNames = useMemo(() => costNames.filter((name) => !preferredGeneralCostNames.includes(name)), [costNames, preferredGeneralCostNames]);
+  const hasPromotionCosts = useMemo(() => costNames.some((name) => normalize(name).includes(normalize("업무추진비"))), [costNames]);
+  const selectedCostLabel = costFilter === BUSINESS_COST_FILTER_ALL ? "전체 비목" : costFilter === BUSINESS_COST_FILTER_PROMOTION ? "업무추진비 전체" : costFilter;
+  const costScopedRows = useMemo(() => rows.filter((row) => {
+    if (costFilter === BUSINESS_COST_FILTER_ALL) return true;
+    if (costFilter === BUSINESS_COST_FILTER_PROMOTION) return normalize(row.costName).includes(normalize("업무추진비"));
+    return normalize(row.costName) === normalize(costFilter);
+  }), [rows, costFilter]);
+  useEffect(() => {
+    if (costFilter === BUSINESS_COST_FILTER_ALL) return;
+    if (costFilter === BUSINESS_COST_FILTER_PROMOTION) {
+      if (!hasPromotionCosts) setCostFilter(BUSINESS_COST_FILTER_ALL);
+      return;
+    }
+    if (!costNames.some((name) => normalize(name) === normalize(costFilter))) setCostFilter(BUSINESS_COST_FILTER_ALL);
+  }, [costFilter, costNames, hasPromotionCosts]);
+  const scopedBudgetBalance = costScopedRows.reduce((total, row) => total + row.budgetBalance, 0);
+  const plannedTotal = costScopedRows.reduce((total, row) => total + (plans[businessPlanKey(meta, row)] ?? 0), 0);
+  const forecastTotal = scopedBudgetBalance - plannedTotal;
 
   const itemGroups = useMemo(() => {
     const grouped = new Map<string, BusinessPlanItemGroup>();
-    rows.forEach((row) => {
+    costScopedRows.forEach((row) => {
       const id = `${normalize(row.projectName)}|${normalize(row.itemName)}`;
       const current = grouped.get(id) ?? { id, projectName: row.projectName || "사업명 없음", itemName: row.itemName || "세부항목 없음", budgetBalance: 0, rows: [] };
       current.budgetBalance += row.budgetBalance;
@@ -1669,7 +1691,7 @@ function BusinessPlanView({ rows, meta, totals, plans, updatePlan }: {
       grouped.set(id, current);
     });
     return [...grouped.values()];
-  }, [rows]);
+  }, [costScopedRows]);
 
   const projectGroups = useMemo(() => {
     const grouped = new Map<string, BusinessPlanProjectGroup>();
@@ -1693,8 +1715,8 @@ function BusinessPlanView({ rows, meta, totals, plans, updatePlan }: {
 
   const visibleRows = useMemo(() => {
     const needle = normalize(search);
-    return rows.filter((row) => rowMatches(row, needle)).sort((a, b) => compareBusiness(a, b, sort));
-  }, [rows, plans, meta, filter, search, sort]);
+    return costScopedRows.filter((row) => rowMatches(row, needle)).sort((a, b) => compareBusiness(a, b, sort));
+  }, [costScopedRows, plans, meta, filter, search, sort]);
 
   const visibleGroups = useMemo(() => {
     const needle = normalize(search);
@@ -1767,11 +1789,11 @@ function BusinessPlanView({ rows, meta, totals, plans, updatePlan }: {
   };
 
   return <div className="page-content business-page">
-    <section ref={summaryRef} className="plan-summary"><div className="section-heading"><span className="section-kicker">집행 계획</span><h1>앞으로 쓸 금액을 정리해요</h1><p>기본은 세부항목별로 보고, 예산이 많을 때는 세부사업별로 더 크게 묶어볼 수 있어요. 실제 금액 입력은 산출내역별로 유지됩니다.</p></div><div className="plan-summary-grid"><article><span>현재 사용 가능</span><strong>{formatCompactWon(totals.budgetBalance)}</strong></article><article><span>앞으로 사용할 예정</span><strong>{formatCompactWon(plannedTotal)}</strong></article><article className={forecastTotal < 0 ? "negative" : ""}><span>계획 반영 후 예상 잔액</span><ForecastAmount value={forecastTotal} compact showWarning /></article></div></section>
-    {summaryCondensed && <aside className={`plan-summary-compact ${forecastTotal < 0 ? "negative" : ""}`} aria-label="집행 계획 요약"><div className="plan-compact-title"><ListChecks size={17} /><strong>집행 계획</strong></div><div className="plan-compact-metrics"><span><small>사용 가능</small><strong>{formatCompactWon(totals.budgetBalance)}</strong></span><span><small>사용 예정</small><strong>{formatCompactWon(plannedTotal)}</strong></span><span className="forecast"><small>예상 잔액</small><strong>{formatCompactWon(forecastTotal)}</strong></span></div></aside>}
+    <section ref={summaryRef} className="plan-summary"><div className="section-heading"><span className="section-kicker">집행 계획</span><h1>앞으로 쓸 금액을 정리해요</h1><p>{costFilter === BUSINESS_COST_FILTER_ALL ? "기본은 세부항목별로 보고, 필요한 비목만 골라 계획을 정리할 수 있어요. 실제 금액 입력은 산출내역별로 유지됩니다." : `비목 ‘${selectedCostLabel}’ 기준으로 사용 가능액과 입력된 계획을 다시 계산합니다.`}</p></div><div className="plan-summary-grid"><article><span>현재 사용 가능</span><strong>{formatCompactWon(scopedBudgetBalance)}</strong></article><article><span>앞으로 사용할 예정</span><strong>{formatCompactWon(plannedTotal)}</strong></article><article className={forecastTotal < 0 ? "negative" : ""}><span>계획 반영 후 예상 잔액</span><ForecastAmount value={forecastTotal} compact showWarning /></article></div></section>
+    {summaryCondensed && <aside className={`plan-summary-compact ${forecastTotal < 0 ? "negative" : ""}`} aria-label="집행 계획 요약"><div className="plan-compact-title"><ListChecks size={17} /><strong>집행 계획</strong></div><div className="plan-compact-metrics"><span><small>사용 가능</small><strong>{formatCompactWon(scopedBudgetBalance)}</strong></span><span><small>사용 예정</small><strong>{formatCompactWon(plannedTotal)}</strong></span><span className="forecast"><small>예상 잔액</small><strong>{formatCompactWon(forecastTotal)}</strong></span></div></aside>}
     <section className="business-detail-section">
-      <div className="business-view-row"><div className="business-view-toggle" role="group" aria-label="집행 계획 보기 기준"><button className={viewMode === "project" ? "active" : ""} onClick={() => changeViewMode("project")}>세부사업별</button><button className={viewMode === "item" ? "active" : ""} onClick={() => changeViewMode("item")}>세부항목별</button><button className={viewMode === "detail" ? "active" : ""} onClick={() => changeViewMode("detail")}>산출내역별</button></div><span className="business-view-count">{viewMode === "project" ? `세부사업 ${visibleProjects.length}개 · 세부항목 ${visibleGroups.length}개` : viewMode === "item" ? `세부항목 ${visibleGroups.length}개 · 전체 산출내역 ${rows.length}건` : `산출내역 ${visibleRows.length}건`}</span></div>
-      <div className="business-controls"><div className="filter-tabs">{(["all", "planned", "empty"] as const).map((value) => <button key={value} className={filter === value ? "active" : ""} onClick={() => changeFilter(value)}>{value === "all" ? "전체" : value === "planned" ? "계획 입력됨" : "계획 미입력"}</button>)}</div><div className="business-control-tools"><label className="business-sort"><span>정렬</span><select value={sort} onChange={(event) => { setSort(event.target.value as BusinessSort); setShown(30); }}><option value="name-asc">전체 이름 가나다순</option><option value="name-desc">전체 이름 역순</option><option value="project-asc">세부사업 가나다순</option><option value="project-desc">세부사업 역순</option><option value="item-asc">세부항목 가나다순</option><option value="item-desc">세부항목 역순</option><option value="amount-desc">현재 잔액 많은 순</option><option value="amount-asc">현재 잔액 적은 순</option></select></label><label className="business-search"><span className="sr-only">집행 계획 검색</span><input value={search} onChange={(event) => { setSearch(event.target.value); setShown(30); }} placeholder={viewMode === "project" ? "세부사업·세부항목 검색" : viewMode === "item" ? "사업·세부항목 검색" : "사업·산출내역 검색"} /></label></div></div>
+      <div className="business-view-row"><div className="business-view-toggle" role="group" aria-label="집행 계획 보기 기준"><button className={viewMode === "project" ? "active" : ""} onClick={() => changeViewMode("project")}>세부사업별</button><button className={viewMode === "item" ? "active" : ""} onClick={() => changeViewMode("item")}>세부항목별</button><button className={viewMode === "detail" ? "active" : ""} onClick={() => changeViewMode("detail")}>산출내역별</button></div><span className="business-view-count">{viewMode === "project" ? `세부사업 ${visibleProjects.length}개 · 세부항목 ${visibleGroups.length}개` : viewMode === "item" ? `세부항목 ${visibleGroups.length}개 · 산출내역 ${costScopedRows.length}건` : `산출내역 ${visibleRows.length}건`}</span></div>
+      <div className="business-controls"><div className="filter-tabs">{(["all", "planned", "empty"] as const).map((value) => <button key={value} className={filter === value ? "active" : ""} onClick={() => changeFilter(value)}>{value === "all" ? "전체" : value === "planned" ? "계획 입력됨" : "계획 미입력"}</button>)}</div><div className="business-control-tools"><label className="business-sort business-cost-filter"><span>비목</span><select value={costFilter} onChange={(event) => { setCostFilter(event.target.value); setShown(30); }}><option value={BUSINESS_COST_FILTER_ALL}>전체 비목</option>{preferredGeneralCostNames.map((name) => <option key={`plan-preferred-${name}`} value={name}>{name}</option>)}{hasPromotionCosts && <option value={BUSINESS_COST_FILTER_PROMOTION}>업무추진비 전체</option>}{otherCostNames.length > 0 && <optgroup label="전체 비목">{otherCostNames.map((name) => <option key={`plan-cost-${name}`} value={name}>{name}</option>)}</optgroup>}</select></label><label className="business-sort"><span>정렬</span><select value={sort} onChange={(event) => { setSort(event.target.value as BusinessSort); setShown(30); }}><option value="name-asc">전체 이름 가나다순</option><option value="name-desc">전체 이름 역순</option><option value="project-asc">세부사업 가나다순</option><option value="project-desc">세부사업 역순</option><option value="item-asc">세부항목 가나다순</option><option value="item-desc">세부항목 역순</option><option value="amount-desc">현재 잔액 많은 순</option><option value="amount-asc">현재 잔액 적은 순</option></select></label><label className="business-search"><span className="sr-only">집행 계획 검색</span><input value={search} onChange={(event) => { setSearch(event.target.value); setShown(30); }} placeholder={viewMode === "project" ? "세부사업·세부항목 검색" : viewMode === "item" ? "사업·세부항목 검색" : "사업·산출내역 검색"} /></label></div></div>
       {viewMode === "project" ? <div className="business-plan-projects">{visibleProjects.map((project) => {
         const expanded = expandedProjects.has(project.id);
         const visibleItemIds = new Set(visibleGroups.map((group) => group.id));
