@@ -2354,3 +2354,283 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
     max-width: none;
   }
 }
+
+/* v0.6.37 · 첫 진입 임팩트: 답이 먼저 보이는 히어로 구조 */
+.business-overview-summary {
+  padding: 30px 32px 28px;
+  overflow: hidden;
+  background: linear-gradient(135deg,#ffffff 0%,#fbfcff 62%,#f5f7ff 100%);
+  border-color: #dbe2ef;
+  box-shadow: 0 14px 38px rgba(31,43,66,.055);
+}
+.business-summary-head { align-items: flex-start; }
+.business-summary-head .section-heading h1 {
+  margin: 5px 0 6px;
+  font-size: clamp(25px,2vw,31px);
+  line-height: 1.18;
+}
+.business-summary-head .section-heading p { max-width: 640px; font-size: 13px; }
+
+.business-hero-metrics {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: minmax(330px,.88fr) minmax(0,1.55fr);
+  gap: 14px;
+  align-items: stretch;
+}
+.business-hero-balance {
+  min-height: 178px;
+  padding: 22px 24px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #fff;
+  background: linear-gradient(145deg,#2446b5 0%,#3159d8 72%,#3c64df 100%);
+  border-radius: 18px;
+  box-shadow: 0 15px 30px rgba(49,89,216,.20);
+}
+.business-hero-balance.negative {
+  background: linear-gradient(145deg,#a94049 0%,#c84d53 100%);
+  box-shadow: 0 15px 30px rgba(200,77,83,.16);
+}
+.business-hero-balance-label { display: flex; align-items: center; gap: 11px; }
+.business-hero-balance-label .business-summary-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: #fff;
+  background: rgba(255,255,255,.14);
+  border-radius: 11px;
+}
+.business-hero-balance-label > span:last-child { display: flex; flex-direction: column; gap: 1px; }
+.business-hero-balance-label small { color: rgba(255,255,255,.72); font-size: 10px; }
+.business-hero-balance-label b { font-size: 14px; font-weight: 700; }
+.business-hero-balance > strong {
+  margin-top: 17px;
+  align-self: flex-end;
+  font-size: clamp(34px,3.2vw,48px);
+  line-height: 1;
+  letter-spacing: -.05em;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+.business-hero-balance > p {
+  margin: 17px 0 0;
+  padding-top: 12px;
+  color: rgba(255,255,255,.72);
+  border-top: 1px solid rgba(255,255,255,.16);
+  font-size: 11px;
+  text-align: right;
+}
+.business-hero-balance > p b { color: #fff; font-weight: 700; }
+
+.business-support-metrics {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  overflow: hidden;
+  background: rgba(255,255,255,.96);
+  border: 1px solid #dfe5ed;
+  border-radius: 18px;
+}
+.business-support-metric {
+  min-width: 0;
+  padding: 22px 19px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  border-left: 1px solid #e7eaf0;
+}
+.business-support-metric:first-child { border-left: 0; }
+.business-support-metric > span {
+  min-height: 39px;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  color: #3f4a5f;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+.business-support-metric > span svg { margin-top: 1px; flex: 0 0 auto; color: var(--blue); }
+.business-support-metric.committed > span svg { color: #6f7a8b; }
+.business-support-metric.planned > span svg { color: #b77716; }
+.business-support-metric > small { margin-top: 2px; color: #8a94a3; font-size: 10px; }
+.business-support-metric > strong {
+  margin-top: auto;
+  padding-top: 20px;
+  overflow: hidden;
+  color: #172033;
+  font-size: clamp(21px,1.8vw,28px);
+  line-height: 1.15;
+  letter-spacing: -.035em;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.business-support-metric > em {
+  margin-top: 5px;
+  color: #7d8796;
+  font-size: 10px;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* 잔액 분석: 설명-차트 좌우 분할을 없애고 전폭으로 */
+.business-visual-section {
+  display: block;
+  padding: 26px 28px 23px;
+}
+.business-visual-head {
+  display: block;
+  margin-bottom: 15px;
+}
+.business-visual-head .section-heading { display: grid; grid-template-columns: 1fr auto; column-gap: 16px; align-items: end; }
+.business-visual-head .section-kicker,
+.business-visual-head h2,
+.business-visual-head p { grid-column: 1; }
+.business-visual-head .section-heading p { max-width: none; }
+.business-visual-head .business-top-badge { grid-column: 2; grid-row: 1 / span 3; align-self: end; margin: 0; }
+.business-visual-content { width: 100%; }
+.business-chart { width: 100%; gap: 2px; }
+.business-chart-row {
+  grid-template-columns: 24px minmax(170px,260px) minmax(260px,1fr) minmax(115px,150px);
+  min-height: 64px;
+  padding-inline: 9px;
+}
+.business-chart-track { height: 8px; }
+.business-chart-value strong { font-size: 14px; }
+
+/* 선택한 정책사업: 숫자의 의미가 즉시 보이는 4분할 요약판 */
+.policy-detail-panel {
+  margin-top: 14px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: minmax(190px,.78fr) minmax(0,2.4fr) auto;
+  gap: 14px;
+  align-items: stretch;
+  background: #f7f9fc;
+  border: 1px solid #dfe5ed;
+  border-radius: 14px;
+}
+.policy-detail-identity {
+  min-width: 0;
+  padding: 7px 8px 7px 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.policy-detail-identity > span {
+  color: var(--blue);
+  font-size: 10px;
+  font-weight: 700;
+}
+.policy-detail-identity > strong {
+  margin-top: 3px;
+  overflow: hidden;
+  color: #172033;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.policy-detail-identity > small {
+  margin-top: 10px;
+  color: #7b8594;
+  font-size: 10px;
+}
+.policy-detail-identity > b {
+  margin-top: 2px;
+  color: #273248;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.policy-detail-panel dl {
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e1e5ec;
+  border-radius: 12px;
+}
+.policy-detail-panel dl > div {
+  position: relative;
+  min-width: 0;
+  padding: 13px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #e7eaf0;
+}
+.policy-detail-panel dl > div:first-child { border-left: 0; }
+.policy-detail-panel dl > div::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-bottom: 7px;
+  border-radius: 999px;
+  background: #aeb8c6;
+}
+.policy-detail-panel dl > div.committed::before { background: var(--blue); }
+.policy-detail-panel dl > div.paid::before { background: var(--teal); }
+.policy-detail-panel dl > div.pending::before { background: var(--status-pending); }
+.policy-detail-panel dl > div.uncommitted::before { background: #b9c4d2; }
+.policy-detail-panel dt { color: #687386; font-size: 10px; font-weight: 650; }
+.policy-detail-panel dd {
+  margin: 7px 0 0;
+  overflow: hidden;
+  color: #172033;
+  font-size: 14px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.policy-detail-panel dl small {
+  margin-top: 3px;
+  color: #939cab;
+  font-size: 9px;
+  text-align: right;
+}
+.policy-detail-panel > .button {
+  min-width: 154px;
+  align-self: center;
+  white-space: nowrap;
+}
+
+@media (max-width: 1080px) {
+  .business-hero-metrics { grid-template-columns: 1fr; }
+  .business-hero-balance { min-height: 164px; }
+  .policy-detail-panel { grid-template-columns: 1fr; }
+  .policy-detail-identity { padding: 2px 2px 0; }
+  .policy-detail-identity > b { text-align: left; }
+  .policy-detail-panel > .button { justify-self: end; }
+}
+
+@media (max-width: 720px) {
+  .business-overview-summary { padding: 22px 15px 17px; }
+  .business-hero-metrics { margin-top: 18px; gap: 10px; }
+  .business-hero-balance { min-height: 150px; padding: 18px; border-radius: 15px; }
+  .business-hero-balance > strong { font-size: clamp(31px,10vw,40px); }
+  .business-support-metrics { grid-template-columns: 1fr; border-radius: 14px; }
+  .business-support-metric { min-height: 104px; padding: 14px 15px 12px; border-left: 0; border-top: 1px solid #e7eaf0; }
+  .business-support-metric:first-child { border-top: 0; }
+  .business-support-metric > span { min-height: 0; }
+  .business-support-metric > strong { padding-top: 10px; font-size: 21px; }
+  .business-visual-section { padding: 20px 14px 18px; }
+  .business-visual-head .section-heading { display: block; }
+  .business-visual-head .business-top-badge { margin-top: 9px; }
+  .business-chart-row { grid-template-columns: 24px minmax(0,1fr) auto; }
+  .policy-detail-panel dl { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .policy-detail-panel dl > div:nth-child(3) { border-left: 0; border-top: 1px solid #e7eaf0; }
+  .policy-detail-panel dl > div:nth-child(4) { border-top: 1px solid #e7eaf0; }
+  .policy-detail-panel > .button { width: 100%; justify-self: stretch; }
+}

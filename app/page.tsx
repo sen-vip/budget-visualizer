@@ -255,7 +255,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.36";
+const APP_VERSION = "v0.6.37";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1542,11 +1542,17 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
   return <div className="page-content business-page">
     <section className="business-overview-summary" aria-labelledby="business-summary-title">
       <div className="business-summary-head"><div className="section-heading"><span className="section-kicker">내 사업 분석</span><h1 id="business-summary-title">계획까지 반영한 예산 흐름</h1><p>{hasActiveScope ? `${selectedDetailProject ? `선택한 세부사업 ‘${selectedDetailProject}’` : `현재 검색·필터 결과 ${filteredRows.length}건`}을 기준으로 다시 계산했어요. 선택 범위 전체 예산은 ${formatReadableWon(filteredTotals.currentBudget)}입니다.` : "내 예산에서 사용 결정액과 앞으로의 계획을 빼고, 실제로 얼마나 남는지 먼저 보여드려요."}</p></div>{hasActiveScope && <button className="button ghost compact" onClick={() => { setSelectedDetailProject(""); setFilter("all"); setSearch(""); setShown(30); }}>선택·검색 초기화</button>}</div>
-      <div className="business-summary-grid">
-        <article className="business-summary-card budget"><div className="business-summary-icon"><WalletCards size={19} /></div><span>내 예산</span><small>예산현액</small><strong>{formatKpiWon(filteredTotals.currentBudget)}</strong><em>{formatWon(filteredTotals.currentBudget)}</em></article>
-        <article className="business-summary-card committed"><div className="business-summary-icon"><ReceiptText size={19} /></div><span>이미 사용하기로 한 금액</span><small>원인행위액</small><strong>{formatKpiWon(filteredTotals.obligation)}</strong><em>{formatWon(filteredTotals.obligation)}</em></article>
-        <article className="business-summary-card planned"><div className="business-summary-icon"><CalendarDays size={19} /></div><span>앞으로 사용할 예정</span><small>입력한 집행계획</small><strong>{formatKpiWon(plannedTotal)}</strong><em>{formatWon(plannedTotal)}</em></article>
-        <article className={`business-summary-card forecast ${forecastTotal < 0 ? "negative" : ""}`}><div className="business-summary-icon"><CircleDollarSign size={19} /></div><span>예상 잔액</span><small>계획 반영 후 남는 금액</small><strong>{formatKpiWon(forecastTotal)}</strong><em>현재 사용 가능 {formatReadableWon(filteredTotals.budgetBalance)}</em></article>
+      <div className="business-hero-metrics">
+        <article className={`business-hero-balance ${forecastTotal < 0 ? "negative" : ""}`}>
+          <div className="business-hero-balance-label"><span className="business-summary-icon"><CircleDollarSign size={20} /></span><span><small>계획 반영 후 남는 금액</small><b>예상 잔액</b></span></div>
+          <strong>{formatKpiWon(forecastTotal)}</strong>
+          <p>현재 사용 가능 <b>{formatReadableWon(filteredTotals.budgetBalance)}</b>{plannedTotal > 0 ? ` · 집행계획 ${formatReadableWon(plannedTotal)} 반영` : " · 입력된 집행계획 없음"}</p>
+        </article>
+        <div className="business-support-metrics">
+          <article className="business-support-metric budget"><span><WalletCards size={17} />내 예산</span><small>예산현액</small><strong>{formatKpiWon(filteredTotals.currentBudget)}</strong><em>{formatWon(filteredTotals.currentBudget)}</em></article>
+          <article className="business-support-metric committed"><span><ReceiptText size={17} />이미 사용하기로 한 금액</span><small>원인행위액</small><strong>{formatKpiWon(filteredTotals.obligation)}</strong><em>{formatWon(filteredTotals.obligation)}</em></article>
+          <article className="business-support-metric planned"><span><CalendarDays size={17} />앞으로 사용할 예정</span><small>입력한 집행계획</small><strong>{formatKpiWon(plannedTotal)}</strong><em>{formatWon(plannedTotal)}</em></article>
+        </div>
       </div>
     </section>
 
@@ -1873,7 +1879,7 @@ function OverviewTab({ rows, meta, fundFilter }: { rows: BudgetRow[]; meta: File
       <div className="section-heading split-heading"><div><h2>정책사업별 예산 흐름</h2><p>정책사업별 예산 규모와 실제 지출액을 함께 비교합니다.</p></div><label className="school-sort-field">정렬<select value={policySort} onChange={(event) => setPolicySort(event.target.value as SchoolSort)}><option value="budget-desc">예산현액 많은 순</option><option value="budget-asc">예산현액 적은 순</option><option value="paid-desc">지급 완료 많은 순</option><option value="pending-desc">지급 대기 많은 순</option><option value="uncommitted-desc">사용 결정 전 금액 많은 순</option><option value="name-asc">정책사업명 가나다순</option></select></label></div>
       <div className="policy-flow-legend" aria-label="정책사업 예산 흐름 범례"><span><i className="policy-budget-key" />예산현액</span><span><i className="policy-spend-key" />지출금액</span><small>회색 막대는 예산 규모, 강조 막대는 실제 지출액입니다.</small></div>
       <div className="policy-flow-list">{policyGroups.map((group) => <PolicyFlowRow key={group.id} group={group} maxBudget={maxPolicyBudget} selected={selectedPolicyId === group.id} onSelect={() => setSelectedPolicyId((current) => current === group.id ? null : group.id)} />)}</div>
-      {selectedPolicy && <div className="policy-detail-panel"><div><strong>{selectedPolicy.label}</strong><span>전체 예산 {formatReadableWon(selectedPolicy.budget)}</span></div><dl><div><dt>사용 결정</dt><dd>{formatReadableWon(selectedPolicy.obligation)}</dd></div><div><dt>지급 완료</dt><dd>{formatReadableWon(selectedPolicy.paid)}</dd></div><div><dt>지급 대기</dt><dd>{formatReadableWon(selectedPolicy.pending)}</dd></div><div><dt>아직 사용 결정 전</dt><dd>{formatReadableWon(selectedPolicy.uncommitted)}</dd></div></dl><button className="button secondary compact" onClick={() => openPolicyDetail(selectedPolicy)}>이 정책사업 상세보기<ChevronRight size={15} /></button></div>}
+      {selectedPolicy && <div className="policy-detail-panel"><div className="policy-detail-identity"><span>선택한 정책사업</span><strong>{selectedPolicy.label}</strong><small>전체 예산</small><b>{formatReadableWon(selectedPolicy.budget)}</b></div><dl><div className="committed"><dt>사용 결정</dt><dd>{formatReadableWon(selectedPolicy.obligation)}</dd><small>원인행위액</small></div><div className="paid"><dt>지급 완료</dt><dd>{formatReadableWon(selectedPolicy.paid)}</dd><small>실제 지출액</small></div><div className="pending"><dt>지급 대기</dt><dd>{formatReadableWon(selectedPolicy.pending)}</dd><small>원인행위 후 미지급</small></div><div className="uncommitted"><dt>원인행위 전</dt><dd>{formatReadableWon(selectedPolicy.uncommitted)}</dd><small>아직 사용 결정 전</small></div></dl><button className="button secondary compact" onClick={() => openPolicyDetail(selectedPolicy)}>이 정책사업 상세보기<ChevronRight size={15} /></button></div>}
     </section>}
 
     <section className="school-check-section"><div className="section-heading"><h2>확인해 볼 예산</h2><p>금액이 큰 사업을 한 번에 모아봅니다. 궁금한 사업은 바로 세부내역으로 이어서 볼 수 있어요.</p></div><div className="school-check-grid"><SchoolCheckList title="지급 대기 금액이 큰 사업" description="원인행위는 되었지만 아직 실제 지급되지 않은 금액" groups={pendingTop} valueKey="pending" onOpen={navigateToSchoolGroup} /><SchoolCheckList title="아직 원인행위되지 않은 금액이 큰 사업" description="예산현액 중 아직 원인행위되지 않은 금액" groups={uncommittedTop} valueKey="uncommitted" onOpen={navigateToSchoolGroup} /></div></section>
