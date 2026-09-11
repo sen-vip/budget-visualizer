@@ -3521,3 +3521,334 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
   }
   .plan-panel-head h2 { font-size: 19px; }
 }
+
+/* v0.6.43 · 제목-잔액-그래프 순으로 읽는 동선 통일 */
+@media (min-width: 721px) {
+  .brand-block { gap: 0; }
+  .brand-block > div:last-child { margin-left: clamp(34px, 3.6vw, 68px); }
+}
+
+/* Top10: 제목 옆에서 잔액을 바로 읽고, 바로 아래 그래프로 이어진다. */
+.business-chart-row {
+  grid-template-columns: 24px minmax(0,1fr);
+  grid-template-rows: auto 8px auto;
+  min-height: 66px;
+  gap: 6px 10px;
+  padding: 9px 10px;
+}
+.business-chart-rank { grid-column: 1; grid-row: 1; }
+.business-chart-head {
+  min-width: 0;
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+.business-chart-name {
+  grid-column: auto;
+  grid-row: auto;
+  max-width: 100%;
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+  color: #172033;
+  font-size: 13px;
+  font-weight: 700;
+}
+.business-chart-value {
+  grid-column: auto;
+  grid-row: auto;
+  justify-self: auto;
+  display: inline-flex;
+  align-items: baseline;
+  flex-direction: row;
+  gap: 5px;
+  color: #172033;
+  text-align: left;
+}
+.business-chart-value small {
+  display: inline;
+  color: #7e8999;
+  font-size: 10px;
+  font-weight: 600;
+}
+.business-chart-value strong {
+  color: #172033;
+  font-size: 14px;
+  font-weight: 750;
+}
+.business-chart-track {
+  grid-column: 2;
+  grid-row: 2;
+  height: 8px;
+}
+.business-chart-meta {
+  grid-column: 2;
+  grid-row: 3;
+  gap: 3px 12px;
+}
+
+/* 정책사업: 사업명과 현재 잔액을 한 줄에서 읽고 그래프를 바로 이어서 본다. */
+.policy-flow-row.budget-reading-row {
+  min-height: 88px;
+  padding: 12px 11px;
+  grid-template-columns: minmax(0,1fr) 18px;
+  grid-template-rows: auto auto;
+  gap: 8px 10px;
+}
+.policy-reading-head {
+  min-width: 0;
+  grid-column: 1;
+  grid-row: 1;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 5px 18px;
+}
+.policy-flow-row.budget-reading-row .policy-flow-name {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.policy-flow-row.budget-reading-row .policy-flow-name strong {
+  white-space: normal;
+}
+.policy-balance-value {
+  min-width: 0;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 4px 6px;
+  text-align: left;
+}
+.policy-balance-value small { font-size: 10px; }
+.policy-balance-value strong { font-size: 16px; }
+.policy-balance-value em { font-size: 9px; }
+.policy-flow-row.budget-reading-row .policy-flow-visual {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  gap: 7px;
+}
+.policy-flow-row.budget-reading-row > svg {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+}
+
+/* 묶어보기: 제목-잔액을 같은 자리에서 보고 그래프/근거금액으로 내려간다. */
+.school-reading-row {
+  min-height: 0;
+  padding: 13px 14px;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 12px 16px;
+  align-items: center;
+}
+.school-reading-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.school-reading-head {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 5px 18px;
+}
+.school-reading-name {
+  flex: 0 1 auto;
+}
+.school-reading-name strong {
+  white-space: normal;
+}
+.school-reading-balance {
+  min-width: 0;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 4px 6px;
+  text-align: left;
+}
+.school-reading-balance small,
+.school-reading-balance em { white-space: nowrap; }
+.school-reading-balance strong {
+  font-size: 16px;
+  white-space: nowrap;
+}
+.school-reading-progress { gap: 6px; }
+.school-reading-rate { justify-content: flex-start; gap: 16px; }
+.school-reading-basis { gap: 3px 13px; }
+.school-reading-drill {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: center;
+  justify-self: end;
+}
+.school-reading-end { grid-column: 2; grid-row: 1; }
+
+/* 업무추진비 산출내역: 현재 잔액만 강하게, 나머지는 근거/계획 정보로 낮춘다. */
+.promotion-detail-card {
+  min-height: 0;
+  padding: 13px 15px;
+  grid-template-columns: minmax(280px,1.25fr) minmax(190px,.72fr) minmax(185px,.7fr) auto;
+  gap: 13px 16px;
+  background: #fff;
+  border-color: #e2e6ed;
+  box-shadow: none;
+}
+.promotion-detail-card.overrun {
+  background: #fff;
+  border-color: #eadfe0;
+  box-shadow: inset 3px 0 var(--red);
+}
+.promotion-detail-card.selected {
+  border-color: #ccd8f1;
+  box-shadow: 0 0 0 2px rgba(49,89,216,.06);
+}
+.promotion-detail-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.promotion-detail-card-head {
+  align-items: center;
+}
+.promotion-detail-card-head strong {
+  font-size: 14px;
+  font-weight: 700;
+}
+.promotion-detail-primary {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 9px;
+}
+.promotion-detail-primary small {
+  color: #707c8f;
+  font-size: 11px;
+  font-weight: 600;
+}
+.promotion-detail-primary small em {
+  margin-left: 4px;
+  color: var(--blue-dark);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 600;
+}
+.promotion-detail-primary strong {
+  color: #172033;
+  font-size: 18px;
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
+}
+.promotion-detail-metrics {
+  gap: 4px;
+  font-size: 11px;
+}
+.promotion-detail-metrics b {
+  color: #536071;
+  font-weight: 600;
+}
+.promotion-detail-plan {
+  justify-content: center;
+  gap: 4px;
+  font-size: 11px;
+}
+.promotion-detail-plan b,
+.promotion-detail-plan strong {
+  font-size: 12px;
+  font-weight: 650;
+}
+.detail-plan-action {
+  min-height: 38px;
+  padding-inline: 13px;
+  align-self: center;
+}
+
+@media (max-width: 1100px) {
+  .school-reading-row {
+    grid-template-columns: minmax(0,1fr);
+  }
+  .school-reading-drill {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: end;
+  }
+  .school-reading-end { display: none; }
+  .promotion-detail-card {
+    grid-template-columns: minmax(240px,1.2fr) minmax(180px,.8fr) minmax(170px,.75fr);
+  }
+  .promotion-detail-card .detail-plan-action {
+    grid-column: 3;
+    justify-self: end;
+  }
+}
+
+@media (max-width: 720px) {
+  .brand-block > div:last-child { margin-left: 0; }
+  .business-chart-row {
+    grid-template-columns: 24px minmax(0,1fr);
+    grid-template-rows: auto 7px auto;
+  }
+  .business-chart-head { gap: 3px 9px; }
+  .business-chart-value small { display: inline; }
+  .business-chart-track,
+  .business-chart-meta { grid-column: 2; }
+
+  .policy-flow-row.budget-reading-row {
+    grid-template-columns: minmax(0,1fr) 18px;
+    grid-template-rows: auto auto;
+    padding: 12px 5px;
+  }
+  .policy-reading-head { grid-column: 1; grid-row: 1; gap: 4px 9px; }
+  .policy-flow-row.budget-reading-row > svg { grid-column: 2; grid-row: 1; }
+  .policy-flow-row.budget-reading-row .policy-flow-visual { grid-column: 1 / -1; grid-row: 2; }
+  .policy-balance-value strong { font-size: 14px; }
+
+  .school-reading-row,
+  .school-reading-row:hover {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .school-reading-head { gap: 4px 9px; }
+  .school-reading-balance {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px 6px;
+  }
+  .school-reading-balance small,
+  .school-reading-balance strong,
+  .school-reading-balance em {
+    grid-column: auto;
+    grid-row: auto;
+  }
+  .school-reading-progress {
+    padding: 8px 0 0;
+    border-top: 1px solid #edf0f4;
+    border-bottom: 0;
+  }
+  .school-reading-drill {
+    grid-column: 1;
+    justify-self: stretch;
+  }
+
+  .promotion-detail-card {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .promotion-detail-card .detail-plan-action {
+    grid-column: auto;
+    justify-self: stretch;
+  }
+  .promotion-detail-metrics {
+    padding: 8px 0;
+    border-top: 1px solid #edf0f5;
+    border-bottom: 1px solid #edf0f5;
+  }
+  .promotion-detail-plan { padding-top: 1px; }
+}
