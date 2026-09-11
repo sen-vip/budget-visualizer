@@ -2662,3 +2662,329 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
     max-width: none;
   }
 }
+
+/* v0.6.39 · 잔액 중심 정보 위계: 지금 남은 금액을 먼저, 계획 결과는 필요할 때만 */
+.business-hero-metrics.balance-first {
+  grid-template-columns: minmax(360px,.95fr) minmax(0,1.55fr);
+}
+.business-hero-balance.current {
+  background: linear-gradient(145deg,#2446b5 0%,#3159d8 72%,#3c64df 100%);
+}
+.business-support-metrics.balance-first-support .business-support-metric.planned.quiet {
+  background: #fafbfc;
+}
+.business-support-metrics.balance-first-support .business-support-metric.planned.quiet > span svg,
+.business-support-metrics.balance-first-support .business-support-metric.planned.quiet > strong {
+  color: #697587;
+}
+.business-support-metrics.balance-first-support .business-support-metric.plan-result {
+  background: #f7f9ff;
+}
+.business-support-metrics.balance-first-support .business-support-metric.plan-result > span,
+.business-support-metrics.balance-first-support .business-support-metric.plan-result > strong {
+  color: var(--blue-dark);
+}
+.business-support-metrics.balance-first-support .business-support-metric.plan-result > span svg {
+  color: var(--blue);
+}
+.business-support-metrics.balance-first-support .business-support-metric.plan-result.negative {
+  background: #fff7f7;
+}
+.business-support-metrics.balance-first-support .business-support-metric.plan-result.negative > span,
+.business-support-metrics.balance-first-support .business-support-metric.plan-result.negative > strong,
+.business-support-metrics.balance-first-support .business-support-metric.plan-result.negative > span svg {
+  color: var(--red);
+}
+
+/* 세부사업/세부항목 요약: 답(현재 잔액) → 근거 → 계획 순으로 읽는다. */
+.business-balance-primary {
+  min-width: 0;
+  min-height: 66px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  background: #f5f7ff;
+  border: 1px solid #e3e8fb;
+  border-radius: 11px;
+  text-align: right;
+}
+.business-balance-primary small,
+.business-detail-balance small {
+  color: #6e7a8e;
+  font-size: 10px;
+  font-weight: 600;
+}
+.business-balance-primary strong,
+.business-detail-balance strong {
+  overflow: hidden;
+  color: var(--blue-dark);
+  font-size: 17px;
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -.02em;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.business-balance-basis,
+.business-detail-basis {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 0;
+}
+.business-balance-basis > span,
+.business-detail-basis > span {
+  min-width: 0;
+  padding: 7px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  text-align: right;
+}
+.business-balance-basis > span + span,
+.business-detail-basis > span + span {
+  border-left: 1px solid #e7eaf0;
+}
+.business-balance-basis small,
+.business-detail-basis small {
+  color: #8a94a3;
+  font-size: 10px;
+  font-weight: 500;
+}
+.business-balance-basis strong,
+.business-detail-basis strong {
+  overflow: hidden;
+  color: #465267;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.business-plan-impact {
+  min-width: 0;
+  min-height: 66px;
+  padding-left: 14px;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: center;
+  border-left: 1px solid #e6e9ef;
+}
+.business-plan-impact.has-plan {
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 8px;
+}
+.business-plan-impact > span {
+  min-width: 0;
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  text-align: right;
+}
+.business-plan-impact small {
+  color: #7a8494;
+  font-size: 10px;
+  font-weight: 500;
+}
+.business-plan-impact strong {
+  overflow: hidden;
+  color: #465267;
+  font-size: 13px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.business-plan-impact.no-plan .no-plan-copy strong {
+  color: #8791a0;
+  font-weight: 600;
+}
+.business-plan-impact.has-plan .result {
+  background: #f7f9ff;
+  border-radius: 9px;
+}
+.business-plan-impact.has-plan .result strong {
+  color: var(--blue-dark);
+  font-weight: 750;
+}
+.business-plan-impact.negative .result {
+  background: #fff5f5;
+}
+.business-plan-impact.negative .result strong {
+  color: var(--red);
+}
+
+@media (min-width: 1221px) {
+  .business-item-summary,
+  .business-project-summary {
+    grid-template-columns: minmax(220px,1.06fr) minmax(170px,.68fr) minmax(235px,.9fr) minmax(230px,.9fr) minmax(120px,auto);
+    gap: 14px;
+  }
+  .business-item-summary .business-item-expand,
+  .business-project-summary .business-item-expand {
+    grid-column: 5;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1220px) {
+  .business-item-summary,
+  .business-project-summary {
+    grid-template-columns: minmax(220px,1fr) minmax(170px,.72fr) minmax(240px,1fr) auto;
+    gap: 12px;
+  }
+  .business-plan-impact {
+    grid-column: 2 / 4;
+    grid-row: 2;
+    padding: 8px 0 0;
+    border-left: 0;
+    border-top: 1px solid #edf0f4;
+  }
+  .business-item-summary .business-item-expand,
+  .business-project-summary .business-item-expand {
+    grid-column: 4;
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+}
+
+/* 산출내역 그대로: 잔액을 첫 숫자로, 계획 결과는 입력했을 때만 나타낸다. */
+.business-detail-card {
+  grid-template-columns: minmax(260px,1.15fr) minmax(170px,.62fr) minmax(230px,.82fr) minmax(260px,.92fr);
+  gap: 16px;
+}
+.business-detail-balance {
+  min-width: 0;
+  min-height: 70px;
+  padding: 11px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  background: #f5f7ff;
+  border: 1px solid #e3e8fb;
+  border-radius: 11px;
+  text-align: right;
+}
+.business-detail-balance strong { font-size: 17px; }
+.inline-business-plan {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(145px,1fr);
+  gap: 8px;
+  align-items: end;
+}
+.inline-business-plan.has-plan {
+  grid-template-columns: minmax(145px,1fr) minmax(126px,.8fr);
+}
+.inline-business-plan label > span {
+  color: #697587;
+}
+.inline-business-plan .won-input {
+  background: #fff;
+}
+.inline-plan-result {
+  min-width: 0;
+  min-height: 49px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  background: #f7f9ff;
+  border-radius: 9px;
+  text-align: right;
+}
+.inline-plan-result small {
+  color: #6e7a8e;
+  font-size: 10px;
+}
+.inline-plan-result strong {
+  color: var(--blue-dark);
+  font-size: 14px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+.inline-plan-result strong.negative-value {
+  color: var(--red);
+}
+
+@media (max-width: 1050px) {
+  .business-detail-card {
+    grid-template-columns: minmax(220px,1fr) minmax(170px,.72fr);
+    gap: 12px;
+  }
+  .business-detail-basis,
+  .inline-business-plan {
+    grid-column: 1 / -1;
+  }
+  .inline-business-plan.has-plan {
+    grid-template-columns: minmax(180px,1fr) minmax(150px,.7fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .business-hero-metrics.balance-first { grid-template-columns: 1fr; }
+  .business-support-metrics.balance-first-support { grid-template-columns: 1fr; }
+
+  .business-item-summary,
+  .business-project-summary {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .business-balance-primary {
+    min-height: 62px;
+  }
+  .business-balance-primary strong,
+  .business-detail-balance strong {
+    font-size: 18px;
+  }
+  .business-balance-basis,
+  .business-detail-basis {
+    border-top: 1px solid #edf0f4;
+  }
+  .business-balance-basis > span:first-child,
+  .business-detail-basis > span:first-child { padding-left: 0; }
+  .business-balance-basis > span:last-child,
+  .business-detail-basis > span:last-child { padding-right: 0; }
+  .business-plan-impact,
+  .business-plan-impact.has-plan {
+    padding: 8px 0 0;
+    grid-template-columns: 1fr;
+    border-left: 0;
+    border-top: 1px solid #edf0f4;
+  }
+  .business-plan-impact.has-plan .result {
+    margin-top: 2px;
+  }
+  .business-item-summary .business-item-expand,
+  .business-project-summary .business-item-expand {
+    grid-column: auto;
+    grid-row: auto;
+    justify-self: start;
+  }
+
+  .business-detail-card {
+    grid-template-columns: 1fr;
+    gap: 11px;
+  }
+  .business-detail-basis,
+  .inline-business-plan { grid-column: auto; }
+  .inline-business-plan,
+  .inline-business-plan.has-plan {
+    grid-template-columns: 1fr;
+  }
+  .inline-plan-result {
+    min-height: 46px;
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
