@@ -3513,3 +3513,192 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
   .business-balance-visual-action { justify-content: flex-start; }
   .business-balance-visual-children { padding: 7px; }
 }
+
+
+/* v0.6.56 · Figma-style toolbar hierarchy: grouping / display / status / data controls */
+.business-toolbar-primary {
+  margin: 16px 0 8px;
+  align-items: center;
+}
+.business-view-switches {
+  gap: 16px;
+}
+.business-control-cluster,
+.business-filter-group {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.business-control-label {
+  flex: 0 0 auto;
+  color: #7b8696;
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -.01em;
+}
+.business-view-toggle,
+.business-display-toggle {
+  padding: 3px;
+  background: #f1f4f8;
+  border: 1px solid #edf0f4;
+  border-radius: 12px;
+  box-shadow: none;
+}
+.business-view-toggle button,
+.business-display-toggle button {
+  min-height: 34px;
+  padding: 0 12px;
+  color: #667184;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 650;
+  box-shadow: none;
+  transition: background-color .16s ease, color .16s ease, box-shadow .16s ease;
+}
+.business-view-toggle button:hover,
+.business-display-toggle button:hover {
+  color: #344155;
+}
+.business-view-toggle button.active,
+.business-display-toggle button.active {
+  color: var(--blue-dark);
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(31,49,72,.07), inset 0 0 0 1px rgba(205,213,224,.45);
+}
+.business-view-toggle button:focus-visible,
+.business-display-toggle button:focus-visible,
+.filter-tabs button:focus-visible {
+  outline: 2px solid rgba(49,89,216,.32);
+  outline-offset: 2px;
+}
+
+.business-toolbar-secondary {
+  margin-bottom: 14px;
+  align-items: center;
+}
+.business-filter-group {
+  gap: 7px;
+}
+.business-toolbar-secondary .filter-tabs {
+  gap: 2px;
+}
+.business-toolbar-secondary .filter-tabs button {
+  min-height: 32px;
+  padding: 0 11px;
+  color: #697586;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 650;
+}
+.business-toolbar-secondary .filter-tabs button:hover {
+  color: #465267;
+  background: #f3f5f8;
+}
+.business-toolbar-secondary .filter-tabs button.active {
+  color: var(--blue-dark);
+  background: var(--blue-soft);
+  border: 0;
+  box-shadow: inset 0 0 0 1px rgba(49,89,216,.10);
+}
+
+.business-toolbar-secondary .business-control-tools {
+  gap: 8px;
+}
+.business-toolbar-secondary .business-sort,
+.business-toolbar-secondary .business-search input {
+  border-color: #e1e6ed;
+  border-radius: 10px;
+  box-shadow: none;
+}
+.business-toolbar-secondary .business-sort {
+  background: #fff;
+}
+.business-toolbar-secondary .business-sort:hover,
+.business-toolbar-secondary .business-search input:hover {
+  border-color: #cfd7e2;
+}
+.business-toolbar-secondary .business-sort:focus-within,
+.business-toolbar-secondary .business-search input:focus {
+  border-color: #aebeea;
+  box-shadow: 0 0 0 3px rgba(49,89,216,.07);
+}
+.business-toolbar-secondary .business-sort > span {
+  color: #7b8696;
+  font-size: 11px;
+  font-weight: 650;
+}
+.business-toolbar-primary .business-view-count {
+  color: #7b8696;
+  font-weight: 650;
+}
+
+@media (max-width: 900px) and (min-width: 721px) {
+  .business-toolbar-primary {
+    align-items: flex-start;
+  }
+  .business-view-switches {
+    gap: 10px;
+  }
+  .business-control-cluster {
+    gap: 6px;
+  }
+  .business-view-toggle button,
+  .business-display-toggle button {
+    padding: 0 9px;
+  }
+}
+
+@media (max-width: 720px) {
+  .business-toolbar-primary {
+    margin-top: 14px;
+    gap: 10px;
+  }
+  .business-view-switches {
+    gap: 8px;
+  }
+  .business-control-cluster,
+  .business-filter-group {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 42px minmax(0,1fr);
+    align-items: center;
+    gap: 8px;
+  }
+  .business-view-toggle,
+  .business-display-toggle {
+    width: 100%;
+  }
+  .business-view-toggle {
+    grid-template-columns: repeat(3,minmax(0,1fr));
+  }
+  .business-display-toggle {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+  .business-view-toggle button,
+  .business-display-toggle button {
+    min-height: 36px;
+    padding: 0 6px;
+    white-space: nowrap;
+  }
+  .business-toolbar-secondary {
+    gap: 10px;
+  }
+  .business-toolbar-secondary .filter-tabs {
+    min-width: 0;
+    display: flex;
+    gap: 3px;
+  }
+  .business-toolbar-secondary .filter-tabs button {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 34px;
+    padding: 0 6px;
+  }
+  .business-toolbar-primary .business-view-count {
+    padding-left: 50px;
+  }
+}
