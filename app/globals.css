@@ -2988,3 +2988,69 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
     justify-content: space-between;
   }
 }
+
+/* v0.6.53 · v0.6.39 디자인 유지 / 업무추진비 사이드바 가독성 버그만 보정 */
+@media (min-width: 1051px) {
+  .promotion-layout {
+    grid-template-columns: minmax(620px,1.42fr) minmax(350px,.58fr);
+  }
+}
+
+.plan-panel,
+.plan-panel-head > div {
+  min-width: 0;
+}
+.plan-panel-head h2,
+.plan-panel-head p {
+  max-width: 100%;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
+/* 전역 숫자 우측정렬 규칙이 사이드바 라벨 폭을 밀어내지 않도록 예외 처리 */
+.plan-panel .selected-balance {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+.plan-panel .selected-balance > span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  line-height: 1.35;
+}
+.plan-panel .selected-balance > span b,
+.plan-panel .selected-balance > span small {
+  white-space: nowrap;
+}
+.plan-panel .selected-balance > strong {
+  width: auto;
+  min-width: max-content;
+  justify-self: end;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* 계획액이 있을 때만 표시되는 결과값도 라벨/금액 폭 충돌 방지 */
+.plan-panel .forecast-box {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  align-items: center;
+  gap: 4px 14px;
+}
+.plan-panel .forecast-box > span {
+  min-width: 0;
+  word-break: keep-all;
+}
+.plan-panel .forecast-box > strong {
+  width: auto;
+  min-width: max-content;
+  justify-self: end;
+  white-space: nowrap;
+}
+.plan-panel .forecast-box > small {
+  grid-column: 1 / -1;
+}
