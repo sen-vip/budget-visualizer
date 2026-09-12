@@ -257,7 +257,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.51";
+const APP_VERSION = "v0.6.52";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1977,7 +1977,7 @@ function SchoolHierarchyList({ groups, onDrill }: { groups: SchoolAnalysisGroup[
     const drillLabel = nextLabel(group.level);
     const useRate = Math.max(0, Math.min(100, group.obligationRate));
     const balanceRate = group.budget ? (group.uncommitted / group.budget) * 100 : 0;
-    return <article key={group.id} className={`school-reading-row ${group.uncommitted < 0 ? "negative" : ""}`}><div className="school-reading-name"><strong>{group.label}</strong>{group.parentLabel && <small>{group.parentLabel}</small>}</div><div className="school-reading-progress"><div className="school-reading-rate"><span>사용 결정 <b>{formatPercent(group.obligationRate)}</b></span></div><div className="school-reading-track" role="img" aria-label={`${group.label} 사용 결정률 ${formatPercent(group.obligationRate)}`}><i style={{ width: `${useRate}%` }} /></div><div className="school-reading-basis"><span>전체 예산 <b>{formatCompactWon(group.budget)}</b></span></div></div><div className="school-reading-side"><div className="school-reading-balance"><small>현재 잔액</small><strong>{formatReadableWon(group.uncommitted)}</strong><em>{formatPercent(balanceRate)} 남음</em></div>{drillLabel ? <button className="hierarchy-drill school-reading-drill" onClick={() => onDrill(group)} aria-label={`${group.label} ${drillLabel}`}>{drillLabel}<ChevronRight size={14} /></button> : <span className="school-reading-end" aria-hidden="true" />}</div></article>;
+    return <article key={group.id} className={`school-reading-row ${group.uncommitted < 0 ? "negative" : ""}`}><div className="school-reading-name"><strong>{group.label}</strong>{group.parentLabel && <small>{group.parentLabel}</small>}</div><div className="school-reading-progress"><div className="school-reading-rate"><span>사용 결정 <b>{formatPercent(group.obligationRate)}</b></span></div><div className="school-reading-track" role="img" aria-label={`${group.label} 사용 결정률 ${formatPercent(group.obligationRate)}`}><i style={{ width: `${useRate}%` }} /></div><div className="school-reading-basis"><span>전체 예산 <b>{formatCompactWon(group.budget)}</b></span></div></div><div className="school-reading-balance"><small>현재 잔액</small><strong>{formatReadableWon(group.uncommitted)}</strong><em>{formatPercent(balanceRate)} 남음</em></div>{drillLabel ? <button className="hierarchy-drill school-reading-drill" onClick={() => onDrill(group)} aria-label={`${group.label} ${drillLabel}`}>{drillLabel}<ChevronRight size={14} /></button> : <span className="school-reading-end" aria-hidden="true" />}</article>;
   })}</div>;
 }
 

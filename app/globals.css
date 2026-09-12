@@ -4791,3 +4791,240 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
   .school-reading-balance { align-items: flex-start; text-align: left; }
   .school-reading-drill { flex: 0 0 auto; }
 }
+
+/* v0.6.52 · 공개 전 리스트 컴포넌트 정렬 정리 (Figma Auto Layout 톤) */
+@media (min-width: 1101px) {
+  /* 잔액분석: 순위+이름 → 그래프 → 예상 잔액. 한 행을 하나의 안정된 비교 셀로. */
+  .business-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .business-chart-row {
+    min-height: 84px;
+    padding: 14px 16px;
+    grid-template-columns: 28px minmax(190px, 220px) minmax(360px, 520px) 1fr minmax(155px, 180px);
+    column-gap: 16px;
+    row-gap: 5px;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #e7ebf1;
+    border-radius: 12px;
+  }
+  .business-chart-row:hover {
+    background: #fbfcff;
+    border-color: #dce3ee;
+  }
+  .business-chart-row.selected {
+    background: #f7f9ff;
+    border-color: #cbd8f5;
+  }
+  .business-chart-rank { grid-column: 1; }
+  .business-chart-name {
+    grid-column: 2;
+    font-size: 16px;
+    font-weight: 760;
+  }
+  .business-chart-visual {
+    grid-column: 3;
+    width: 100%;
+    max-width: 520px;
+    gap: 6px;
+  }
+  .business-chart-value {
+    grid-column: 5;
+    width: 100%;
+    justify-self: end;
+    align-items: flex-end;
+    text-align: right;
+  }
+  .business-chart-value small { font-size: 12px; }
+  .business-chart-value strong { font-size: 21px; }
+
+  /* 정책사업: 이름 → 시각화 → 현재 잔액 → 화살표. 정보 그룹은 붙이고 액션만 우측 고정. */
+  .policy-flow-list.budget-reading-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .policy-flow-row.budget-reading-row {
+    min-height: 94px;
+    padding: 15px 18px;
+    grid-template-columns: minmax(210px, 240px) minmax(360px, 520px) minmax(180px, 220px) 1fr 32px;
+    column-gap: 18px;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #e7ebf1;
+    border-radius: 12px;
+  }
+  .policy-flow-row.budget-reading-row:hover,
+  .policy-flow-row.budget-reading-row.selected {
+    background: #fbfcff;
+    border-color: #d8e1ef;
+  }
+  .policy-flow-row.budget-reading-row .policy-flow-name {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .policy-flow-row.budget-reading-row .policy-flow-name strong {
+    font-size: 16px;
+    line-height: 1.4;
+  }
+  .policy-flow-row.budget-reading-row .policy-flow-visual {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    max-width: 520px;
+    gap: 6px;
+  }
+  .policy-balance-value {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    align-items: flex-end;
+    text-align: right;
+  }
+  .policy-balance-value strong { font-size: 21px; }
+  .policy-flow-row.budget-reading-row > svg {
+    grid-column: 5;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  /* 묶어보기: 이름 → 시각화 → 현재 잔액 → 상세 버튼. 버튼은 반드시 맨 오른쪽 독립 액션. */
+  .school-reading-list {
+    gap: 8px;
+  }
+  .school-reading-row {
+    min-height: 100px;
+    padding: 15px 18px;
+    grid-template-columns: minmax(210px, 240px) minmax(360px, 500px) minmax(190px, 230px) 1fr auto;
+    column-gap: 18px;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #e2e7ee;
+    border-radius: 12px;
+  }
+  .school-reading-row:hover {
+    background: #fbfcff;
+    border-color: #d7dfeb;
+  }
+  .school-reading-name {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .school-reading-name strong {
+    font-size: 16px;
+    line-height: 1.4;
+  }
+  .school-reading-progress {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    max-width: 500px;
+    gap: 6px;
+  }
+  .school-reading-balance {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    align-items: flex-end;
+    text-align: right;
+  }
+  .school-reading-balance strong { font-size: 21px; }
+  .school-reading-drill {
+    grid-column: 5;
+    grid-row: 1;
+    justify-self: end;
+    align-self: center;
+    min-height: 38px;
+    white-space: nowrap;
+  }
+  .school-reading-end {
+    grid-column: 5;
+    grid-row: 1;
+  }
+
+  /* 공통 시각화: 말은 적게, 리듬은 동일하게 */
+  .budget-reading-rate-head,
+  .school-reading-rate {
+    justify-content: flex-start;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .budget-reading-rate-head b,
+  .school-reading-rate b { font-size: 13px; }
+  .policy-flow-row.budget-reading-row .policy-flow-amounts,
+  .school-reading-basis {
+    gap: 0;
+    font-size: 12px;
+  }
+  .policy-flow-row.budget-reading-row .policy-flow-amounts small,
+  .policy-flow-row.budget-reading-row .policy-flow-amounts b,
+  .school-reading-basis,
+  .school-reading-basis b { font-size: 12px; }
+}
+
+@media (min-width: 721px) and (max-width: 1100px) {
+  .business-chart-row {
+    grid-template-columns: 28px minmax(155px, .75fr) minmax(260px, 1.2fr) minmax(140px, .62fr);
+    gap: 14px;
+  }
+  .business-chart-name { grid-column: 2; }
+  .business-chart-visual { grid-column: 3; }
+  .business-chart-value { grid-column: 4; }
+
+  .policy-flow-row.budget-reading-row {
+    grid-template-columns: minmax(170px, .8fr) minmax(260px, 1.2fr) minmax(150px, .68fr) 28px;
+    gap: 14px;
+  }
+  .policy-flow-row.budget-reading-row .policy-flow-name { grid-column: 1; }
+  .policy-flow-row.budget-reading-row .policy-flow-visual { grid-column: 2; }
+  .policy-balance-value { grid-column: 3; }
+  .policy-flow-row.budget-reading-row > svg { grid-column: 4; }
+
+  .school-reading-row {
+    grid-template-columns: minmax(165px, .78fr) minmax(245px, 1.15fr) minmax(160px, .7fr) auto;
+    gap: 14px;
+  }
+  .school-reading-name { grid-column: 1; }
+  .school-reading-progress { grid-column: 2; }
+  .school-reading-balance { grid-column: 3; }
+  .school-reading-drill,
+  .school-reading-end { grid-column: 4; }
+}
+
+@media (max-width: 720px) {
+  .business-chart-row {
+    background: #fff;
+    border: 1px solid #e7ebf1;
+    border-radius: 12px;
+    padding: 13px 12px;
+  }
+  .policy-flow-row.budget-reading-row,
+  .school-reading-row {
+    background: #fff;
+    border: 1px solid #e7ebf1;
+    border-radius: 12px;
+  }
+  .school-reading-row {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    gap: 10px 12px;
+  }
+  .school-reading-name { grid-column: 1; grid-row: 1; }
+  .school-reading-progress { grid-column: 1 / -1; grid-row: 2; width: 100%; }
+  .school-reading-balance {
+    grid-column: 1;
+    grid-row: 3;
+    align-items: flex-start;
+    text-align: left;
+  }
+  .school-reading-drill {
+    grid-column: 2;
+    grid-row: 3;
+    justify-self: end;
+    align-self: end;
+  }
+  .school-reading-end { display: none; }
+}
