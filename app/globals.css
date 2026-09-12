@@ -3262,3 +3262,254 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
   .school-hierarchy-graph-row.no-action .school-hierarchy-graph-visual { grid-column: 1; }
   .school-hierarchy-graph-row.no-action .school-hierarchy-graph-balance { grid-column: 1; }
 }
+
+/* v0.6.55 · 산출내역 그래프 보기 / 계획 입력 분리 */
+.business-view-switches {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.business-display-toggle {
+  display: inline-grid;
+  grid-template-columns: repeat(2,auto);
+  padding: 3px;
+  background: #eef2f7;
+  border-radius: 10px;
+}
+.business-display-toggle button {
+  min-height: 36px;
+  padding: 0 14px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.business-display-toggle button.active {
+  color: var(--blue-dark);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(31,49,72,.08);
+}
+
+.business-balance-visual-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.business-balance-visual-group {
+  overflow: hidden;
+  background: transparent;
+  border-radius: 14px;
+}
+.business-balance-visual-group.expanded {
+  background: #f8faff;
+  border: 1px solid #e4e9f1;
+}
+.business-balance-visual-group.expanded > .business-balance-visual-card {
+  border-color: transparent;
+  border-radius: 13px 13px 0 0;
+}
+.business-balance-visual-children {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid #e8edf3;
+}
+.business-balance-visual-children .business-balance-visual-group {
+  background: #fff;
+}
+
+.business-balance-visual-card {
+  width: 100%;
+  min-width: 0;
+  padding: 17px 18px;
+  display: grid;
+  grid-template-columns: minmax(250px,1fr) minmax(390px,1.55fr) minmax(118px,.42fr);
+  gap: 20px;
+  align-items: center;
+  color: var(--ink);
+  text-align: left;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  cursor: pointer;
+}
+.business-balance-visual-card:hover {
+  background: #fbfcff;
+  border-color: #d7dfeb;
+}
+.business-balance-visual-card:focus-visible {
+  outline: 3px solid rgba(49,89,216,.18);
+  outline-offset: 2px;
+}
+.business-balance-visual-card.compact {
+  padding: 14px 15px;
+  grid-template-columns: minmax(220px,.9fr) minmax(340px,1.45fr) minmax(100px,.38fr);
+  border-radius: 11px;
+}
+.business-balance-visual-card.complete { opacity: .72; }
+.business-balance-visual-card.negative {
+  border-color: #efc8cb;
+  box-shadow: inset 3px 0 var(--red);
+}
+.business-balance-visual-title {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.business-balance-visual-title small,
+.business-balance-visual-title em {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  font-style: normal;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.business-balance-visual-title strong {
+  overflow: hidden;
+  margin: 1px 0;
+  font-size: 16px;
+  line-height: 1.42;
+  letter-spacing: -.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.business-balance-visual-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.business-balance-visual-top {
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+}
+.business-balance-visual-top > span {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.business-balance-visual-top small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.business-balance-visual-top strong {
+  overflow: hidden;
+  color: var(--blue-dark);
+  font-size: 19px;
+  font-weight: 750;
+  letter-spacing: -.02em;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.business-balance-visual-card.negative .business-balance-visual-top strong { color: var(--red); }
+.business-balance-visual-top > em {
+  flex: 0 0 auto;
+  color: #6f7b8c;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.business-balance-visual-top > em.danger { color: var(--red); }
+.business-balance-visual-track {
+  width: 100%;
+  height: 9px;
+  overflow: hidden;
+  display: block;
+  background: #dfe5ed;
+  border-radius: 999px;
+}
+.business-balance-visual-track > i {
+  height: 100%;
+  display: block;
+  background: var(--blue);
+  border-radius: 999px;
+}
+.business-balance-visual-card.negative .business-balance-visual-track > i { width: 0 !important; }
+.business-balance-visual-basis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 14px;
+  color: #768196;
+  font-size: 11px;
+}
+.business-balance-visual-basis b {
+  color: #556276;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.business-balance-visual-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  color: var(--blue-dark);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.business-detail-card.is-plan-focus {
+  border-color: #b9c9f8;
+  box-shadow: 0 0 0 3px rgba(49,89,216,.10);
+}
+
+@media (max-width: 1080px) and (min-width: 721px) {
+  .business-balance-visual-card,
+  .business-balance-visual-card.compact {
+    grid-template-columns: minmax(210px,.8fr) minmax(310px,1.3fr) minmax(105px,.38fr);
+    gap: 14px;
+  }
+  .business-balance-visual-top strong { font-size: 17px; }
+}
+
+@media (max-width: 720px) {
+  .business-view-switches {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .business-display-toggle {
+    width: 100%;
+    grid-template-columns: repeat(2,1fr);
+  }
+  .business-display-toggle button { min-height: 38px; padding: 0 8px; }
+  .business-balance-visual-card,
+  .business-balance-visual-card.compact {
+    padding: 15px 14px;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .business-balance-visual-title strong {
+    overflow: visible;
+    white-space: normal;
+  }
+  .business-balance-visual-top {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .business-balance-visual-top > span {
+    width: 100%;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+  .business-balance-visual-top strong { font-size: 18px; }
+  .business-balance-visual-action { justify-content: flex-start; }
+  .business-balance-visual-children { padding: 7px; }
+}
