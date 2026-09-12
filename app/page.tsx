@@ -257,7 +257,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.49";
+const APP_VERSION = "v0.6.50";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1475,6 +1475,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
       return { ...project, planned, forecast: project.budgetBalance - planned };
     }).filter((project) => project.forecast > 0).sort((a, b) => b.forecast - a.forecast).slice(0, 10);
   }, [costScopedRows, plans, meta]);
+  const chartMaxForecast = Math.max(...chartProjects.map((project) => project.forecast), 1);
   const selectedChart = chartProjects.find((project) => project.id === selectedChartProject) ?? null;
   const hasActiveScope = Boolean(selectedDetailProject) || filter !== "all" || Boolean(normalize(search)) || costFilter !== BUSINESS_COST_FILTER_ALL;
 
@@ -1587,23 +1588,20 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
       <div className="business-visual-head"><div className="section-heading"><span className="section-kicker">잔액 분석</span><h2 id="business-visual-title">어디에 많이 남아 있을까요?</h2><p>집행계획까지 반영한 잔액을 큰 순서로 보여드립니다.</p><span className="business-top-badge">{costFilter !== BUSINESS_COST_FILTER_ALL ? `${selectedCostLabel} · ` : ""}세부사업 기준 · Top {Math.min(chartProjects.length, 10)}</span></div></div>
       <div className="business-visual-content">
         {chartProjects.length > 0 ? <div className="business-chart" role="list">{chartProjects.map((project, index) => {
-          const total = Math.max(project.currentBudget, 1);
-          const committedPct = Math.max(0, Math.min(100, (project.obligation / total) * 100));
-          const plannedPct = Math.max(0, Math.min(100 - committedPct, (project.planned / total) * 100));
-          const remainingPct = Math.max(0, 100 - committedPct - plannedPct);
+          const barPct = Math.max(3, Math.min(100, (project.forecast / chartMaxForecast) * 100));
           const selected = selectedChartProject === project.id;
           return <button type="button" role="listitem" key={project.id} className={`business-chart-row ${selected ? "selected" : ""}`} onClick={() => selectChartProject(project)} aria-expanded={selected}>
             <span className="business-chart-rank">{index + 1}</span>
             <span className="business-chart-name">{project.projectName}</span>
             <span className="business-chart-value"><small>예상 잔액</small><strong>{formatKpiWon(project.forecast)}</strong></span>
             <span className="business-chart-visual">
-              <span className="business-chart-track composition" role="img" aria-label={`${project.projectName} 전체 예산 중 사용 결정 ${formatPercent(committedPct)}, 사용 예정 ${formatPercent(plannedPct)}, 예상 잔액 ${formatPercent(remainingPct)}`}><i className="committed" style={{ width: `${committedPct}%` }} />{plannedPct > 0 && <i className="planned" style={{ width: `${plannedPct}%` }} />}<i className="remaining" style={{ width: `${remainingPct}%` }} /></span>
+              <span className="business-chart-track rank-balance" role="img" aria-label={`${project.projectName} 예상 잔액 ${formatKpiWon(project.forecast)}, Top10 최대 잔액 대비 ${Math.round(barPct)}%`}><i className="rank-balance-fill" style={{ width: `${barPct}%` }} /></span>
               <span className="business-chart-meta"><span>사용 결정 <b>{formatCompactWon(project.obligation)}</b></span>{project.planned > 0 && <span className="planned-label">+ 사용 예정 <b>{formatCompactWon(project.planned)}</b></span>}</span>
             </span>
           </button>;
         })}</div> : <EmptyState text="계획 반영 후 남는 금액이 있는 세부사업이 없습니다." />}
         {selectedChart && <div ref={selectedChartDetailRef} className={`business-chart-detail ${chartDetailFocused ? "is-focused" : ""}`} aria-live="polite"><div><span>선택한 세부사업</span><strong>{selectedChart.projectName}</strong></div><dl><div><dt>내 예산</dt><dd title={formatWon(selectedChart.currentBudget)}>{formatKpiWon(selectedChart.currentBudget)}</dd></div><div><dt>사용 결정액</dt><dd title={formatWon(selectedChart.obligation)}>{formatKpiWon(selectedChart.obligation)}</dd></div><div><dt>사용 예정</dt><dd title={formatWon(selectedChart.planned)}>{formatKpiWon(selectedChart.planned)}</dd></div><div><dt>예상 잔액</dt><dd title={formatWon(selectedChart.forecast)}>{formatKpiWon(selectedChart.forecast)}</dd></div></dl><div className="business-chart-actions"><button className="business-chart-list-button" onClick={() => focusChartProject(selectedChart.projectName)}>이 사업 상세 보기<ChevronRight size={14} /></button><button className="business-chart-back-button" onClick={returnToProjectNavigator}><ArrowUp size={14} />다른 사업 선택</button></div></div>}
-        <p className="business-chart-note"><Info size={14} />막대는 전체 예산 안에서 사용 결정·사용 예정·예상 잔액의 구성을 보여줍니다. 사용 예정 금액은 입력된 경우에만 표시합니다.</p>
+        <p className="business-chart-note"><Info size={14} />막대가 길수록 예상 잔액이 큽니다. 사용 결정은 근거값으로, 사용 예정 금액은 입력된 경우에만 표시합니다.</p>
       </div>
     </section>
 

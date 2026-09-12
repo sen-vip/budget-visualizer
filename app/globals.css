@@ -4588,3 +4588,56 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
   }
   .business-chart-value strong { font-size: 20px; }
 }
+
+
+/* v0.6.50 · 잔액분석은 순위 비교 화면: 제목 → 잔액 막대 → 예상 잔액 */
+.business-chart-track.rank-balance {
+  display: block;
+  overflow: hidden;
+  height: 9px;
+  background: #dfe5ed;
+  border-radius: 999px;
+}
+.business-chart-track.rank-balance .rank-balance-fill {
+  display: block;
+  height: 100%;
+  background: var(--blue);
+  border-radius: 999px;
+}
+
+@media (min-width: 1101px) {
+  .business-chart-row {
+    grid-template-columns: 28px minmax(190px, 220px) minmax(360px, 520px) minmax(160px, 180px);
+    column-gap: 20px;
+    row-gap: 5px;
+    justify-content: start;
+    padding: 13px 14px;
+  }
+  .business-chart-name {
+    grid-column: 2;
+    min-width: 0;
+  }
+  .business-chart-visual {
+    grid-column: 3;
+    width: 100%;
+    max-width: 520px;
+    justify-self: start;
+  }
+  .business-chart-track { max-width: 520px; }
+  .business-chart-value {
+    grid-column: 4;
+    width: 100%;
+    justify-self: stretch;
+    align-items: flex-end;
+  }
+}
+
+@media (min-width: 721px) and (max-width: 1100px) {
+  .business-chart-row {
+    grid-template-columns: 28px minmax(160px, .72fr) minmax(260px, 1.25fr) minmax(145px, .62fr);
+    gap: 14px;
+    justify-content: start;
+  }
+  .business-chart-visual { grid-column: 3; width: 100%; }
+  .business-chart-value { grid-column: 4; align-items: flex-end; text-align: right; }
+}
