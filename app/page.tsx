@@ -257,7 +257,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.56";
+const APP_VERSION = "v0.6.57";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -926,6 +926,7 @@ export default function Home() {
   const [mainView, setMainView] = useState<MainView>("mine");
   const [businessRows, setBusinessRows] = useState<BusinessCardRow[]>([]);
   const [businessMeta, setBusinessMeta] = useState<BusinessCardMeta | null>(null);
+  const [businessDataRevision, setBusinessDataRevision] = useState(0);
   const [businessManager, setBusinessManager] = useState("all");
   const [businessPlans, setBusinessPlans] = useState<Record<string, number>>({});
   const [businessDragging, setBusinessDragging] = useState(false);
@@ -1019,6 +1020,7 @@ export default function Home() {
       const result = await parseBusinessCard(file);
       setBusinessRows(result.rows);
       setBusinessMeta(result.meta);
+      setBusinessDataRevision((current) => current + 1);
       setBusinessManager("all");
       setBusinessPlans(readBusinessPlans());
       setMainView("mine");
@@ -1294,8 +1296,8 @@ export default function Home() {
           {businessMeta && mainView !== "school" && businessError && <div className="replacement-error-banner" role="alert"><AlertCircle size={18} /><span>{businessError}</span></div>}
           {meta && mainView === "school" && error && <div className="replacement-error-banner" role="alert"><AlertCircle size={18} /><span>{error}</span></div>}
 
-          {mainView === "mine" && (businessMeta ? <MyBusinessView rows={visibleBusinessRows} meta={businessMeta} totals={businessTotals} plans={businessPlans} updatePlan={updateBusinessPlan} goPlan={() => setMainView("plan")} /> : <BusinessUploadPrompt choose={() => businessFileInputRef.current?.click()} loading={businessLoading} error={businessError} dragging={businessDragging} setDragging={setBusinessDragging} dropFile={onBusinessDrop} />)}
-          {mainView === "plan" && (businessMeta ? <BusinessPlanView rows={visibleBusinessRows} meta={businessMeta} totals={businessTotals} plans={businessPlans} updatePlan={updateBusinessPlan} /> : <BusinessUploadPrompt choose={() => businessFileInputRef.current?.click()} loading={businessLoading} error={businessError} dragging={businessDragging} setDragging={setBusinessDragging} dropFile={onBusinessDrop} />)}
+          {mainView === "mine" && (businessMeta ? <MyBusinessView key={`mine-${businessDataRevision}`} rows={visibleBusinessRows} meta={businessMeta} totals={businessTotals} plans={businessPlans} updatePlan={updateBusinessPlan} goPlan={() => setMainView("plan")} /> : <BusinessUploadPrompt choose={() => businessFileInputRef.current?.click()} loading={businessLoading} error={businessError} dragging={businessDragging} setDragging={setBusinessDragging} dropFile={onBusinessDrop} />)}
+          {mainView === "plan" && (businessMeta ? <BusinessPlanView key={`plan-${businessDataRevision}`} rows={visibleBusinessRows} meta={businessMeta} totals={businessTotals} plans={businessPlans} updatePlan={updateBusinessPlan} /> : <BusinessUploadPrompt choose={() => businessFileInputRef.current?.click()} loading={businessLoading} error={businessError} dragging={businessDragging} setDragging={setBusinessDragging} dropFile={onBusinessDrop} />)}
           {mainView === "school" && (!meta ? <SchoolUploadPrompt choose={() => fileInputRef.current?.click()} loading={loading} error={error} dragging={schoolDragging} setDragging={setSchoolDragging} dropFile={onSchoolDrop} /> : <section className="school-area"><div className="school-toolbar"><div className="school-toolbar-main"><span className="school-toolbar-icon"><Building2 size={20} /></span><span className="school-toolbar-copy"><span className="section-kicker">학교 전체 분석</span><strong>{tab === "overview" ? "학교 전체 예산 흐름" : tab === "promotion" ? "업무추진비 계획과 잔액" : "연말 결산예측"}</strong><small>102-2 · {meta.rowCount.toLocaleString("ko-KR")}개 산출내역 · {dateLabel(meta.executionDate)} 기준</small></span></div>{tab !== "closing" && <label className="filter-field school-fund-filter">재원 보기<select value={fundFilter} onChange={(event) => setFundFilter(event.target.value as FundFilter)}><option value="all">전체 사업</option><option value="school">학교운영비</option><option value="purpose">목적사업비</option><option value="revenue">수익자부담</option></select></label>}</div>
           {tab !== "closing" && <FundClassificationSummary rows={rows} />}
           {tab === "overview" && <OverviewTab rows={filteredRows} meta={meta} fundFilter={fundFilter} />}
@@ -1459,7 +1461,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
 
   const chartProjects = useMemo(() => {
     const grouped = new Map<string, BusinessProjectGroup>();
-    costScopedRows.forEach((row) => {
+    filteredRows.forEach((row) => {
       const id = normalize(row.projectName) || "project";
       const current = grouped.get(id) ?? { id, projectName: row.projectName || "사업명 없음", currentBudget: 0, obligation: 0, paid: 0, budgetBalance: 0, paymentBalance: 0, rows: [], items: [] };
       current.currentBudget += row.currentBudget;
@@ -1474,7 +1476,7 @@ function MyBusinessView({ rows, meta, totals, plans, updatePlan, goPlan }: {
       const planned = project.rows.reduce((sum, row) => sum + (plans[businessPlanKey(meta, row)] ?? 0), 0);
       return { ...project, planned, forecast: project.budgetBalance - planned };
     }).filter((project) => project.forecast > 0).sort((a, b) => b.forecast - a.forecast).slice(0, 10);
-  }, [costScopedRows, plans, meta]);
+  }, [filteredRows, plans, meta]);
   const chartMaxForecast = useMemo(() => Math.max(...chartProjects.map((project) => project.forecast), 1), [chartProjects]);
   const selectedChart = chartProjects.find((project) => project.id === selectedChartProject) ?? null;
   const hasActiveScope = Boolean(selectedDetailProject) || filter !== "all" || Boolean(normalize(search)) || costFilter !== BUSINESS_COST_FILTER_ALL;
