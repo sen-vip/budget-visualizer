@@ -257,7 +257,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.57";
+const APP_VERSION = "v0.6.58";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -486,7 +486,7 @@ async function parseBusinessCard(file: File): Promise<{ rows: BusinessCardRow[];
     const headers = row.map(normalize);
     return headers.some((header) => header.includes("세부사업/세부항목/원가통계비목")) && headers.includes("산출내역") && headers.some((header) => header.startsWith("예산현액"));
   });
-  if (compactHeaderRowIndex < 0) throw new Error("지원하는 사업관리카드 열 제목을 찾지 못했습니다. 사업관리카드(현액/예산) 또는 세출예산집행현황목록인지 확인해주세요.");
+  if (compactHeaderRowIndex < 0) throw new Error("지원하는 사업관리카드 열 제목을 찾지 못했습니다. 사업관리카드(예산/현액) 또는 세출예산집행현황목록인지 확인해주세요.");
 
   const primaryHeaders = matrix[compactHeaderRowIndex].map(normalize);
   const secondaryHeaders = (matrix[compactHeaderRowIndex + 1] ?? []).map(normalize);
@@ -1268,10 +1268,10 @@ export default function Home() {
       {!businessMeta && !meta ? (
         <section className="upload-page launch-home">
           <div className="landing-hero-panel">
-            <div className="upload-intro"><span className="eyebrow">내 사업 예산 보기</span><h1>내 사업 예산,<br />지금 얼마나 남았을까?</h1><p>사업관리카드(현액 또는 예산) 하나만 불러오면 현재 집행현황과 앞으로 사용할 수 있는 예산을 바로 정리해드려요.</p><div className="landing-flow" aria-label="예산현황판 이용 순서"><span><b>1</b>사업관리카드 업로드</span><i>→</i><span><b>2</b>자동 분석</span><i>→</i><span><b>3</b>잔액 확인</span></div><BusinessFileRouteGuide compact /></div>
+            <div className="upload-intro"><span className="eyebrow">내 사업 예산 보기</span><h1>내 사업 예산,<br />지금 얼마나 남았을까?</h1><p>사업관리카드(예산 또는 현액) 하나만 불러오면 현재 집행현황과 앞으로 사용할 수 있는 예산을 바로 정리해드려요.</p><div className="landing-flow" aria-label="예산현황판 이용 순서"><span><b>1</b>사업관리카드 업로드</span><i>→</i><span><b>2</b>자동 분석</span><i>→</i><span><b>3</b>잔액 확인</span></div><BusinessFileRouteGuide compact /></div>
             <div className={`drop-zone ${businessDragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setBusinessDragging(true); }} onDragLeave={() => setBusinessDragging(false)} onDrop={onBusinessDrop}>
               <span className="drop-kicker">가장 먼저</span><div className="drop-icon"><UploadCloud size={28} /></div><h2>사업관리카드 불러오기</h2><p>파일을 끌어놓거나 아래 버튼으로 선택하세요.</p>
-              <button className="button primary landing-upload-button" onClick={() => businessFileInputRef.current?.click()} disabled={businessLoading}><FileSpreadsheet size={18} />{businessLoading ? "분석 중..." : "파일 선택"}</button><span className="file-hint">.xlsx · .xls · 현액/예산/집행현황 자동 판별</span><span className="browser-security-note"><LockKeyhole size={13} />파일은 이 브라우저에서만 분석됩니다.</span>
+              <button className="button primary landing-upload-button" onClick={() => businessFileInputRef.current?.click()} disabled={businessLoading}><FileSpreadsheet size={18} />{businessLoading ? "분석 중..." : "파일 선택"}</button><span className="file-hint">.xlsx · .xls · 예산/현액/집행현황 자동 판별</span><span className="browser-security-note"><LockKeyhole size={13} />파일은 이 브라우저에서만 분석됩니다.</span>
               {businessError && <div className="error-message" role="alert"><AlertCircle size={17} />{businessError}</div>}
             </div>
           </div>
@@ -1350,11 +1350,15 @@ function FileRouteGuide({ detail }: { detail: string }) {
 }
 
 function BusinessFileRouteGuide({ compact = false }: { compact?: boolean }) {
-  return <div className={`file-route-guide ${compact ? "landing-route-guide" : ""}`}><span><Info size={16} />{compact ? "어디서 받나요?" : "에듀파인 다운로드 경로"}</span><strong>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드 &gt; 사업관리카드(현액) 또는 사업관리카드(예산)</strong><small>세출예산집행현황목록도 불러올 수 있습니다. 이 자료는 지급액 열이 없어 원인행위 기준까지만 표시합니다.</small></div>;
+  return <div className={`file-route-guide ${compact ? "landing-route-guide" : ""}`}>
+    <span className="file-route-title"><span className="file-route-icon"><Info size={15} /></span>{compact ? "어디서 받나요?" : "에듀파인 다운로드 경로"}</span>
+    <div className="file-route-path"><strong>에듀파인</strong><i>›</i><strong>학교회계</strong><i>›</i><strong>사업관리</strong><i>›</i><strong>사업관리카드</strong><i>›</i><b>사업관리카드(예산) 또는 사업관리카드(현액)</b></div>
+    <small>세출예산집행현황목록도 불러올 수 있습니다. 이 자료는 지급액 열이 없어 원인행위 기준까지만 표시합니다.</small>
+  </div>;
 }
 
 function BusinessUploadPrompt({ choose, loading, error, dragging, setDragging, dropFile }: { choose: () => void; loading: boolean; error: string; dragging: boolean; setDragging: (value: boolean) => void; dropFile: (event: DragEvent<HTMLDivElement>) => void }) {
-  return <section className="centered-upload page-content"><div className="prompt-icon"><BriefcaseBusiness size={28} /></div><span className="section-kicker">내 사업 시작하기</span><h1>사업관리카드를 불러와주세요</h1><p>현액·예산 형식을 자동으로 구분해 지금 새로 사용할 수 있는 금액과 세부항목별 잔액을 보여드려요.</p><div className={`business-prompt-drop-zone ${dragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={dropFile}><UploadCloud size={26} /><strong>{dragging ? "여기에 놓으세요" : "사업관리카드를 끌어놓으세요"}</strong><span>또는</span><button className="button primary" onClick={choose} disabled={loading}><FileSpreadsheet size={18} />{loading ? "분석 중..." : "파일 선택"}</button><small>.xlsx · .xls · 현액/예산 자동 판별</small></div><BusinessFileRouteGuide />{error && <div className="error-message" role="alert"><AlertCircle size={17} />{error}</div>}</section>;
+  return <section className="centered-upload page-content"><div className="prompt-icon"><BriefcaseBusiness size={28} /></div><span className="section-kicker">내 사업 시작하기</span><h1>사업관리카드를 불러와주세요</h1><p>예산·현액 형식을 자동으로 구분해 지금 새로 사용할 수 있는 금액과 세부항목별 잔액을 보여드려요.</p><div className={`business-prompt-drop-zone ${dragging ? "dragging" : ""}`} onDragOver={(event) => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={dropFile}><UploadCloud size={26} /><strong>{dragging ? "여기에 놓으세요" : "사업관리카드를 끌어놓으세요"}</strong><span>또는</span><button className="button primary" onClick={choose} disabled={loading}><FileSpreadsheet size={18} />{loading ? "분석 중..." : "파일 선택"}</button><small>.xlsx · .xls · 예산/현액 자동 판별</small></div><BusinessFileRouteGuide />{error && <div className="error-message" role="alert"><AlertCircle size={17} />{error}</div>}</section>;
 }
 
 function SchoolUploadPrompt({ choose, loading, error, dragging, setDragging, dropFile }: { choose: () => void; loading: boolean; error: string; dragging: boolean; setDragging: (value: boolean) => void; dropFile: (event: DragEvent<HTMLDivElement>) => void }) {
@@ -2335,15 +2339,53 @@ function ResetDataModal({ close, clearExcel, clearAll }: { close: () => void; cl
 }
 
 function HelpModal({ close }: { close: () => void }) {
-  return <div className="modal-backdrop" onMouseDown={close}><section className="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" onMouseDown={(event) => event.stopPropagation()}><button className="icon-button modal-close" aria-label="도움말 닫기" onClick={close}><X size={20} /></button><span className="eyebrow">도움말</span><h2 id="help-title">예산현황판 사용 방법</h2><div className="help-steps">
-    <div><b>1</b><span><strong>사업관리카드 내려받기</strong><small>에듀파인 &gt; 학교회계 &gt; 사업관리 &gt; 사업관리카드에서 (현액) 또는 (예산) 파일을 내려받습니다.</small></span></div>
-    <div><b>2</b><span><strong>잔액 분석</strong><small>현재 잔액을 가장 먼저 보여주고, 전체 예산·사용 결정액은 근거 정보로 함께 표시합니다. 집행계획이 있으면 계획 반영 후 잔액을 추가로 계산하며, ‘예상 잔액 상위 사업’ Top10으로 다른 사업도 이어서 탐색할 수 있습니다.</small></span></div>
-    <div><b>3</b><span><strong>비목과 보고 싶은 단위로 좁혀보기</strong><small>비목 필터에서 일반수용비나 업무추진비 전체처럼 필요한 비목만 골라 볼 수 있습니다. 이어서 ‘세부사업으로 묶기’, ‘세부항목으로 묶기’, ‘산출내역 그대로’ 중 원하는 보기를 선택하세요.</small></span></div>
-    <div><b>4</b><span><strong>앞으로 쓸 금액 입력</strong><small>산출내역별 집행예정액을 입력하면 예상 잔액이 바로 계산됩니다. 입력값은 현재 브라우저에만 저장됩니다.</small></span></div>
-    <div><b>5</b><span><strong>102-2 내려받아 학교 전체 분석</strong><small>에듀파인 &gt; 학교회계 &gt; 예산결산 &gt; 결산현황 &gt; 집행실적에서 <b>엑셀저장(실시간)</b>을 누르고, 자료코드 <b>102-2</b>를 선택해 내려받습니다.</small></span></div>
-    <div><b>6</b><span><strong>학교 전체 예산 흐름</strong><small><b>사용하기로 한 금액</b>은 원인행위액, <b>실제 지급한 금액</b>은 지출액입니다. <b>지급 대기</b>는 원인행위액에서 지출액을 뺀 금액이며, <b>아직 원인행위되지 않은 금액</b>은 예산현액에서 원인행위액을 뺀 금액입니다.</small></span></div>
-    <div><b>7</b><span><strong>정책사업부터 세부항목까지 보기</strong><small>학교 전체 현황에서 정책사업·단위사업·세부사업·세부항목 단위로 묶어 보고, 단위사업 보기·세부사업 보기·세부항목 보기 버튼으로 다음 단계 내용을 확인할 수 있습니다.</small></span></div>
-    <div><b>8</b><span><strong>201 세입실적 연결</strong><small>결산예측에서 자료코드 201을 연결하고, 이전수입 반납예정액과 순세계잉여금 잠정값을 확인합니다.</small></span></div>
-    <div><b>9</b><span><strong>파일은 어디에 저장되나요?</strong><small>불러온 엑셀 파일은 서버로 업로드되지 않고 현재 브라우저에서 직접 분석됩니다. <b>자료 비우기</b>에서 엑셀만 비우거나, 내 사업 집행계획·업무추진비 계획·메모·결산예측 입력값까지 함께 삭제할 수 있습니다.</small></span></div>
-  </div><div className="privacy-card"><LockKeyhole size={20} /><div><strong>서버로 파일을 보내지 않습니다.</strong><p>엑셀은 현재 브라우저에서만 분석됩니다. 직접 입력한 집행계획과 결산예측 값은 재접속을 위해 이 브라우저에 저장될 수 있습니다.</p></div></div></section></div>;
+  return <div className="modal-backdrop" onMouseDown={close}><section className="help-modal help-modal-v2" role="dialog" aria-modal="true" aria-labelledby="help-title" onMouseDown={(event) => event.stopPropagation()}>
+    <button className="icon-button modal-close" aria-label="도움말 닫기" onClick={close}><X size={20} /></button>
+    <header className="help-hero">
+      <span className="eyebrow">도움말</span>
+      <h2 id="help-title">예산현황판 사용 안내</h2>
+      <p>에듀파인에서 받은 원본 파일을 그대로 불러오고, 내 사업 잔액부터 학교 전체 예산 흐름까지 필요한 만큼 이어서 확인하세요.</p>
+    </header>
+
+    <div className="help-sections">
+      <section className="help-section">
+        <h3>📁 에듀파인 파일 받기</h3>
+        <p>먼저 <strong>사업관리카드(예산)</strong> 또는 <strong>사업관리카드(현액)</strong> 하나를 내려받아 주세요.</p>
+        <div className="help-route-card">
+          <span>사업관리카드</span>
+          <strong>에듀파인 → 학교회계 → 사업관리 → 사업관리카드 → 사업관리카드(예산) 또는 사업관리카드(현액)</strong>
+        </div>
+        <div className="help-route-card secondary">
+          <span>학교 전체 분석 · 102-2</span>
+          <strong>에듀파인 → 학교회계 → 예산결산 → 결산현황 → 집행실적 → 엑셀저장(실시간) → 자료코드 102-2</strong>
+        </div>
+      </section>
+
+      <section className="help-section">
+        <h3>🔎 내 사업은 이렇게 봐요</h3>
+        <div className="help-flow-grid">
+          <article><b>1</b><span><strong>잔액 확인</strong><small>현재 잔액과 전체 예산·사용 결정액을 함께 확인합니다.</small></span></article>
+          <article><b>2</b><span><strong>필요한 범위로 좁히기</strong><small>검색·비목·상태를 고르고 세부사업, 세부항목, 산출내역 단위로 봅니다.</small></span></article>
+          <article><b>3</b><span><strong>집행계획 반영</strong><small>앞으로 쓸 금액을 입력하면 계획까지 반영한 예상 잔액이 바로 계산됩니다.</small></span></article>
+          <article><b>4</b><span><strong>다른 사업 살펴보기</strong><small>예상 잔액 상위 사업에서 다음으로 확인할 사업을 이어서 탐색합니다.</small></span></article>
+        </div>
+      </section>
+
+      <section className="help-section">
+        <h3>📊 학교 전체는 102-2로 이어서 봐요</h3>
+        <p><strong>사용하기로 한 금액</strong>은 원인행위액, <strong>실제 지급한 금액</strong>은 지출액입니다. 지급 대기는 원인행위액에서 지출액을 뺀 금액이고, 아직 원인행위되지 않은 금액은 예산현액에서 원인행위액을 뺀 금액입니다.</p>
+        <ul className="help-bullet-list">
+          <li>정책사업 → 단위사업 → 세부사업 → 세부항목 순서로 예산 흐름을 내려가며 확인할 수 있습니다.</li>
+          <li>업무추진비 계획과 잔액을 따로 확인할 수 있습니다.</li>
+          <li>결산예측에서 자료코드 201을 연결하면 이전수입 반납예정액과 순세계잉여금 잠정값을 확인할 수 있습니다.</li>
+        </ul>
+      </section>
+
+      <section className="help-section help-storage-section">
+        <h3>🔒 파일과 입력값은 어떻게 처리하나요?</h3>
+        <div className="privacy-card help-privacy-card"><LockKeyhole size={20} /><div><strong>엑셀 파일은 서버로 보내지 않습니다.</strong><p>불러온 파일은 현재 브라우저에서 직접 분석합니다. 집행계획·업무추진비 계획·메모·결산예측처럼 직접 입력한 값은 재접속을 위해 이 브라우저에 저장될 수 있습니다.</p></div></div>
+        <p className="help-storage-note"><strong>자료 비우기</strong>에서는 엑셀만 비우거나, 예산현황판이 저장한 입력값까지 함께 삭제할 수 있습니다.</p>
+      </section>
+    </div>
+  </section></div>;
 }
