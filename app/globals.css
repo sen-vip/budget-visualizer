@@ -3932,3 +3932,36 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
   .help-modal-v2 { max-height: calc(100vh - 20px); border-radius: 15px; }
   .help-route-card strong { font-size: 11.5px; }
 }
+
+
+/* v0.6.59 · 상단바를 현재 카드/콘텐츠 폭에 맞춰 정렬 */
+.topbar {
+  padding-left: 0;
+  padding-right: 0;
+}
+.topbar-inner {
+  width: min(1540px, calc(100% - clamp(28px, 5vw, 80px)));
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.topbar-landing .topbar-inner {
+  width: min(1180px, calc(100% - 40px));
+}
+@media (max-width: 720px) {
+  .topbar { padding-left: 0; padding-right: 0; }
+  .topbar-inner,
+  .topbar-landing .topbar-inner {
+    width: calc(100% - 28px);
+    display: grid;
+    grid-template-columns: minmax(0,1fr);
+    align-items: center;
+    gap: 5px;
+  }
+}
+@media (max-width: 390px) {
+  .topbar-inner,
+  .topbar-landing .topbar-inner { width: calc(100% - 24px); }
+}
