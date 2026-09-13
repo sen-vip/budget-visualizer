@@ -257,7 +257,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.61";
+const APP_VERSION = "v0.6.62";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -1706,7 +1706,8 @@ function BusinessBalanceGraphCard({ eyebrow, title, note, currentBudget, obligat
   compact?: boolean;
 }) {
   const rawBalanceRate = currentBudget > 0 ? balance / currentBudget * 100 : 0;
-  const barRate = Math.max(0, Math.min(100, rawBalanceRate));
+  const rawUsedRate = currentBudget > 0 ? obligation / currentBudget * 100 : 0;
+  const barRate = Math.max(0, Math.min(100, rawUsedRate));
   const negative = balance < 0;
   const zero = balance === 0;
   const rateLabel = currentBudget > 0

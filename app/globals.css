@@ -3441,7 +3441,6 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
   background: var(--blue);
   border-radius: 999px;
 }
-.business-balance-visual-card.negative .business-balance-visual-track > i { width: 0 !important; }
 .business-balance-visual-basis {
   display: flex;
   flex-wrap: wrap;
@@ -4050,3 +4049,7 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
   .business-detail-section .business-toolbar-primary .business-display-toggle { width: auto; }
   .business-detail-section .business-toolbar-primary .business-view-count { display: none; }
 }
+
+
+/* v0.6.62 · 진행률 막대 시각 의미 통일: 파란색=사용 결정, 회색=남은 예산 */
+/* 금액/비율 문구와 Top10 잔액 비교 막대는 변경하지 않음 */
