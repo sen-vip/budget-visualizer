@@ -257,7 +257,7 @@ type BusinessPlanProjectGroup = {
   items: BusinessPlanItemGroup[];
 };
 
-const APP_VERSION = "v0.6.59";
+const APP_VERSION = "v0.6.60";
 const STORAGE_KEY = "hakdol-expense-dashboard-plans-v1";
 const CLOSING_STORAGE_KEY = "hakdol-expense-dashboard-closing-v1";
 const BUSINESS_PLAN_STORAGE_KEY = "hakdol-business-card-plans-v1";
@@ -946,6 +946,7 @@ export default function Home() {
   const [planMonth, setPlanMonth] = useState("미정");
   const [planMemo, setPlanMemo] = useState("");
   const [helpOpen, setHelpOpen] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -958,6 +959,13 @@ export default function Home() {
   const [closingError, setClosingError] = useState("");
   const [closingDragging, setClosingDragging] = useState(false);
   const revenueFileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const updateScrollTopVisibility = () => setShowScrollTop(window.scrollY > 520);
+    updateScrollTopVisibility();
+    window.addEventListener("scroll", updateScrollTopVisibility, { passive: true });
+    return () => window.removeEventListener("scroll", updateScrollTopVisibility);
+  }, []);
 
   const businessManagers = useMemo(() => [...new Set(businessRows.flatMap((row) => row.managers))].sort((a, b) => a.localeCompare(b, "ko")), [businessRows]);
   const visibleBusinessRows = useMemo(() => businessManager === "all" ? businessRows : businessRows.filter((row) => row.managers.includes(businessManager)), [businessRows, businessManager]);
@@ -1308,6 +1316,7 @@ export default function Home() {
           <footer><span>학돌랩 · senvip</span><span><LockKeyhole size={14} />서버 전송 없음 · 입력값은 현재 브라우저에 저장</span></footer>
         </div>
       )}
+      {showScrollTop && <button type="button" className="scroll-top-button" onClick={() => { const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches; window.scrollTo({ top: 0, behavior: reducedMotion ? "auto" : "smooth" }); }} aria-label="맨 위로" title="맨 위로"><ArrowUp size={21} aria-hidden="true" /></button>}
       {helpOpen && <HelpModal close={() => setHelpOpen(false)} />}
       {resetConfirmOpen && <ResetDataModal close={() => setResetConfirmOpen(false)} clearExcel={resetLoadedData} clearAll={resetAllStoredInputs} />}
     </main>

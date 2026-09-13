@@ -3965,3 +3965,45 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
   .topbar-inner,
   .topbar-landing .topbar-inner { width: calc(100% - 24px); }
 }
+
+
+/* v0.6.60 · 긴 화면에서 빠르게 돌아오는 맨 위로 버튼 */
+.scroll-top-button {
+  position: fixed;
+  right: clamp(18px, 2.2vw, 30px);
+  bottom: clamp(20px, 2.4vw, 32px);
+  z-index: 75;
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  color: #fff;
+  background: #3159d8;
+  border: 1px solid rgba(255,255,255,.72);
+  border-radius: 999px;
+  box-shadow: 0 10px 26px rgba(49,89,216,.28);
+  cursor: pointer;
+  transition: transform .16s ease, background .16s ease, box-shadow .16s ease;
+}
+.scroll-top-button:hover {
+  transform: translateY(-2px);
+  background: #284dc4;
+  box-shadow: 0 13px 30px rgba(49,89,216,.34);
+}
+.scroll-top-button:active { transform: translateY(0); }
+.scroll-top-button:focus-visible {
+  outline: 3px solid rgba(49,89,216,.24);
+  outline-offset: 3px;
+}
+@media (max-width: 720px) {
+  .scroll-top-button {
+    right: 14px;
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    width: 46px;
+    height: 46px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scroll-top-button { transition: none; }
+}
