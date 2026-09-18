@@ -4053,3 +4053,71 @@ textarea:focus-visible { outline-color: rgba(49,89,216,.22); }
 
 /* v0.6.62 · 진행률 막대 시각 의미 통일: 파란색=사용 결정, 회색=남은 예산 */
 /* 금액/비율 문구와 Top10 잔액 비교 막대는 변경하지 않음 */
+
+
+/* v0.6.63 · 102-2 산출내역 펼쳐보기 / 도움말 다운로드 화면 */
+.school-hierarchy-graph-row.calculations-open { align-items: start; }
+.school-calculation-panel {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin-top: 2px;
+  padding: 13px 14px 6px;
+  background: #fafbfc;
+  border-top: 1px solid #e8ecf2;
+  border-radius: 0 0 10px 10px;
+}
+.school-calculation-panel-head {
+  margin-bottom: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.school-calculation-panel-head strong { color: #485568; font-size: 11px; }
+.school-calculation-panel-head span { color: #8a94a4; font-size: 10px; }
+.school-calculation-list { display: flex; flex-direction: column; }
+.school-calculation-row {
+  min-width: 0;
+  padding: 9px 2px;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) minmax(105px,auto) minmax(105px,auto);
+  gap: 18px;
+  align-items: center;
+  border-top: 1px solid #edf0f4;
+}
+.school-calculation-row:first-child { border-top: 0; }
+.school-calculation-name { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.school-calculation-name strong { color: #354154; font-size: 12px; font-weight: 600; line-height: 1.45; word-break: keep-all; }
+.school-calculation-name small { color: #8b95a4; font-size: 10px; }
+.school-calculation-row > span:not(.school-calculation-name) { min-width: 0; display: flex; flex-direction: column; gap: 2px; align-items: flex-end; text-align: right; }
+.school-calculation-row > span:not(.school-calculation-name) small { color: #8b95a4; font-size: 9px; }
+.school-calculation-row > span:not(.school-calculation-name) b { color: #4a5668; font-size: 11px; font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.calculation-toggle svg { transition: transform .16s ease; }
+.calculation-toggle svg.rotated { transform: rotate(180deg); }
+.school-calculation-table-row > td { padding: 0 !important; background: #fbfcfd; }
+.school-calculation-table-row .school-calculation-panel { margin: 0; border-top: 0; border-radius: 0; }
+.school-hierarchy-table td:last-child, .school-hierarchy-table th:last-child { width: 122px; }
+.school-hierarchy-table .calculation-toggle { min-width: 108px; justify-content: center; }
+.help-route-image {
+  width: 100%;
+  height: auto;
+  margin-top: 8px;
+  display: block;
+  border: 1px solid #e2e6ec;
+  border-radius: 9px;
+}
+.help-route-caption {
+  color: #717d8e;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+@media (max-width: 720px) {
+  .school-calculation-panel { margin-top: 11px; padding: 11px 10px 4px; }
+  .school-calculation-row { grid-template-columns: 1fr 1fr; gap: 7px 10px; padding: 10px 1px; }
+  .school-calculation-name { grid-column: 1 / -1; }
+  .school-calculation-row > span:not(.school-calculation-name) { align-items: flex-start; text-align: left; }
+  .school-hierarchy-mobile-head .calculation-toggle { max-width: 150px; }
+  .help-route-image { margin-top: 7px; border-radius: 7px; }
+  .help-route-caption { font-size: 10.5px; }
+}
